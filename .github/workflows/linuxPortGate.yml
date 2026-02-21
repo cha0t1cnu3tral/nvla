@@ -1,0 +1,65 @@
+name: Linux Port Gate
+
+on:
+  push:
+    branches:
+      - linux-port
+      - linux-port/**
+  pull_request:
+    branches:
+      - linux-port
+      - linux-port/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  pythonVersion: "3.13.11"
+  runner: "windows-2025"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ${{ env.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.pythonVersion }}
+          architecture: x64
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: cpython-${{ env.pythonVersion }}-windows-x86_64-none
+      - name: Run lint checks
+        shell: cmd
+        run: runlint.bat
+
+  unitTests:
+    name: Unit tests
+    runs-on: ${{ env.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.pythonVersion }}
+          architecture: x64
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: cpython-${{ env.pythonVersion }}-windows-x86_64-none
+      - name: Run unit tests
+        shell: cmd
+        run: rununittests.bat -v
+      - name: Upload unit test results
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-port-unit-test-results
+          path: testOutput/unit/unitTests.xml

@@ -15,16 +15,15 @@ from typing import (
 )
 import comtypes
 import sys
-import winVersion
 import threading
 import os
 import time
 from enum import Enum
-import winBindings.kernel32
 import logHandler
 import languageHandler
 import globalVars
 import argsParsing
+from platform import pal
 from logHandler import log
 import addonHandler
 import extensionPoints
@@ -35,17 +34,17 @@ from NVDAState import WritePaths
 if TYPE_CHECKING:
 	import wx
 
+_pal = pal.services()
+
 
 def __getattr__(attrName: str) -> Any:
 	"""Module level `__getattr__` used to preserve backward compatibility."""
 	if attrName == "post_windowMessageReceipt" and NVDAState._allowDeprecatedAPI():
-		from winAPI.messageWindow import pre_handleWindowMessage
-
 		log.warning(
 			"core.post_windowMessageReceipt is deprecated, "
 			"use winAPI.messageWindow.pre_handleWindowMessage instead.",
 		)
-		return pre_handleWindowMessage
+		return _pal.message_window.pre_handle_window_message
 	raise AttributeError(f"module {repr(__name__)} has no attribute {repr(attrName)}")
 
 
@@ -446,7 +445,6 @@ def _startNewInstance(newNVDA: NewNVDAInstance):
 	_closeAllWindows.
 	"""
 	import shellapi
-	from winUser import SW_SHOWNORMAL
 
 	log.debug(f"Starting new NVDA instance: {newNVDA}")
 	shellapi.ShellExecute(
@@ -456,7 +454,7 @@ def _startNewInstance(newNVDA: NewNVDAInstance):
 		parameters=newNVDA.parameters,
 		directory=newNVDA.directory,
 		# #4475: ensure that the first window of the new process is not hidden by providing SW_SHOWNORMAL
-		showCmd=SW_SHOWNORMAL,
+		showCmd=_pal.windowing.show_normal,
 	)
 
 
@@ -588,9 +586,8 @@ def _initializeObjectCaches():
 	"""
 	import api
 	import NVDAObjects
-	import winUser
 
-	desktopObject = NVDAObjects.window.Window(windowHandle=winUser.getDesktopWindow())
+	desktopObject = NVDAObjects.window.Window(windowHandle=_pal.process_focus.get_desktop_window())
 	api.setDesktopObject(desktopObject)
 	api.setForegroundObject(desktopObject)
 	api.setFocusObject(desktopObject)
@@ -646,7 +643,7 @@ def _setUpWxApp() -> "wx.App":
 	def onQueryEndSession(evt):
 		if config.isAppX:
 			# Automatically restart NVDA on Windows Store update
-			winBindings.kernel32.RegisterApplicationRestart(None, 0)
+			_pal.system.register_application_restart()
 
 	app.Bind(wx.EVT_QUERY_END_SESSION, onQueryEndSession)
 
@@ -679,9 +676,7 @@ def main():
 	log.debug("Core starting")
 	if NVDAState.isRunningAsSource():
 		# When running as packaged version, DPI awareness is set via the app manifest.
-		from winAPI.dpiAwareness import setDPIAwareness
-
-		setDPIAwareness()
+		_pal.display.set_dpi_awareness()
 
 	import config
 	from utils.security import isRunningOnSecureDesktop
@@ -728,7 +723,7 @@ def main():
 		except Exception:
 			pass
 	logHandler.setLogLevelFromConfig()
-	log.info(f"Windows version: {winVersion.getWinVer()}")
+	log.info(f"Windows version: {_pal.system.get_os_version_string()}")
 	log.info("Using Python version %s" % sys.version)
 	log.info("Using comtypes version %s" % comtypes.__version__)
 	from utils import schedule
@@ -836,10 +831,9 @@ def main():
 		# the GUI mainloop must be running for this to work so delay it
 		wx.CallAfter(audioDucking.initialize)
 
-	from winAPI.messageWindow import _MessageWindow
 	import buildVersion
 
-	messageWindow = _MessageWindow(buildVersion.name)
+	messageWindow = _pal.message_window.create_message_window(buildVersion.name)
 
 	# initialize wxpython localization support
 	wxLocaleObj = wx.Locale()
@@ -870,41 +864,41 @@ def main():
 		log.warning("Java Access Bridge not available")
 	except:  # noqa: E722
 		log.error("Error initializing Java Access Bridge support", exc_info=True)
-	import winConsoleHandler
-
 	log.debug("Initializing legacy winConsole support")
-	winConsoleHandler.initialize()
-	import UIAHandler
+	try:
+		_pal.accessibility.initialize_legacy_console_support()
+	except RuntimeError:
+		log.warning("Legacy winConsole support disabled in configuration")
+	except:  # noqa: E722
+		log.error("Error initializing legacy winConsole support", exc_info=True)
 
 	log.debug("Initializing UIA support")
 	try:
-		UIAHandler.initialize()
+		_pal.accessibility.initialize_uia()
 	except RuntimeError:
 		log.warning("UIA disabled in configuration")
 	except:  # noqa: E722
 		log.error("Error initializing UIA support", exc_info=True)
-	import IAccessibleHandler
 
 	log.debug("Initializing IAccessible support")
-	IAccessibleHandler.initialize()
+	_pal.accessibility.initialize_iaccessible()
 	log.debug("Initializing input core")
 	import inputCore
 
 	inputCore.initialize()
-	import keyboardHandler
 	import watchdog
 
 	log.debug("Initializing keyboard handler")
-	keyboardHandler.initialize(watchdog.WatchdogObserver())
+	_pal.input.initialize_keyboard(watchdog.WatchdogObserver())
 	import mouseHandler
 
 	log.debug("initializing mouse handler")
-	mouseHandler.initialize()
+	_pal.input.initialize_mouse()
 	import touchHandler
 
 	log.debug("Initializing touchHandler")
 	try:
-		touchHandler.initialize()
+		_pal.input.initialize_touch()
 	except NotImplementedError:
 		pass
 	import globalPluginHandler
@@ -999,12 +993,12 @@ def main():
 				if touchHandler.handler:
 					touchHandler.handler.pump()
 				JABHandler.pumpAll()
-				IAccessibleHandler.pumpAll()
+				_pal.accessibility.pump_all()
 				queueHandler.pumpAll()
 				mouseHandler.pumpAll()
 				braille.pumpAll()
 				vision.pumpAll()
-				sessionTracking.pumpAll()
+				_pal.session.pump_all()
 			except Exception:
 				log.exception("errors in this core pump cycle")
 			try:
@@ -1039,9 +1033,7 @@ def main():
 		updateCheck.initialize()
 		log.debug(f"NVDA user ID {updateCheck.state['id']}")
 
-	from winAPI import sessionTracking
-
-	sessionTracking.initialize()
+	_pal.session.initialize()
 
 	NVDAState._TrackNVDAInitialization.markInitializationComplete()
 
@@ -1081,15 +1073,39 @@ def main():
 	import treeInterceptorHandler
 
 	_terminate(treeInterceptorHandler)
-	_terminate(IAccessibleHandler, name="IAccessible support")
-	_terminate(UIAHandler, name="UIA support")
-	_terminate(winConsoleHandler, name="Legacy winConsole support")
+	log.debug("Terminating IAccessible support")
+	try:
+		_pal.accessibility.terminate_iaccessible()
+	except:  # noqa: E722
+		log.exception("Error terminating IAccessible support")
+	log.debug("Terminating UIA support")
+	try:
+		_pal.accessibility.terminate_uia()
+	except:  # noqa: E722
+		log.exception("Error terminating UIA support")
+	log.debug("Terminating legacy winConsole support")
+	try:
+		_pal.accessibility.terminate_legacy_console_support()
+	except:  # noqa: E722
+		log.exception("Error terminating legacy winConsole support")
 	_terminate(JABHandler, name="Java Access Bridge support")
 	_terminate(appModuleHandler, name="app module handler")
 	_terminate(tones)
-	_terminate(touchHandler)
-	_terminate(keyboardHandler, name="keyboard handler")
-	_terminate(mouseHandler)
+	log.debug("Terminating touch handler")
+	try:
+		_pal.input.terminate_touch()
+	except:  # noqa: E722
+		log.exception("Error terminating touch handler")
+	log.debug("Terminating keyboard handler")
+	try:
+		_pal.input.terminate_keyboard()
+	except:  # noqa: E722
+		log.exception("Error terminating keyboard handler")
+	log.debug("Terminating mouse handler")
+	try:
+		_pal.input.terminate_mouse()
+	except:  # noqa: E722
+		log.exception("Error terminating mouse handler")
 	_terminate(inputCore)
 	_terminate(screenCurtain)
 	_terminate(vision)
