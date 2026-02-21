@@ -1,0 +1,59 @@
+name: Run sanitizer checks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - '**.h'
+      - '**.c'
+
+  pull_request:
+    branches: [ master ]
+    paths:
+      - '**.h'
+      - '**.c'
+
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build with ${{ matrix.sanitizer }} sanitizer for ${{ matrix.ucs }}
+    strategy:
+      matrix:
+        ucs: [ucs2, ucs4]
+        sanitizer: [address, leak, undefined]
+        include:
+          - sanitizer: "address"
+            options: "ASAN_OPTIONS=detect_leaks=0"
+          - sanitizer: "leak"
+            options: "LSAN_OPTIONS=fast_unwind_on_malloc=0"
+          - sanitizer: "undefined"
+            options: "UBSAN_OPTIONS=halt_on_error=1"
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Install dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y libyaml-dev
+      - name: Autogen
+        run: ./autogen.sh
+      - name: Configure
+        run: CFLAGS="-fsanitize=${{ matrix.sanitizer }} -g" ./configure
+        if: matrix.ucs == 'ucs2'
+      - name: Configure with ucs4
+        run: CFLAGS="-fsanitize=${{ matrix.sanitizer }} -g" ./configure --enable-ucs4
+        if: matrix.ucs == 'ucs4'
+      - name: Make check
+        run: ${{ matrix.options }} make check
+      - name: Store the test suite log
+        if: ${{ always() }} # store the test suite log even if the tests failed
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: test-suite-${{ matrix.ucs }}-${{ matrix.sanitizer }}.log
+          path: tests/test-suite.log

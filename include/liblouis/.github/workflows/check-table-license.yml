@@ -1,0 +1,42 @@
+name: Check the license of the tables
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - 'tables/*'
+
+  pull_request:
+    branches: [ master ]
+
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
+jobs:
+  check-licenses:
+    name: Check the license of the tables
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - name: Install dependencies
+      run: sudo apt-get update -qq && sudo apt-get install -y licensecheck
+    - name: Check licenses
+      # we check all tables for a license header. If any of the
+      # licenses is not LGPL-2.1+ or LGPL-3+ we flag a problem
+      run: |
+        test -z "$(licensecheck --check='\.(ctb|utb|cti|uti|dis)' --deb-fmt --machine tables/* | grep -Ev '(LGPL-2.1+|LGPL-3+)' | tee unknown_licenses.txt)"
+    - name: Store the list of files with unknown licenses
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      with:
+        name: unknown_licenses.txt
+        path: unknown_licenses.txt
+
