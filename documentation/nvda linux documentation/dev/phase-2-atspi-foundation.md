@@ -21,13 +21,22 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
   - Visibility/offscreen inversion support for `STATE_VISIBLE` and `STATE_SHOWING`.
 - Updated `source/platform/linux/accessibility.py`:
   - Linux adapter now uses AT-SPI2 backend lifecycle for initialize/pump/terminate.
+  - Linux adapter now exposes translated AT-SPI event listener registration for higher layers.
   - Windows-specific compatibility hooks (`UIA`, legacy console) are explicit no-ops on Linux.
 - Added unit tests:
   - `tests/unit/test_linuxAtspiMappings.py`.
+  - `tests/unit/test_linuxAtspiEventTranslation.py`.
+
+## Newly completed in this slice
+
+- Raw AT-SPI events are normalized into `TranslatedATSPIEvent` payloads.
+- Repeated focus, property, and caret updates for the same source are coalesced before dispatch.
+- Pumping the Linux accessibility adapter now flushes translated events to registered listeners, giving the next object-wrapper stage a stable handoff point.
+- Linux accessibility now creates stable placeholder NVDA objects per translated AT-SPI source and routes focus/name/description/value/caret updates into NVDA's event queue.
 
 ## Remaining Phase 2 work
 
 - AT-SPI TextInfo implementation and integration with NVDA text navigation.
-- Full event dispatch bridge from AT-SPI events to NVDA event queue.
+- Full event dispatch bridge from translated Linux events into real NVDA objects and the NVDA event queue.
 - Object tree navigation and browse/review parity validation.
-- Event coalescing/cache strategy for D-Bus traffic control.
+- Cache strategy for D-Bus traffic control beyond basic duplicate-event coalescing.

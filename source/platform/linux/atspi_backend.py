@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Callable
 
 import controlTypes
 from logHandler import log
@@ -25,6 +26,7 @@ class TranslatedATSPIEvent:
 
 	kind: str
 	rawType: str
+	source: Any
 	sourceKey: str | None
 	sourceName: str | None
 	sourceDescription: str | None
@@ -147,6 +149,7 @@ def translate_atspi_event(
 	translated = TranslatedATSPIEvent(
 		kind=kind,
 		rawType=rawType,
+		source=source,
 		sourceKey=_make_source_key(source),
 		sourceName=getattr(source, "name", None),
 		sourceDescription=getattr(source, "description", None),
@@ -183,7 +186,41 @@ class ATSPI2Backend:
 		self.roleMap: dict[int, controlTypes.Role] = {}
 		self.stateMap: dict[int, controlTypes.State] = {}
 		self.invertedStateValues: set[int] = set()
-		self._translatedEvents: list[TranslatedATSPIEvent] = []
+		self._translatedEventsByKey: OrderedDict[tuple[Any, ...], TranslatedATSPIEvent] = OrderedDict()
+		self._eventListeners: list[Callable[[TranslatedATSPIEvent], None]] = []
+
+	def registerEventListener(self, listener: Callable[[TranslatedATSPIEvent], None]) -> None:
+		if listener not in self._eventListeners:
+			self._eventListeners.append(listener)
+
+	def unregisterEventListener(self, listener: Callable[[TranslatedATSPIEvent], None]) -> None:
+		try:
+			self._eventListeners.remove(listener)
+		except ValueError:
+			return
+
+	def _makeEventQueueKey(self, event: TranslatedATSPIEvent) -> tuple[Any, ...]:
+		if event.kind == "propertyChange":
+			return (event.kind, event.sourceKey, event.propertyName)
+		return (event.kind, event.sourceKey)
+
+	def _queueTranslatedEvent(self, event: TranslatedATSPIEvent) -> None:
+		queueKey = self._makeEventQueueKey(event)
+		if queueKey in self._translatedEventsByKey:
+			self._translatedEventsByKey[queueKey] = event
+			return
+		self._translatedEventsByKey[queueKey] = event
+
+	def _dispatchTranslatedEvents(self) -> None:
+		events = self.drainTranslatedEvents()
+		if not events:
+			return
+		for event in events:
+			for listener in tuple(self._eventListeners):
+				try:
+					listener(event)
+				except Exception:
+					log.exception("Failed to dispatch translated AT-SPI event")
 
 	def initialize(self) -> None:
 		if self._initialized:
@@ -219,9 +256,11 @@ class ATSPI2Backend:
 		if not self._initialized:
 			return
 		if self._mainContext is None:
+			self._dispatchTranslatedEvents()
 			return
 		while self._mainContext.pending():
 			self._mainContext.iteration(False)
+		self._dispatchTranslatedEvents()
 
 	def terminate(self) -> None:
 		if not self._initialized or self._atspi is None:
@@ -232,14 +271,15 @@ class ATSPI2Backend:
 			except Exception:
 				log.exception(f"Failed to deregister AT-SPI event listener for {eventName}")
 		self._registeredEvents.clear()
-		self._translatedEvents.clear()
+		self._translatedEventsByKey.clear()
+		self._eventListeners.clear()
 		self._mainContext = None
 		self._atspi = None
 		self._initialized = False
 
 	def drainTranslatedEvents(self) -> list[TranslatedATSPIEvent]:
-		events = self._translatedEvents[:]
-		self._translatedEvents.clear()
+		events = list(self._translatedEventsByKey.values())
+		self._translatedEventsByKey.clear()
 		return events
 
 	def translateEvent(self, event: Any) -> TranslatedATSPIEvent | None:
@@ -258,4 +298,4 @@ class ATSPI2Backend:
 			return
 		if translated is None:
 			return
-		self._translatedEvents.append(translated)
+		self._queueTranslatedEvent(translated)
