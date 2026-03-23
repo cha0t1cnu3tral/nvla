@@ -327,6 +327,21 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("gainFocus", queueEvent.call_args_list[0].args[0])
 		self.assertEqual("nameChange", queueEvent.call_args_list[1].args[0])
 
+	def test_linux_event_bridge_routes_generic_property_change_to_state_change(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		event = self._translate(
+			SimpleNamespace(
+				type="accessible:property-change",
+				any_data="opaque",
+				source=_FakeSource(role=11, states=(2, 3, 4), name="editor", path=(6, 9)),
+			),
+		)
+
+		with mock.patch.object(accessibility.eventHandler, "queueEvent") as queueEvent:
+			bridge.handleEvent(event)
+
+		self.assertEqual("stateChange", queueEvent.call_args_list[0].args[0])
+
 	def test_linux_event_bridge_applies_property_change_on_first_event(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		event = self._translate(

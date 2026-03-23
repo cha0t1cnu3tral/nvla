@@ -79,6 +79,8 @@ class LinuxATSPINVDAEventBridge:
 			eventHandler.queueEvent("descriptionChange", obj)
 		elif event.propertyName == "value":
 			eventHandler.queueEvent("valueChange", obj)
+		else:
+			eventHandler.queueEvent("stateChange", obj)
 
 
 class LinuxAccessibilityAdapter:
