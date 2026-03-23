@@ -6,9 +6,55 @@ from __future__ import annotations
 from typing import Any
 
 import controlTypes
-from NVDAObjects import NVDAObject
+from NVDAObjects import NVDAObject, NVDAObjectTextInfo
 
 from .atspi_backend import TranslatedATSPIEvent
+
+
+def _clampOffset(offset: int, storyLength: int) -> int:
+	return max(0, min(offset, storyLength))
+
+
+class LinuxATSPITextInfo(NVDAObjectTextInfo):
+	"""TextInfo implementation backed by AT-SPI text interfaces when available."""
+
+	def _getStoryText(self) -> str:
+		return self.obj._getAccessibleText()
+
+	def _getStoryLength(self) -> int:
+		return len(self._getStoryText())
+
+	def _getCaretOffset(self) -> int:
+		storyLength = self._getStoryLength()
+		offset = self.obj._getAccessibleCaretOffset()
+		if offset is None:
+			offset = 0
+		return _clampOffset(offset, storyLength)
+
+	def _setCaretOffset(self, offset: int) -> None:
+		storyLength = self._getStoryLength()
+		self.obj._setAccessibleCaretOffset(_clampOffset(offset, storyLength))
+
+	def _getSelectionOffsets(self) -> tuple[int, int]:
+		storyLength = self._getStoryLength()
+		selection = self.obj._getAccessibleSelectionOffsets()
+		if selection is None:
+			caretOffset = self._getCaretOffset()
+			return caretOffset, caretOffset
+		start, end = selection
+		start = _clampOffset(start, storyLength)
+		end = _clampOffset(end, storyLength)
+		if start > end:
+			start, end = end, start
+		return start, end
+
+	def _setSelectionOffsets(self, start: int, end: int) -> None:
+		storyLength = self._getStoryLength()
+		start = _clampOffset(start, storyLength)
+		end = _clampOffset(end, storyLength)
+		if start > end:
+			start, end = end, start
+		self.obj._setAccessibleSelectionOffsets(start, end)
 
 
 class _LinuxStubAppModule:
@@ -24,6 +70,8 @@ class _LinuxStubAppModule:
 
 class LinuxATSPIObject(NVDAObject):
 	"""Minimal NVDA object wrapper for a translated AT-SPI accessible."""
+
+	TextInfo = LinuxATSPITextInfo
 
 	def __init__(
 		self,
@@ -47,6 +95,8 @@ class LinuxATSPIObject(NVDAObject):
 		self._value = ""
 		self._role = role
 		self._states = set(states or ())
+		self._caretOffset = 0
+		self._selectionOffsets: tuple[int, int] | None = None
 
 	def _isEqual(self, other):
 		return self.sourceKey == other.sourceKey
@@ -81,6 +131,86 @@ class LinuxATSPIObject(NVDAObject):
 	def _get_isInForeground(self) -> bool:
 		return controlTypes.State.FOCUSED in self._states
 
+	def _queryAccessibleText(self) -> Any | None:
+		accessible = self.accessible
+		if accessible is None:
+			return None
+		queryText = getattr(accessible, "queryText", None)
+		if callable(queryText):
+			try:
+				return queryText()
+			except Exception:
+				return None
+		return getattr(accessible, "text", None)
+
+	def _getAccessibleText(self) -> str:
+		text = self._value
+		textInterface = self._queryAccessibleText()
+		didReadTextInterface = False
+		if textInterface is not None:
+			getText = getattr(textInterface, "getText", None)
+			if callable(getText):
+				try:
+					text = str(getText(0, -1))
+					didReadTextInterface = True
+				except Exception:
+					pass
+		if didReadTextInterface:
+			return text
+		if text:
+			return text
+		if self._name:
+			return self._name
+		if self._description:
+			return self._description
+		return ""
+
+	def _getAccessibleCaretOffset(self) -> int | None:
+		textInterface = self._queryAccessibleText()
+		if textInterface is not None:
+			try:
+				return int(getattr(textInterface, "caretOffset"))
+			except Exception:
+				pass
+		if self._selectionOffsets is not None:
+			return self._selectionOffsets[1]
+		return self._caretOffset
+
+	def _setAccessibleCaretOffset(self, offset: int) -> None:
+		textInterface = self._queryAccessibleText()
+		if textInterface is not None:
+			setCaretOffset = getattr(textInterface, "setCaretOffset", None)
+			if callable(setCaretOffset):
+				try:
+					setCaretOffset(offset)
+				except Exception:
+					pass
+		self._caretOffset = offset
+		self._selectionOffsets = (offset, offset)
+
+	def _getAccessibleSelectionOffsets(self) -> tuple[int, int] | None:
+		textInterface = self._queryAccessibleText()
+		if textInterface is not None:
+			try:
+				getSelection = getattr(textInterface, "getSelection")
+				if callable(getSelection):
+					return tuple(int(x) for x in getSelection(0))
+			except Exception:
+				pass
+		return self._selectionOffsets
+
+	def _setAccessibleSelectionOffsets(self, start: int, end: int) -> None:
+		textInterface = self._queryAccessibleText()
+		if textInterface is not None:
+			setSelection = getattr(textInterface, "setSelection", None)
+			if callable(setSelection):
+				try:
+					setSelection(0, start, end)
+				except Exception:
+					pass
+		self._selectionOffsets = (start, end)
+		self._caretOffset = end
+
 	def updateFromTranslatedEvent(self, event: TranslatedATSPIEvent) -> None:
 		self.accessible = event.source
 		if event.sourceName is not None:
@@ -93,5 +223,8 @@ class LinuxATSPIObject(NVDAObject):
 			self._description = str(event.propertyValue)
 		elif event.propertyName == "value" and event.propertyValue is not None:
 			self._value = str(event.propertyValue)
+		elif event.kind == "caret" and event.caretOffset is not None:
+			self._caretOffset = max(0, event.caretOffset)
+			self._selectionOffsets = (self._caretOffset, self._caretOffset)
 		self._role = event.role
 		self._states = set(event.states)

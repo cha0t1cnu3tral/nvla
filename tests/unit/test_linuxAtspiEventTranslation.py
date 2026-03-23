@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 import controlTypes
+import textInfos
 from platform.linux import accessibility, atspi_backend, atspi_mappings
 
 
@@ -26,18 +27,53 @@ class _FakeSource:
 		name=None,
 		description=None,
 		path=None,
+		text=None,
 	):
 		self._role = role
 		self._state = _FakeStateSet(states)
 		self.name = name
 		self.description = description
 		self.path = path
+		self._text = text
 
 	def getRole(self):
 		return self._role
 
 	def getState(self):
 		return self._state
+
+	def queryText(self):
+		if self._text is None:
+			raise RuntimeError("No text interface")
+		return self._text
+
+
+class _FakeText:
+	def __init__(self, text: str, caretOffset: int = 0, selection: tuple[int, int] | None = None):
+		self._text = text
+		self.characterCount = len(text)
+		self.caretOffset = caretOffset
+		self._selection = selection
+
+	def getText(self, start: int, end: int) -> str:
+		if end < 0:
+			end = len(self._text)
+		return self._text[start:end]
+
+	def setCaretOffset(self, offset: int) -> None:
+		self.caretOffset = offset
+		self._selection = (offset, offset)
+
+	def getSelection(self, index: int) -> tuple[int, int]:
+		if index != 0 or self._selection is None:
+			raise RuntimeError("No selection")
+		return self._selection
+
+	def setSelection(self, index: int, start: int, end: int) -> None:
+		if index != 0:
+			raise RuntimeError("Only a single selection is supported")
+		self._selection = (start, end)
+		self.caretOffset = end
 
 
 class TestLinuxAtspiEventTranslation(unittest.TestCase):
@@ -336,3 +372,82 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 				adapter.terminate_iaccessible()
 
 		self.assertEqual({}, dict(adapter._eventBridge._objectsByKey))
+
+	def test_linux_atspi_text_info_uses_accessible_text_interface(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(3, 4),
+			text=_FakeText("hello world", caretOffset=6),
+		)
+		focusEvent = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=1,
+				source=source,
+			),
+		)
+		obj = bridge.getOrCreateObjectForEvent(focusEvent)
+
+		allText = obj.makeTextInfo(textInfos.POSITION_ALL)
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+
+		self.assertEqual("hello world", allText.text)
+		self.assertEqual((6, 6), caretText.offsets)
+
+	def test_linux_atspi_text_info_updates_caret_and_selection(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		text = _FakeText("abcde", caretOffset=1)
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(3, 5),
+			text=text,
+		)
+		focusEvent = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=1,
+				source=source,
+			),
+		)
+		obj = bridge.getOrCreateObjectForEvent(focusEvent)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+		caretText.move(textInfos.UNIT_CHARACTER, 2)
+		caretText.updateCaret()
+		self.assertEqual(3, text.caretOffset)
+
+		selectionText = obj.makeTextInfo(textInfos.POSITION_FIRST)
+		endText = obj.makeTextInfo(textInfos.POSITION_FIRST)
+		endText.move(textInfos.UNIT_CHARACTER, 4)
+		selectionText.setEndPoint(endText, "endToEnd")
+		selectionText.updateSelection()
+		self.assertEqual((0, 4), text.getSelection(0))
+
+	def test_linux_atspi_text_info_falls_back_to_caret_event_offset(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(role=11, states=(2, 3, 4), name="editor", path=(3, 9))
+		nameEvent = self._translate(
+			SimpleNamespace(
+				type="accessible:property-change:name",
+				any_data="editor",
+				source=source,
+			),
+		)
+		caretEvent = self._translate(
+			SimpleNamespace(
+				type="object:text-caret-moved",
+				detail1=5,
+				source=source,
+			),
+		)
+
+		obj = bridge.getOrCreateObjectForEvent(nameEvent)
+		obj.updateFromTranslatedEvent(caretEvent)
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+
+		self.assertEqual((5, 5), caretText.offsets)

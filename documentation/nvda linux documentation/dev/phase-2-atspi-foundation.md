@@ -36,10 +36,15 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Backend translated-event buffering is now bounded to prevent unbounded growth under bursty D-Bus traffic.
 - Queue eviction now prefers dropping non-focus events first, preserving focus continuity under load.
 - Linux AT-SPI object caching now uses bounded eviction and is explicitly cleared on adapter termination.
+- Linux AT-SPI objects now expose a concrete `TextInfo` implementation for story/caret/selection operations, backed by the AT-SPI text interface when available and by translated caret fallback state otherwise.
+- Added Linux TextInfo unit coverage in `tests/unit/test_linuxAtspiEventTranslation.py` for:
+  - Story and caret retrieval from an AT-SPI text interface.
+  - Caret and selection updates propagated back through AT-SPI text primitives.
+  - Caret-position fallback from translated `object:text-caret-moved` events when AT-SPI text is not available.
 
 ## Remaining Phase 2 work
 
-- AT-SPI TextInfo implementation and integration with NVDA text navigation.
 - Full event dispatch bridge from translated Linux events into real NVDA objects and the NVDA event queue.
 - Object tree navigation and browse/review parity validation.
 - D-Bus event prioritization and smarter throttling (beyond key-based coalescing and bounded buffering).
+- Extend AT-SPI TextInfo beyond baseline primitives (line/word/sentence offsets, richer formatting, geometry and hit-testing).
