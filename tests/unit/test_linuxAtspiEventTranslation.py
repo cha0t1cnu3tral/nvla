@@ -207,6 +207,40 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("10:btn1", queued[0].sourceKey)
 		self.assertEqual("10:btn3", queued[-1].sourceKey)
 
+	def test_backend_queue_eviction_preserves_focus_when_possible(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		backend._maxQueuedTranslatedEvents = 2
+
+		backend._onAtspiEvent(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=1,
+				source=_FakeSource(role=10, states=(1, 2, 3), name="focusA", path=(8, 1)),
+			),
+		)
+		backend._onAtspiEvent(
+			SimpleNamespace(
+				type="accessible:property-change:name",
+				any_data="Draft",
+				source=_FakeSource(role=11, states=(2, 3, 4), name="editor", path=(8, 2)),
+			),
+		)
+		backend._onAtspiEvent(
+			SimpleNamespace(
+				type="object:text-caret-moved",
+				detail1=11,
+				source=_FakeSource(role=11, states=(2, 3, 4), name="editor", path=(8, 2)),
+			),
+		)
+
+		queued = backend.drainTranslatedEvents()
+		self.assertEqual(2, len(queued))
+		self.assertEqual("focus", queued[0].kind)
+		self.assertEqual("caret", queued[1].kind)
+
 	def test_linux_event_bridge_caches_objects_by_source(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		source = _FakeSource(role=11, states=(2, 3, 4), name="Draft", path=(9, 1))

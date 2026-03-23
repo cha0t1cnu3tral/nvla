@@ -213,7 +213,14 @@ class ATSPI2Backend:
 			return
 		self._translatedEventsByKey[queueKey] = event
 		while len(self._translatedEventsByKey) > self._maxQueuedTranslatedEvents:
-			self._translatedEventsByKey.popitem(last=False)
+			self._dropLowestPriorityQueuedEvent()
+
+	def _dropLowestPriorityQueuedEvent(self) -> None:
+		for queueKey, queuedEvent in self._translatedEventsByKey.items():
+			if queuedEvent.kind != "focus":
+				del self._translatedEventsByKey[queueKey]
+				return
+		self._translatedEventsByKey.popitem(last=False)
 
 	def _dispatchTranslatedEvents(self) -> None:
 		events = self.drainTranslatedEvents()

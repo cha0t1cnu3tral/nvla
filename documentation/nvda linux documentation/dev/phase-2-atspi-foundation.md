@@ -34,6 +34,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Pumping the Linux accessibility adapter now flushes translated events to registered listeners, giving the next object-wrapper stage a stable handoff point.
 - Linux accessibility now creates stable placeholder NVDA objects per translated AT-SPI source and routes focus/name/description/value/caret updates into NVDA's event queue.
 - Backend translated-event buffering is now bounded to prevent unbounded growth under bursty D-Bus traffic.
+- Queue eviction now prefers dropping non-focus events first, preserving focus continuity under load.
 - Linux AT-SPI object caching now uses bounded eviction and is explicitly cleared on adapter termination.
 
 ## Remaining Phase 2 work
