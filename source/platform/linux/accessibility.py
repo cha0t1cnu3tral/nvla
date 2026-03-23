@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import Callable
 
 import api
@@ -14,8 +15,10 @@ from .atspi_objects import LinuxATSPIObject
 
 
 class LinuxATSPINVDAEventBridge:
+	_MAX_CACHED_OBJECTS = 512
+
 	def __init__(self) -> None:
-		self._objectsByKey: dict[str, LinuxATSPIObject] = {}
+		self._objectsByKey: OrderedDict[str, LinuxATSPIObject] = OrderedDict()
 
 	def _getCacheKey(self, event: TranslatedATSPIEvent) -> str | None:
 		if event.sourceKey is not None:
@@ -40,9 +43,18 @@ class LinuxATSPINVDAEventBridge:
 				states=event.states,
 			)
 			self._objectsByKey[cacheKey] = obj
+			self._evictCachedObjectsIfNeeded()
 		else:
 			obj.updateFromTranslatedEvent(event)
+			self._objectsByKey.move_to_end(cacheKey)
 		return obj
+
+	def clearCachedObjects(self) -> None:
+		self._objectsByKey.clear()
+
+	def _evictCachedObjectsIfNeeded(self) -> None:
+		while len(self._objectsByKey) > self._MAX_CACHED_OBJECTS:
+			self._objectsByKey.popitem(last=False)
 
 	def handleEvent(self, event: TranslatedATSPIEvent) -> None:
 		obj = self.getOrCreateObjectForEvent(event)
@@ -108,6 +120,7 @@ class LinuxAccessibilityAdapter:
 			return
 		self._backend.unregisterEventListener(self._eventBridge.handleEvent)
 		self._backend.terminate()
+		self._eventBridge.clearCachedObjects()
 		self._initialized = False
 
 	def initialize_legacy_console_support(self) -> None:

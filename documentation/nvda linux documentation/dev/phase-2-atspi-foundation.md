@@ -33,10 +33,12 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Repeated focus, property, and caret updates for the same source are coalesced before dispatch.
 - Pumping the Linux accessibility adapter now flushes translated events to registered listeners, giving the next object-wrapper stage a stable handoff point.
 - Linux accessibility now creates stable placeholder NVDA objects per translated AT-SPI source and routes focus/name/description/value/caret updates into NVDA's event queue.
+- Backend translated-event buffering is now bounded to prevent unbounded growth under bursty D-Bus traffic.
+- Linux AT-SPI object caching now uses bounded eviction and is explicitly cleared on adapter termination.
 
 ## Remaining Phase 2 work
 
 - AT-SPI TextInfo implementation and integration with NVDA text navigation.
 - Full event dispatch bridge from translated Linux events into real NVDA objects and the NVDA event queue.
 - Object tree navigation and browse/review parity validation.
-- Cache strategy for D-Bus traffic control beyond basic duplicate-event coalescing.
+- D-Bus event prioritization and smarter throttling (beyond key-based coalescing and bounded buffering).

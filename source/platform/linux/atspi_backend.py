@@ -18,6 +18,7 @@ _AT_SPI_EVENT_NAMES = (
 	"accessible:property-change",
 	"object:text-caret-moved",
 )
+_MAX_QUEUED_TRANSLATED_EVENTS = 256
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,6 +189,7 @@ class ATSPI2Backend:
 		self.invertedStateValues: set[int] = set()
 		self._translatedEventsByKey: OrderedDict[tuple[Any, ...], TranslatedATSPIEvent] = OrderedDict()
 		self._eventListeners: list[Callable[[TranslatedATSPIEvent], None]] = []
+		self._maxQueuedTranslatedEvents = _MAX_QUEUED_TRANSLATED_EVENTS
 
 	def registerEventListener(self, listener: Callable[[TranslatedATSPIEvent], None]) -> None:
 		if listener not in self._eventListeners:
@@ -210,6 +212,8 @@ class ATSPI2Backend:
 			self._translatedEventsByKey[queueKey] = event
 			return
 		self._translatedEventsByKey[queueKey] = event
+		while len(self._translatedEventsByKey) > self._maxQueuedTranslatedEvents:
+			self._translatedEventsByKey.popitem(last=False)
 
 	def _dispatchTranslatedEvents(self) -> None:
 		events = self.drainTranslatedEvents()

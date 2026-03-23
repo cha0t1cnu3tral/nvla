@@ -181,6 +181,32 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual(9, received[0].caretOffset)
 		self.assertEqual([], backend.drainTranslatedEvents())
 
+	def test_backend_bounds_translated_event_queue_size(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		backend._maxQueuedTranslatedEvents = 3
+
+		for i in range(4):
+			backend._onAtspiEvent(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=_FakeSource(
+						role=10,
+						states=(1, 2, 3),
+						name=f"btn{i}",
+						path=(7, i),
+					),
+				),
+			)
+
+		queued = backend.drainTranslatedEvents()
+		self.assertEqual(3, len(queued))
+		self.assertEqual("10:btn1", queued[0].sourceKey)
+		self.assertEqual("10:btn3", queued[-1].sourceKey)
+
 	def test_linux_event_bridge_caches_objects_by_source(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		source = _FakeSource(role=11, states=(2, 3, 4), name="Draft", path=(9, 1))
@@ -230,3 +256,49 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual(1, setFocusObject.call_count)
 		self.assertEqual("gainFocus", queueEvent.call_args_list[0].args[0])
 		self.assertEqual("nameChange", queueEvent.call_args_list[1].args[0])
+
+	def test_linux_event_bridge_evicts_oldest_cached_object(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		bridge._MAX_CACHED_OBJECTS = 2
+
+		eventA = self._translate(
+			SimpleNamespace(
+				type="accessible:property-change:name",
+				any_data="A",
+				source=_FakeSource(role=11, states=(2, 3, 4), name="A", path=(1, 1)),
+			),
+		)
+		eventB = self._translate(
+			SimpleNamespace(
+				type="accessible:property-change:name",
+				any_data="B",
+				source=_FakeSource(role=11, states=(2, 3, 4), name="B", path=(1, 2)),
+			),
+		)
+		eventC = self._translate(
+			SimpleNamespace(
+				type="accessible:property-change:name",
+				any_data="C",
+				source=_FakeSource(role=11, states=(2, 3, 4), name="C", path=(1, 3)),
+			),
+		)
+
+		bridge.getOrCreateObjectForEvent(eventA)
+		bridge.getOrCreateObjectForEvent(eventB)
+		bridge.getOrCreateObjectForEvent(eventC)
+
+		self.assertEqual(2, len(bridge._objectsByKey))
+		self.assertNotIn("1:1", bridge._objectsByKey)
+		self.assertIn("1:2", bridge._objectsByKey)
+		self.assertIn("1:3", bridge._objectsByKey)
+
+	def test_linux_accessibility_adapter_clears_cached_objects_on_terminate(self):
+		adapter = accessibility.LinuxAccessibilityAdapter()
+		adapter._initialized = True
+		adapter._eventBridge._objectsByKey["1:9"] = mock.Mock()
+
+		with mock.patch.object(adapter._backend, "unregisterEventListener"):
+			with mock.patch.object(adapter._backend, "terminate"):
+				adapter.terminate_iaccessible()
+
+		self.assertEqual({}, dict(adapter._eventBridge._objectsByKey))
