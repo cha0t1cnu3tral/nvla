@@ -41,6 +41,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
   - Story and caret retrieval from an AT-SPI text interface.
   - Caret and selection updates propagated back through AT-SPI text primitives.
   - Caret-position fallback from translated `object:text-caret-moved` events when AT-SPI text is not available.
+- Fixed Linux AT-SPI object cache initialization so the first translated event is immediately applied to new objects (for example initial property-change payloads and initial caret offsets).
 
 ## Remaining Phase 2 work
 

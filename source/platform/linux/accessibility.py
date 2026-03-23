@@ -42,6 +42,7 @@ class LinuxATSPINVDAEventBridge:
 				role=event.role,
 				states=event.states,
 			)
+			obj.updateFromTranslatedEvent(event)
 			self._objectsByKey[cacheKey] = obj
 			self._evictCachedObjectsIfNeeded()
 		else:

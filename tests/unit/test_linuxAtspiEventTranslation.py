@@ -327,6 +327,35 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("gainFocus", queueEvent.call_args_list[0].args[0])
 		self.assertEqual("nameChange", queueEvent.call_args_list[1].args[0])
 
+	def test_linux_event_bridge_applies_property_change_on_first_event(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		event = self._translate(
+			SimpleNamespace(
+				type="accessible:property-change:name",
+				any_data="Final Name",
+				source=_FakeSource(role=11, states=(2, 3, 4), name="Old Name", path=(6, 1)),
+			),
+		)
+
+		obj = bridge.getOrCreateObjectForEvent(event)
+
+		self.assertEqual("Final Name", obj.name)
+
+	def test_linux_event_bridge_applies_caret_offset_on_first_event(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		event = self._translate(
+			SimpleNamespace(
+				type="object:text-caret-moved",
+				detail1=7,
+				source=_FakeSource(role=11, states=(2, 3, 4), name="editor", path=(6, 2)),
+			),
+		)
+
+		obj = bridge.getOrCreateObjectForEvent(event)
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+
+		self.assertEqual((7, 7), caretText.offsets)
+
 	def test_linux_event_bridge_evicts_oldest_cached_object(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		bridge._MAX_CACHED_OBJECTS = 2
