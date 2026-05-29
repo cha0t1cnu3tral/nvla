@@ -17,7 +17,7 @@ Current dev milestones documented:
 The full NVDA unit harness currently requires built Windows helper DLLs. For dependency-light Linux-port work, run:
 
 ```powershell
-uv run python tests/linuxPortUnitRunner.py
+uv run --no-project python tests/linuxPortUnitRunner.py
 ```
 
 This runner installs narrow test stubs and runs the AT-SPI mapping/event/object tests without loading `nvdaHelperLocal.dll`.
