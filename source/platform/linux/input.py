@@ -40,6 +40,22 @@ _MODIFIER_ORDER = {
 }
 _MODIFIER_KEY_NAMES = frozenset(_MODIFIER_ORDER)
 _IDENTIFIER_RE = re.compile(r"^kb(?:\((.+?)\))?:(.*)$")
+_NVDA_KEY_CAPS_LOCK = 1
+_NVDA_KEY_NUMPAD_INSERT = 2
+_NVDA_KEY_EXTENDED_INSERT = 4
+_DEFAULT_NVDA_MODIFIER_KEYS = _NVDA_KEY_NUMPAD_INSERT | _NVDA_KEY_EXTENDED_INSERT
+_LINUX_NVDA_MODIFIER_KEY_ALIASES = {
+	"caps_lock": "capslock",
+	"capslock": "capslock",
+	"insert": "insert",
+	"insert_l": "insert",
+	"insert_r": "insert",
+	"ins": "insert",
+	"kp_0": "numpadinsert",
+	"kp_insert": "numpadinsert",
+	"numpad_insert": "numpadinsert",
+	"numpadinsert": "numpadinsert",
+}
 
 
 if inputCore is None:
@@ -74,6 +90,34 @@ def _getInputCore() -> Any | None:
 		return None
 	inputCore = inputCoreModule
 	return inputCore
+
+
+def _getConfiguredNVDAModifierKeys() -> int:
+	try:
+		import config
+
+		return int(config.conf["keyboard"]["NVDAModifierKeys"])
+	except Exception:
+		return _DEFAULT_NVDA_MODIFIER_KEYS
+
+
+def _canonicalizeLinuxKeyName(value: Any) -> str:
+	return str(value or "").strip().lower().replace("-", "_").replace(" ", "")
+
+
+def _getLinuxNVDAModifierKeyName(value: Any, nvdaModifierKeys: int | None = None) -> str | None:
+	keyName = _LINUX_NVDA_MODIFIER_KEY_ALIASES.get(_canonicalizeLinuxKeyName(value))
+	if keyName is None:
+		return None
+	if nvdaModifierKeys is None:
+		nvdaModifierKeys = _getConfiguredNVDAModifierKeys()
+	if keyName == "capslock" and nvdaModifierKeys & _NVDA_KEY_CAPS_LOCK:
+		return "NVDA"
+	if keyName == "numpadinsert" and nvdaModifierKeys & _NVDA_KEY_NUMPAD_INSERT:
+		return "NVDA"
+	if keyName == "insert" and nvdaModifierKeys & _NVDA_KEY_EXTENDED_INSERT:
+		return "NVDA"
+	return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,26 +247,35 @@ def registerKeyboardGestureSource() -> None:
 		inputCoreModule.registerGestureSource("kb", LinuxKeyboardGesture)
 
 
-def _normalizeKeyName(value: Any) -> str:
+def _normalizeKeyName(value: Any, nvdaModifierKeys: int | None = None) -> str:
 	keyName = str(value or "").strip()
 	if not keyName:
 		return "unknown"
 	keyName = keyName.replace(" ", "")
-	modifierName = keyName.lower().replace("-", "_")
+	nvdaModifierName = _getLinuxNVDAModifierKeyName(keyName, nvdaModifierKeys)
+	if nvdaModifierName is not None:
+		return nvdaModifierName
+	modifierName = _canonicalizeLinuxKeyName(keyName)
 	if modifierName in _MODIFIER_NAMES:
 		return _MODIFIER_NAMES[modifierName]
+	if modifierName in _LINUX_NVDA_MODIFIER_KEY_ALIASES:
+		return _LINUX_NVDA_MODIFIER_KEY_ALIASES[modifierName]
 	if len(keyName) == 1:
 		return keyName.upper()
 	return keyName[0].upper() + keyName[1:]
 
 
-def _normalizeModifiers(modifiers: Any) -> frozenset[str]:
+def _normalizeModifiers(modifiers: Any, nvdaModifierKeys: int | None = None) -> frozenset[str]:
 	if modifiers is None:
 		return frozenset()
 	normalized: set[str] = set()
 	for modifier in modifiers:
-		modifierName = str(modifier).strip().lower().replace("-", "_")
+		modifierName = _canonicalizeLinuxKeyName(modifier)
 		if not modifierName:
+			continue
+		nvdaModifierName = _getLinuxNVDAModifierKeyName(modifierName, nvdaModifierKeys)
+		if nvdaModifierName is not None:
+			normalized.add(nvdaModifierName)
 			continue
 		normalized.add(_MODIFIER_NAMES.get(modifierName, modifierName))
 	return frozenset(normalized)
@@ -231,18 +284,20 @@ def _normalizeModifiers(modifiers: Any) -> frozenset[str]:
 def translateRawKeyEvent(event: Any) -> LinuxKeyEvent:
 	"""Translate a backend-specific Linux key event shape into a stable payload."""
 
+	nvdaModifierKeys = getattr(event, "nvdaModifierKeys", None)
 	return LinuxKeyEvent(
 		keyName=_normalizeKeyName(
 			getattr(event, "keyName", None)
 			or getattr(event, "key", None)
 			or getattr(event, "name", None),
+			nvdaModifierKeys,
 		),
 		isPressed=bool(
 			getattr(event, "isPressed", None)
 			if getattr(event, "isPressed", None) is not None
 			else getattr(event, "pressed", True)
 		),
-		modifiers=_normalizeModifiers(getattr(event, "modifiers", None)),
+		modifiers=_normalizeModifiers(getattr(event, "modifiers", None), nvdaModifierKeys),
 		scanCode=getattr(event, "scanCode", None),
 		virtualKey=getattr(event, "virtualKey", None),
 	)

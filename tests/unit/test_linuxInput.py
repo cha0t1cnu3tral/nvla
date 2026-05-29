@@ -47,6 +47,63 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual(frozenset(("alt",)), event.modifiers)
 		self.assertEqual("alt+Space", event.gestureName)
 
+	def test_translates_configured_insert_modifier_to_nvda_modifier(self):
+		event = translateRawKeyEvent(
+			SimpleNamespace(
+				key="n",
+				modifiers=("insert",),
+				nvdaModifierKeys=4,
+			),
+		)
+
+		self.assertEqual(frozenset(("NVDA",)), event.modifiers)
+		self.assertEqual("NVDA+N", event.gestureName)
+
+	def test_translates_configured_numpad_insert_modifier_to_nvda_modifier(self):
+		event = translateRawKeyEvent(
+			SimpleNamespace(
+				key="f1",
+				modifiers=("KP_Insert",),
+				nvdaModifierKeys=2,
+			),
+		)
+
+		self.assertEqual(frozenset(("NVDA",)), event.modifiers)
+		self.assertEqual("NVDA+F1", event.gestureName)
+
+	def test_translates_configured_caps_lock_modifier_to_nvda_modifier(self):
+		event = translateRawKeyEvent(
+			SimpleNamespace(
+				key="t",
+				modifiers=("Caps_Lock",),
+				nvdaModifierKeys=1,
+			),
+		)
+
+		self.assertEqual(frozenset(("NVDA",)), event.modifiers)
+		self.assertEqual("NVDA+T", event.gestureName)
+
+	def test_leaves_unconfigured_nvda_modifier_keys_as_regular_keys(self):
+		event = translateRawKeyEvent(
+			SimpleNamespace(
+				key="n",
+				modifiers=("capslock",),
+				nvdaModifierKeys=4,
+			),
+		)
+
+		self.assertEqual(frozenset(("capslock",)), event.modifiers)
+		self.assertEqual("capslock+N", event.gestureName)
+
+	def test_nvda_modifier_key_press_is_modifier_gesture(self):
+		event = translateRawKeyEvent(SimpleNamespace(key="insert", nvdaModifierKeys=4))
+
+		gesture = makeKeyboardGesture(event)
+
+		self.assertEqual("NVDA", event.keyName)
+		self.assertTrue(gesture.isModifier)
+		self.assertEqual(("kb(desktop):NVDA", "kb(laptop):NVDA", "kb:NVDA"), gesture.identifiers)
+
 	def test_dispatches_fed_keyboard_events_to_listeners_and_observer(self):
 		adapter = LinuxInputAdapter()
 		received = []
