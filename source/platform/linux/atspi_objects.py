@@ -214,6 +214,37 @@ def _getWordOffsetsFromText(text: str, offset: int) -> tuple[int, int]:
 	return start, end
 
 
+def _getSentenceOffsetsFromText(text: str, offset: int) -> tuple[int, int]:
+	if not text:
+		return 0, 0
+	offset = _clampOffset(offset, len(text) - 1)
+	start = offset
+	while start > 0 and text[start - 1] not in ".!?":
+		start -= 1
+	while start < len(text) and text[start].isspace():
+		start += 1
+	end = offset
+	while end < len(text) and text[end] not in ".!?":
+		end += 1
+	if end < len(text):
+		end += 1
+		while end < len(text) and text[end].isspace():
+			end += 1
+	return start, end
+
+
+def _getParagraphOffsetsFromText(text: str, offset: int) -> tuple[int, int]:
+	if not text:
+		return 0, 0
+	offset = _clampOffset(offset, len(text) - 1)
+	start = text.rfind("\n\n", 0, offset + 1)
+	start = 0 if start < 0 else start + 2
+	end = text.find("\n\n", offset)
+	if end < 0:
+		end = len(text)
+	return start, end
+
+
 def _getAccessibleExtents(accessible: Any) -> LinuxRectLTWH | None:
 	if accessible is None:
 		return None
@@ -285,6 +316,30 @@ class LinuxATSPITextInfo(NVDAObjectTextInfo):
 			if offsetRange is not None:
 				return offsetRange
 		return _getWordOffsetsFromText(self._getStoryText(), offset)
+
+	def _getSentenceOffsets(self, offset: int) -> tuple[int, int]:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is not None:
+			offsetRange = _getTextAtOffsetRange(
+				textInterface,
+				offset,
+				("TEXT_BOUNDARY_SENTENCE_START", "sentence", "sentenceStart"),
+			)
+			if offsetRange is not None:
+				return offsetRange
+		return _getSentenceOffsetsFromText(self._getStoryText(), offset)
+
+	def _getParagraphOffsets(self, offset: int) -> tuple[int, int]:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is not None:
+			offsetRange = _getTextAtOffsetRange(
+				textInterface,
+				offset,
+				("TEXT_BOUNDARY_PARAGRAPH_START", "paragraph", "paragraphStart"),
+			)
+			if offsetRange is not None:
+				return offsetRange
+		return _getParagraphOffsetsFromText(self._getStoryText(), offset)
 
 	def _getCaretOffset(self) -> int:
 		storyLength = self._getStoryLength()

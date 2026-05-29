@@ -929,3 +929,84 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 
 		self.assertEqual((6, 11), caretText.offsets)
 		self.assertEqual("bravo", caretText.text)
+
+	def test_linux_atspi_text_info_expands_to_sentence_from_story_text(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 7),
+			text=_FakeText("First sentence. Second sentence! Third.", caretOffset=20),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+		caretText.expand(textInfos.UNIT_SENTENCE)
+
+		self.assertEqual((16, 33), caretText.offsets)
+		self.assertEqual("Second sentence! ", caretText.text)
+
+	def test_linux_atspi_text_info_expands_to_paragraph_from_story_text(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 8),
+			text=_FakeText("First paragraph.\n\nSecond paragraph line.", caretOffset=22),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+		caretText.expand(textInfos.UNIT_PARAGRAPH)
+
+		self.assertEqual((18, 40), caretText.offsets)
+		self.assertEqual("Second paragraph line.", caretText.text)
+
+	def test_linux_atspi_text_info_prefers_atspi_text_at_offset_for_sentence(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 9),
+			text=_FakeText(
+				"First sentence. Second sentence!",
+				caretOffset=20,
+				textAtOffset={
+					(20, "TEXT_BOUNDARY_SENTENCE_START"): ("Second sentence!", 16, 32),
+				},
+			),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+		caretText.expand(textInfos.UNIT_SENTENCE)
+
+		self.assertEqual((16, 32), caretText.offsets)
+		self.assertEqual("Second sentence!", caretText.text)

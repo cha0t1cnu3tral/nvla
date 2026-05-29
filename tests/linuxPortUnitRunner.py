@@ -115,6 +115,8 @@ def _install_text_infos_stub() -> None:
 	module.POSITION_FIRST = "first"
 	module.UNIT_CHARACTER = "character"
 	module.UNIT_LINE = "line"
+	module.UNIT_PARAGRAPH = "paragraph"
+	module.UNIT_SENTENCE = "sentence"
 	module.UNIT_WORD = "word"
 
 	class OffsetsTextInfo:
@@ -174,6 +176,12 @@ def _install_text_infos_stub() -> None:
 				return
 			if unit == module.UNIT_WORD:
 				self._startOffset, self._endOffset = self._getWordOffsets(self._startOffset)
+				return
+			if unit == module.UNIT_SENTENCE:
+				self._startOffset, self._endOffset = self._getSentenceOffsets(self._startOffset)
+				return
+			if unit == module.UNIT_PARAGRAPH:
+				self._startOffset, self._endOffset = self._getParagraphOffsets(self._startOffset)
 				return
 			raise NotImplementedError(f"Unsupported unit: {unit}")
 
