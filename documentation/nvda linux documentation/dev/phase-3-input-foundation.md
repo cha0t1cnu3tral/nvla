@@ -16,6 +16,8 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Allows dependency-light event injection through `feedRawKeyboardEvent`.
   - Allows listeners and an observer to receive normalized key events.
   - Makes keyboard initialize/terminate non-fatal while real global hooks are still pending.
+  - Added `LinuxKeyboardGesture`, a gesture-shaped wrapper with identifiers such as `kb(linux):NVDA+control+F1`.
+  - Added key-down-only gesture executor dispatch for the future `inputCore` handoff.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 
@@ -38,14 +40,15 @@ Done:
 - Stable normalized key event type.
 - Modifier/key normalization.
 - Listener/observer dispatch path.
+- Linux keyboard gesture identifiers and display names.
+- Key-down-only gesture executor callback.
 - Windows-testable injected event path.
 
 Remaining:
 
 - X11 backend capture, likely XInput2.
 - Wayland-compatible strategy, likely portal/compositor-specific support plus a restricted fallback mode.
-- Conversion from `LinuxKeyEvent` into NVDA `InputGesture`/gesture-map execution.
+- Final conversion from `LinuxKeyboardGesture` into NVDA `InputGesture`/gesture-map execution.
 - NVDA modifier handling on Linux.
 - Secure handling of global hotkeys and pass-through behavior.
 - Integration tests on a real Linux desktop.
-
