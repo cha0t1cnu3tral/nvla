@@ -18,6 +18,33 @@ class _FakeStateSet:
 		return self._values
 
 
+class _FakeComponent:
+	def __init__(
+		self,
+		extents=None,
+		position=None,
+		size=None,
+	):
+		self._extents = extents
+		self._position = position
+		self._size = size
+
+	def getExtents(self, coordType=0):
+		if self._extents is None:
+			raise RuntimeError("No extents")
+		return self._extents
+
+	def getPosition(self, coordType=0):
+		if self._position is None:
+			raise RuntimeError("No position")
+		return self._position
+
+	def getSize(self):
+		if self._size is None:
+			raise RuntimeError("No size")
+		return self._size
+
+
 class _FakeSource:
 	def __init__(
 		self,
@@ -29,6 +56,8 @@ class _FakeSource:
 		path=None,
 		text=None,
 		children=None,
+		component=None,
+		extents=None,
 	):
 		self._role = role
 		self._state = _FakeStateSet(states)
@@ -36,6 +65,8 @@ class _FakeSource:
 		self.description = description
 		self.path = path
 		self._text = text
+		self.component = component
+		self.extents = extents
 		self.children = list(children or ())
 		self.parent = None
 		self.indexInParent = -1
@@ -58,6 +89,11 @@ class _FakeSource:
 
 	def getIndexInParent(self):
 		return self.indexInParent
+
+	def queryComponent(self):
+		if self.component is None:
+			raise RuntimeError("No component interface")
+		return self.component
 
 	def queryText(self):
 		if self._text is None:
@@ -438,6 +474,62 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertIs(secondObj.previous, firstObj)
 		self.assertIsNone(firstObj.previous)
 		self.assertIsNone(secondObj.next)
+
+	def test_linux_atspi_object_location_uses_component_extents(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+		source = _FakeSource(
+			role=10,
+			states=(2, 3),
+			name="Button",
+			path=(12, 1),
+			component=_FakeComponent(extents=(10, 20, 100, 30)),
+		)
+
+		obj = bridge.getOrCreateObjectForSource(source)
+
+		self.assertEqual((10, 20, 100, 30), tuple(obj.location))
+		self.assertEqual(110, obj.location.right)
+		self.assertEqual(50, obj.location.bottom)
+
+	def test_linux_atspi_object_location_falls_back_to_accessible_extents(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+		source = _FakeSource(
+			role=10,
+			states=(2, 3),
+			name="Button",
+			path=(12, 2),
+			extents=(3, 4, 50, 20),
+		)
+
+		obj = bridge.getOrCreateObjectForSource(source)
+
+		self.assertEqual((3, 4, 50, 20), tuple(obj.location))
+
+	def test_linux_atspi_object_location_ignores_invalid_extents(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+		source = _FakeSource(
+			role=10,
+			states=(2, 3),
+			name="Button",
+			path=(12, 3),
+			component=_FakeComponent(extents=(10, 20, -100, 30)),
+		)
+
+		obj = bridge.getOrCreateObjectForSource(source)
+
+		self.assertIsNone(obj.location)
 
 	def test_linux_event_bridge_routes_focus_and_property_events(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()

@@ -50,6 +50,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Added `tests/linuxPortUnitRunner.py` so dependency-light Linux AT-SPI unit tests can run from a Windows checkout before `nvdaHelperLocal.dll` is available.
 - Linux AT-SPI placeholder objects now expose basic object navigation getters for parent, first/last child, and previous/next sibling using AT-SPI-style accessible relationships.
 - Navigation-created Linux AT-SPI objects flow through the same bridge cache and role/state mapping path as event-created objects.
+- Linux AT-SPI placeholder objects now expose screen geometry from component extents when available, with fallback to accessible-provided extents and invalid-geometry filtering.
 
 ## Validation
 
@@ -59,11 +60,12 @@ Run focused Linux-port validation from the repository root with:
 uv run python tests/linuxPortUnitRunner.py
 ```
 
-This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, and baseline Linux TextInfo behavior.
+This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, object geometry, and baseline Linux TextInfo behavior.
 
 ## Remaining Phase 2 work
 
 - Replace placeholder Linux AT-SPI objects with deeper integration into the existing NVDA object creation flow.
 - Expand object tree navigation coverage beyond parent/child/sibling primitives and validate browse/review parity.
+- Add TextInfo geometry and hit-testing primitives so review/caret tracking can move between screen coordinates and text offsets.
 - D-Bus event prioritization and smarter throttling (beyond key-based coalescing and bounded buffering).
 - Extend AT-SPI TextInfo beyond baseline primitives (line/word/sentence offsets, richer formatting, geometry and hit-testing).

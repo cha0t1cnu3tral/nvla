@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, NamedTuple
 
 import controlTypes
 from NVDAObjects import NVDAObject, NVDAObjectTextInfo
@@ -14,6 +14,21 @@ from .atspi_backend import TranslatedATSPIEvent
 
 def _clampOffset(offset: int, storyLength: int) -> int:
 	return max(0, min(offset, storyLength))
+
+
+class LinuxRectLTWH(NamedTuple):
+	left: int
+	top: int
+	width: int
+	height: int
+
+	@property
+	def right(self) -> int:
+		return self.left + self.width
+
+	@property
+	def bottom(self) -> int:
+		return self.top + self.height
 
 
 def _callAccessibleMethod(accessible: Any, methodName: str, *args: Any) -> Any | None:
@@ -73,6 +88,55 @@ def _getAccessibleParent(accessible: Any) -> Any | None:
 	if parent is not None:
 		return parent
 	return _callAccessibleMethod(accessible, "getParent") or _callAccessibleMethod(accessible, "get_parent")
+
+
+def _coerceRect(value: Any) -> LinuxRectLTWH | None:
+	if value is None:
+		return None
+	if isinstance(value, (tuple, list)) and len(value) >= 4:
+		parts = value[:4]
+	else:
+		parts = (
+			getattr(value, "x", getattr(value, "left", None)),
+			getattr(value, "y", getattr(value, "top", None)),
+			getattr(value, "width", None),
+			getattr(value, "height", None),
+		)
+	try:
+		left, top, width, height = (int(part) for part in parts)
+	except Exception:
+		return None
+	if width < 0 or height < 0:
+		return None
+	return LinuxRectLTWH(left, top, width, height)
+
+
+def _getAccessibleExtents(accessible: Any) -> LinuxRectLTWH | None:
+	if accessible is None:
+		return None
+	component = _callAccessibleMethod(accessible, "queryComponent")
+	if component is None:
+		component = getattr(accessible, "component", None)
+	for coordType in (0, None):
+		if coordType is None:
+			extents = _callAccessibleMethod(component, "getExtents")
+		else:
+			extents = _callAccessibleMethod(component, "getExtents", coordType)
+		rect = _coerceRect(extents)
+		if rect is not None:
+			return rect
+	position = _callAccessibleMethod(component, "getPosition", 0)
+	size = _callAccessibleMethod(component, "getSize")
+	if position is not None and size is not None:
+		try:
+			return LinuxRectLTWH(int(position[0]), int(position[1]), int(size[0]), int(size[1]))
+		except Exception:
+			return None
+	for attrName in ("extents", "location"):
+		rect = _coerceRect(getattr(accessible, attrName, None))
+		if rect is not None:
+			return rect
+	return None
 
 
 class LinuxATSPITextInfo(NVDAObjectTextInfo):
@@ -188,8 +252,8 @@ class LinuxATSPIObject(NVDAObject):
 	def _get_basicText(self) -> str:
 		return self._name or self._description or ""
 
-	def _get_location(self):
-		return None
+	def _get_location(self) -> LinuxRectLTWH | None:
+		return _getAccessibleExtents(self.accessible)
 
 	def _get_isInForeground(self) -> bool:
 		return controlTypes.State.FOCUSED in self._states
