@@ -138,6 +138,82 @@ def _unionRects(*rects: LinuxRectLTWH) -> LinuxRectLTWH | None:
 	return LinuxRectLTWH(left, top, right - left, bottom - top)
 
 
+def _coerceOffsetRange(value: Any) -> tuple[int, int] | None:
+	if value is None:
+		return None
+	try:
+		parts = tuple(value)
+	except Exception:
+		return None
+	if len(parts) < 2:
+		return None
+	if len(parts) >= 3 and isinstance(parts[1], int) and isinstance(parts[2], int):
+		start, end = parts[1], parts[2]
+	else:
+		start, end = parts[0], parts[1]
+	try:
+		start = int(start)
+		end = int(end)
+	except Exception:
+		return None
+	if start < 0 or end < start:
+		return None
+	return start, end
+
+
+def _getTextAtOffsetRange(
+	textInterface: Any,
+	offset: int,
+	boundaryNames: tuple[str, ...],
+) -> tuple[int, int] | None:
+	getTextAtOffset = getattr(textInterface, "getTextAtOffset", None)
+	if not callable(getTextAtOffset):
+		return None
+	for boundaryName in boundaryNames:
+		boundaryValue = getattr(textInterface, boundaryName, boundaryName)
+		try:
+			offsetRange = _coerceOffsetRange(getTextAtOffset(offset, boundaryValue))
+		except Exception:
+			offsetRange = None
+		if offsetRange is not None:
+			return offsetRange
+	return None
+
+
+def _getLineOffsetsFromText(text: str, offset: int) -> tuple[int, int]:
+	if not text:
+		return 0, 0
+	offset = _clampOffset(offset, len(text) - 1)
+	start = text.rfind("\n", 0, offset + 1) + 1
+	end = text.find("\n", offset)
+	if end < 0:
+		end = len(text)
+	else:
+		end += 1
+	return start, end
+
+
+def _getWordOffsetsFromText(text: str, offset: int) -> tuple[int, int]:
+	if not text:
+		return 0, 0
+	offset = _clampOffset(offset, len(text) - 1)
+	if text[offset].isspace():
+		start = offset
+		while start > 0 and text[start - 1].isspace():
+			start -= 1
+		end = offset
+		while end < len(text) and text[end].isspace():
+			end += 1
+		return start, end
+	start = offset
+	while start > 0 and not text[start - 1].isspace():
+		start -= 1
+	end = offset
+	while end < len(text) and not text[end].isspace():
+		end += 1
+	return start, end
+
+
 def _getAccessibleExtents(accessible: Any) -> LinuxRectLTWH | None:
 	if accessible is None:
 		return None
@@ -185,6 +261,30 @@ class LinuxATSPITextInfo(NVDAObjectTextInfo):
 				except Exception:
 					pass
 		return self._getStoryText()[start:end]
+
+	def _getLineOffsets(self, offset: int) -> tuple[int, int]:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is not None:
+			offsetRange = _getTextAtOffsetRange(
+				textInterface,
+				offset,
+				("TEXT_BOUNDARY_LINE_START", "line", "lineStart"),
+			)
+			if offsetRange is not None:
+				return offsetRange
+		return _getLineOffsetsFromText(self._getStoryText(), offset)
+
+	def _getWordOffsets(self, offset: int) -> tuple[int, int]:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is not None:
+			offsetRange = _getTextAtOffsetRange(
+				textInterface,
+				offset,
+				("TEXT_BOUNDARY_WORD_START", "word", "wordStart"),
+			)
+			if offsetRange is not None:
+				return offsetRange
+		return _getWordOffsetsFromText(self._getStoryText(), offset)
 
 	def _getCaretOffset(self) -> int:
 		storyLength = self._getStoryLength()

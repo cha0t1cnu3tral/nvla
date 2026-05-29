@@ -53,6 +53,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Linux AT-SPI placeholder objects now expose screen geometry from component extents when available, with fallback to accessible-provided extents and invalid-geometry filtering.
 - Linux AT-SPI TextInfo now exposes offset-to-screen bounds through AT-SPI text character/range extents.
 - Linux AT-SPI TextInfo now supports screen-point hit testing through AT-SPI text `getOffsetAtPoint`.
+- Linux AT-SPI TextInfo now supports line and word offset expansion, preferring AT-SPI-style `getTextAtOffset` boundaries and falling back to local story-text parsing.
 
 ## Validation
 
@@ -62,11 +63,11 @@ Run focused Linux-port validation from the repository root with:
 uv run python tests/linuxPortUnitRunner.py
 ```
 
-This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, object geometry, TextInfo geometry/hit-testing, and baseline Linux TextInfo behavior.
+This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, object geometry, TextInfo line/word expansion, TextInfo geometry/hit-testing, and baseline Linux TextInfo behavior.
 
 ## Remaining Phase 2 work
 
 - Replace placeholder Linux AT-SPI objects with deeper integration into the existing NVDA object creation flow.
 - Expand object tree navigation coverage beyond parent/child/sibling primitives and validate browse/review parity.
 - D-Bus event prioritization and smarter throttling (beyond key-based coalescing and bounded buffering).
-- Extend AT-SPI TextInfo beyond baseline primitives (line/word/sentence offsets and richer formatting).
+- Extend AT-SPI TextInfo beyond baseline primitives (sentence/paragraph offsets and richer formatting).

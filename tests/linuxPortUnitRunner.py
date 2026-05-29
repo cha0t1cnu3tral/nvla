@@ -114,6 +114,8 @@ def _install_text_infos_stub() -> None:
 	module.POSITION_CARET = "caret"
 	module.POSITION_FIRST = "first"
 	module.UNIT_CHARACTER = "character"
+	module.UNIT_LINE = "line"
+	module.UNIT_WORD = "word"
 
 	class OffsetsTextInfo:
 		def __init__(self, obj, position):
@@ -135,6 +137,9 @@ def _install_text_infos_stub() -> None:
 
 		@property
 		def text(self):
+			getTextRange = getattr(self, "_getTextRange", None)
+			if callable(getTextRange):
+				return getTextRange(self._startOffset, self._endOffset)
 			return self._getStoryText()[self._startOffset : self._endOffset]
 
 		@property
@@ -159,6 +164,18 @@ def _install_text_infos_stub() -> None:
 			offset = max(0, min(self._endOffset + direction, self._getStoryLength()))
 			self._startOffset = self._endOffset = offset
 			return direction
+
+		def expand(self, unit):
+			if unit == module.UNIT_CHARACTER:
+				self._endOffset = min(self._startOffset + 1, self._getStoryLength())
+				return
+			if unit == module.UNIT_LINE:
+				self._startOffset, self._endOffset = self._getLineOffsets(self._startOffset)
+				return
+			if unit == module.UNIT_WORD:
+				self._startOffset, self._endOffset = self._getWordOffsets(self._startOffset)
+				return
+			raise NotImplementedError(f"Unsupported unit: {unit}")
 
 		def setEndPoint(self, other, relation):
 			if relation != "endToEnd":

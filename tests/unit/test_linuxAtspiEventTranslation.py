@@ -110,6 +110,7 @@ class _FakeText:
 		characterExtents: dict[int, tuple[int, int, int, int]] | None = None,
 		rangeExtents: dict[tuple[int, int], tuple[int, int, int, int]] | None = None,
 		offsetsByPoint: dict[tuple[int, int], int] | None = None,
+		textAtOffset: dict[tuple[int, str], tuple[str, int, int]] | None = None,
 	):
 		self._text = text
 		self.characterCount = len(text)
@@ -118,6 +119,7 @@ class _FakeText:
 		self._characterExtents = characterExtents or {}
 		self._rangeExtents = rangeExtents or {}
 		self._offsetsByPoint = offsetsByPoint or {}
+		self._textAtOffset = textAtOffset or {}
 
 	def getText(self, start: int, end: int) -> str:
 		if end < 0:
@@ -156,6 +158,12 @@ class _FakeText:
 			return self._offsetsByPoint[(x, y)]
 		except KeyError:
 			return -1
+
+	def getTextAtOffset(self, offset: int, boundaryType: str) -> tuple[str, int, int]:
+		try:
+			return self._textAtOffset[(offset, boundaryType)]
+		except KeyError:
+			raise RuntimeError("No text at offset")
 
 
 class TestLinuxAtspiEventTranslation(unittest.TestCase):
@@ -840,3 +848,84 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		textAtPoint = obj.makeTextInfo(atspi_objects.LinuxPoint(42, 24))
 
 		self.assertEqual((3, 3), textAtPoint.offsets)
+
+	def test_linux_atspi_text_info_expands_to_line_from_story_text(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 4),
+			text=_FakeText("alpha\nbravo\ncharlie", caretOffset=8),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+		caretText.expand(textInfos.UNIT_LINE)
+
+		self.assertEqual((6, 12), caretText.offsets)
+		self.assertEqual("bravo\n", caretText.text)
+
+	def test_linux_atspi_text_info_expands_to_word_from_story_text(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 5),
+			text=_FakeText("alpha bravo charlie", caretOffset=8),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+		caretText.expand(textInfos.UNIT_WORD)
+
+		self.assertEqual((6, 11), caretText.offsets)
+		self.assertEqual("bravo", caretText.text)
+
+	def test_linux_atspi_text_info_prefers_atspi_text_at_offset_for_word(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 6),
+			text=_FakeText(
+				"alpha bravo charlie",
+				caretOffset=8,
+				textAtOffset={
+					(8, "TEXT_BOUNDARY_WORD_START"): ("bravo", 6, 11),
+				},
+			),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+		caretText.expand(textInfos.UNIT_WORD)
+
+		self.assertEqual((6, 11), caretText.offsets)
+		self.assertEqual("bravo", caretText.text)
