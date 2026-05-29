@@ -16,6 +16,11 @@ def _clampOffset(offset: int, storyLength: int) -> int:
 	return max(0, min(offset, storyLength))
 
 
+class LinuxPoint(NamedTuple):
+	x: int
+	y: int
+
+
 class LinuxRectLTWH(NamedTuple):
 	left: int
 	top: int
@@ -29,6 +34,17 @@ class LinuxRectLTWH(NamedTuple):
 	@property
 	def bottom(self) -> int:
 		return self.top + self.height
+
+	@property
+	def topLeft(self) -> LinuxPoint:
+		return LinuxPoint(self.left, self.top)
+
+	@property
+	def center(self) -> LinuxPoint:
+		return LinuxPoint(
+			int(round(self.left + self.width / 2.0)),
+			int(round(self.top + self.height / 2.0)),
+		)
 
 
 def _callAccessibleMethod(accessible: Any, methodName: str, *args: Any) -> Any | None:
@@ -111,6 +127,17 @@ def _coerceRect(value: Any) -> LinuxRectLTWH | None:
 	return LinuxRectLTWH(left, top, width, height)
 
 
+def _unionRects(*rects: LinuxRectLTWH) -> LinuxRectLTWH | None:
+	rects = tuple(rect for rect in rects if rect is not None)
+	if not rects:
+		return None
+	left = min(rect.left for rect in rects)
+	top = min(rect.top for rect in rects)
+	right = max(rect.right for rect in rects)
+	bottom = max(rect.bottom for rect in rects)
+	return LinuxRectLTWH(left, top, right - left, bottom - top)
+
+
 def _getAccessibleExtents(accessible: Any) -> LinuxRectLTWH | None:
 	if accessible is None:
 		return None
@@ -148,6 +175,17 @@ class LinuxATSPITextInfo(NVDAObjectTextInfo):
 	def _getStoryLength(self) -> int:
 		return len(self._getStoryText())
 
+	def _getTextRange(self, start: int, end: int) -> str:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is not None:
+			getText = getattr(textInterface, "getText", None)
+			if callable(getText):
+				try:
+					return str(getText(start, end))
+				except Exception:
+					pass
+		return self._getStoryText()[start:end]
+
 	def _getCaretOffset(self) -> int:
 		storyLength = self._getStoryLength()
 		offset = self.obj._getAccessibleCaretOffset()
@@ -179,6 +217,68 @@ class LinuxATSPITextInfo(NVDAObjectTextInfo):
 		if start > end:
 			start, end = end, start
 		self.obj._setAccessibleSelectionOffsets(start, end)
+
+	def _getBoundingRectFromOffset(self, offset: int) -> LinuxRectLTWH:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is None:
+			raise NotImplementedError
+		storyLength = self._getStoryLength()
+		offset = _clampOffset(offset, max(storyLength - 1, 0))
+		getCharacterExtents = getattr(textInterface, "getCharacterExtents", None)
+		if callable(getCharacterExtents):
+			try:
+				rect = _coerceRect(getCharacterExtents(offset, 0))
+			except Exception:
+				rect = None
+			if rect is not None:
+				return rect
+		getRangeExtents = getattr(textInterface, "getRangeExtents", None)
+		if callable(getRangeExtents):
+			try:
+				rect = _coerceRect(getRangeExtents(offset, min(offset + 1, storyLength), 0))
+			except Exception:
+				rect = None
+			if rect is not None:
+				return rect
+		raise NotImplementedError
+
+	def _getOffsetFromPoint(self, x: int, y: int) -> int:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is None:
+			raise NotImplementedError
+		getOffsetAtPoint = getattr(textInterface, "getOffsetAtPoint", None)
+		if not callable(getOffsetAtPoint):
+			raise NotImplementedError
+		try:
+			offset = int(getOffsetAtPoint(x, y, 0))
+		except Exception as e:
+			raise LookupError from e
+		if offset < 0:
+			raise LookupError
+		return _clampOffset(offset, self._getStoryLength())
+
+	def _get_boundingRects(self) -> list[LinuxRectLTWH]:
+		if self._startOffset == self._endOffset:
+			return []
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is not None:
+			getRangeExtents = getattr(textInterface, "getRangeExtents", None)
+			if callable(getRangeExtents):
+				try:
+					rect = _coerceRect(getRangeExtents(self._startOffset, self._endOffset, 0))
+				except Exception:
+					rect = None
+				if rect is not None:
+					return [rect]
+		startRect = self._getBoundingRectFromOffset(self._startOffset)
+		endRect = self._getBoundingRectFromOffset(max(self._endOffset - 1, self._startOffset))
+		rect = _unionRects(startRect, endRect)
+		if rect is None:
+			raise LookupError
+		return [rect]
+
+	def _get_pointAtStart(self) -> LinuxPoint:
+		return self._getBoundingRectFromOffset(self._startOffset).topLeft
 
 
 class _LinuxStubAppModule:

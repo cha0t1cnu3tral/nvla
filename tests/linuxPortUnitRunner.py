@@ -118,7 +118,10 @@ def _install_text_infos_stub() -> None:
 	class OffsetsTextInfo:
 		def __init__(self, obj, position):
 			self.obj = obj
-			if position == module.POSITION_ALL:
+			if hasattr(position, "x") and hasattr(position, "y"):
+				offset = self._getOffsetFromPoint(position.x, position.y)
+				self._startOffset = self._endOffset = offset
+			elif position == module.POSITION_ALL:
 				self._startOffset = 0
 				self._endOffset = self._getStoryLength()
 			elif position == module.POSITION_CARET:
@@ -133,6 +136,22 @@ def _install_text_infos_stub() -> None:
 		@property
 		def text(self):
 			return self._getStoryText()[self._startOffset : self._endOffset]
+
+		@property
+		def boundingRects(self):
+			return self._get_boundingRects()
+
+		@property
+		def pointAtStart(self):
+			return self._get_pointAtStart()
+
+		def _get_boundingRects(self):
+			if self._startOffset == self._endOffset:
+				return []
+			return [self._getBoundingRectFromOffset(self._startOffset)]
+
+		def _get_pointAtStart(self):
+			return self._getBoundingRectFromOffset(self._startOffset).topLeft
 
 		def move(self, unit, direction):
 			if unit != module.UNIT_CHARACTER:

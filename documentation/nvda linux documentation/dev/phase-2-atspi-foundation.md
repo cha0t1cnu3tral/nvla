@@ -51,6 +51,8 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Linux AT-SPI placeholder objects now expose basic object navigation getters for parent, first/last child, and previous/next sibling using AT-SPI-style accessible relationships.
 - Navigation-created Linux AT-SPI objects flow through the same bridge cache and role/state mapping path as event-created objects.
 - Linux AT-SPI placeholder objects now expose screen geometry from component extents when available, with fallback to accessible-provided extents and invalid-geometry filtering.
+- Linux AT-SPI TextInfo now exposes offset-to-screen bounds through AT-SPI text character/range extents.
+- Linux AT-SPI TextInfo now supports screen-point hit testing through AT-SPI text `getOffsetAtPoint`.
 
 ## Validation
 
@@ -60,12 +62,11 @@ Run focused Linux-port validation from the repository root with:
 uv run python tests/linuxPortUnitRunner.py
 ```
 
-This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, object geometry, and baseline Linux TextInfo behavior.
+This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, object geometry, TextInfo geometry/hit-testing, and baseline Linux TextInfo behavior.
 
 ## Remaining Phase 2 work
 
 - Replace placeholder Linux AT-SPI objects with deeper integration into the existing NVDA object creation flow.
 - Expand object tree navigation coverage beyond parent/child/sibling primitives and validate browse/review parity.
-- Add TextInfo geometry and hit-testing primitives so review/caret tracking can move between screen coordinates and text offsets.
 - D-Bus event prioritization and smarter throttling (beyond key-based coalescing and bounded buffering).
-- Extend AT-SPI TextInfo beyond baseline primitives (line/word/sentence offsets, richer formatting, geometry and hit-testing).
+- Extend AT-SPI TextInfo beyond baseline primitives (line/word/sentence offsets and richer formatting).

@@ -7,7 +7,7 @@ from unittest import mock
 
 import controlTypes
 import textInfos
-from platform.linux import accessibility, atspi_backend, atspi_mappings
+from platform.linux import accessibility, atspi_backend, atspi_mappings, atspi_objects
 
 
 class _FakeStateSet:
@@ -102,11 +102,22 @@ class _FakeSource:
 
 
 class _FakeText:
-	def __init__(self, text: str, caretOffset: int = 0, selection: tuple[int, int] | None = None):
+	def __init__(
+		self,
+		text: str,
+		caretOffset: int = 0,
+		selection: tuple[int, int] | None = None,
+		characterExtents: dict[int, tuple[int, int, int, int]] | None = None,
+		rangeExtents: dict[tuple[int, int], tuple[int, int, int, int]] | None = None,
+		offsetsByPoint: dict[tuple[int, int], int] | None = None,
+	):
 		self._text = text
 		self.characterCount = len(text)
 		self.caretOffset = caretOffset
 		self._selection = selection
+		self._characterExtents = characterExtents or {}
+		self._rangeExtents = rangeExtents or {}
+		self._offsetsByPoint = offsetsByPoint or {}
 
 	def getText(self, start: int, end: int) -> str:
 		if end < 0:
@@ -127,6 +138,24 @@ class _FakeText:
 			raise RuntimeError("Only a single selection is supported")
 		self._selection = (start, end)
 		self.caretOffset = end
+
+	def getCharacterExtents(self, offset: int, coordType: int):
+		try:
+			return self._characterExtents[offset]
+		except KeyError:
+			raise RuntimeError("No character extents")
+
+	def getRangeExtents(self, start: int, end: int, coordType: int):
+		try:
+			return self._rangeExtents[(start, end)]
+		except KeyError:
+			raise RuntimeError("No range extents")
+
+	def getOffsetAtPoint(self, x: int, y: int, coordType: int) -> int:
+		try:
+			return self._offsetsByPoint[(x, y)]
+		except KeyError:
+			return -1
 
 
 class TestLinuxAtspiEventTranslation(unittest.TestCase):
@@ -725,3 +754,89 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
 
 		self.assertEqual((5, 5), caretText.offsets)
+
+	def test_linux_atspi_text_info_uses_character_extents_for_point_at_start(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 1),
+			text=_FakeText(
+				"abc",
+				caretOffset=1,
+				characterExtents={
+					1: (15, 20, 5, 10),
+				},
+			),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+
+		self.assertEqual((15, 20), tuple(caretText.pointAtStart))
+		self.assertEqual((15, 20, 5, 10), tuple(caretText._getBoundingRectFromOffset(1)))
+
+	def test_linux_atspi_text_info_uses_range_extents_for_bounding_rects(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 2),
+			text=_FakeText(
+				"abcdef",
+				rangeExtents={
+					(0, 6): (10, 20, 60, 10),
+				},
+			),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		allText = obj.makeTextInfo(textInfos.POSITION_ALL)
+
+		self.assertEqual([(10, 20, 60, 10)], [tuple(rect) for rect in allText.boundingRects])
+
+	def test_linux_atspi_text_info_supports_hit_testing_from_screen_point(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(4, 3),
+			text=_FakeText(
+				"abcdef",
+				offsetsByPoint={
+					(42, 24): 3,
+				},
+			),
+		)
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		textAtPoint = obj.makeTextInfo(atspi_objects.LinuxPoint(42, 24))
+
+		self.assertEqual((3, 3), textAtPoint.offsets)
