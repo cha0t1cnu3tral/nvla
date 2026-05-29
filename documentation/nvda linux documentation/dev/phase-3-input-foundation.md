@@ -23,6 +23,9 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Registers the Linux keyboard gesture class as the `kb` gesture source when execution is enabled, preserving display lookup compatibility for `kb(...)` gesture identifiers.
   - Wired Linux startup through `core.main()` so the Linux input adapter hands key-down gestures to `inputCore.manager` after `inputCore.initialize()`.
   - Added key-down-only gesture executor dispatch for the `inputCore` handoff.
+  - Added a keyboard event-source boundary for physical capture backends.
+  - Added a manual event source for dependency-light tests and early smoke tools.
+  - Added X11 and Wayland event-source placeholders selected from session environment, with startup kept non-fatal until real capture is implemented.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 
@@ -52,11 +55,13 @@ Done:
 - Linux startup wiring that enables keyboard execution through `inputCore.manager`.
 - Key-down-only gesture executor callback.
 - Windows-testable injected event path.
+- Keyboard event-source interface for X11/Wayland capture backends.
+- Manual event source for Windows-hosted tests.
 
 Remaining:
 
-- X11 backend capture, likely XInput2.
-- Wayland-compatible strategy, likely portal/compositor-specific support plus a restricted fallback mode.
+- X11 backend capture implementation, likely XInput2.
+- Wayland-compatible implementation strategy, likely portal/compositor-specific support plus a restricted fallback mode.
 - NVDA modifier handling on Linux.
 - Secure handling of global hotkeys and pass-through behavior.
 - Integration tests on a real Linux desktop.

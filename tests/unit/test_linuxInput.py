@@ -6,6 +6,10 @@ import unittest
 
 from platform.linux.input import (
 	LinuxInputAdapter,
+	ManualKeyboardEventSource,
+	X11KeyboardEventSource,
+	WaylandKeyboardEventSource,
+	createKeyboardEventSource,
 	executeKeyboardGesture,
 	makeKeyboardGesture,
 	translateRawKeyEvent,
@@ -61,6 +65,45 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual("super+Enter", event.gestureName)
 		self.assertEqual([event], received)
 		self.assertEqual([event], observerEvents)
+
+	def test_manual_keyboard_event_source_feeds_adapter(self):
+		source = ManualKeyboardEventSource()
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+		received = []
+
+		adapter.registerKeyboardListener(received.append)
+		adapter.initialize_keyboard(SimpleNamespace())
+		source.emit(SimpleNamespace(key="f2", modifiers=("NVDA",)))
+
+		self.assertTrue(source.isStarted)
+		self.assertEqual("NVDA+F2", received[0].gestureName)
+
+	def test_terminate_keyboard_stops_event_source(self):
+		source = ManualKeyboardEventSource()
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+
+		adapter.initialize_keyboard(SimpleNamespace())
+		adapter.terminate_keyboard()
+
+		self.assertFalse(source.isStarted)
+		with self.assertRaises(RuntimeError):
+			source.emit(SimpleNamespace(key="a"))
+
+	def test_selects_keyboard_event_source_from_session_environment(self):
+		self.assertIsInstance(createKeyboardEventSource({"DISPLAY": ":1"}), X11KeyboardEventSource)
+		self.assertIsInstance(createKeyboardEventSource({"WAYLAND_DISPLAY": "wayland-0"}), WaylandKeyboardEventSource)
+		self.assertIsInstance(
+			createKeyboardEventSource({"DISPLAY": ":1", "WAYLAND_DISPLAY": "wayland-0"}),
+			WaylandKeyboardEventSource,
+		)
+		self.assertIsNone(createKeyboardEventSource({}))
+
+	def test_unsupported_keyboard_event_source_does_not_abort_initialization(self):
+		adapter = LinuxInputAdapter(keyboardEventSource=X11KeyboardEventSource())
+
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		self.assertIsNotNone(adapter.keyboardEventSourceStartError)
 
 	def test_creates_keyboard_gesture_from_key_event(self):
 		event = translateRawKeyEvent(

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Any, Callable
+from typing import Any, Callable, Protocol
 
 from platform.common.errors import NotSupportedYetError
 
@@ -248,20 +248,96 @@ def translateRawKeyEvent(event: Any) -> LinuxKeyEvent:
 	)
 
 
+class LinuxKeyboardEventSource(Protocol):
+	"""Source of raw Linux keyboard events, such as X11 or Wayland backends."""
+
+	def start(self, emit: Callable[[Any], None]) -> None: ...
+
+	def stop(self) -> None: ...
+
+
+class ManualKeyboardEventSource:
+	"""Dependency-light keyboard event source used by tests and early smoke tools."""
+
+	def __init__(self) -> None:
+		self._emit: Callable[[Any], None] | None = None
+		self.isStarted = False
+
+	def start(self, emit: Callable[[Any], None]) -> None:
+		self._emit = emit
+		self.isStarted = True
+
+	def stop(self) -> None:
+		self._emit = None
+		self.isStarted = False
+
+	def emit(self, event: Any) -> None:
+		if self._emit is None:
+			raise RuntimeError("Keyboard event source has not been started")
+		self._emit(event)
+
+
+class X11KeyboardEventSource:
+	"""X11 keyboard event source placeholder for the upcoming XInput2 implementation."""
+
+	def start(self, emit: Callable[[Any], None]) -> None:
+		raise NotSupportedYetError("X11 keyboard event capture")
+
+	def stop(self) -> None:
+		return None
+
+
+class WaylandKeyboardEventSource:
+	"""Wayland keyboard event source placeholder for portal/compositor-backed capture."""
+
+	def start(self, emit: Callable[[Any], None]) -> None:
+		raise NotSupportedYetError("Wayland keyboard event capture")
+
+	def stop(self) -> None:
+		return None
+
+
 def makeKeyboardGesture(event: LinuxKeyEvent) -> LinuxKeyboardGesture:
 	return LinuxKeyboardGesture(event=event)
 
 
+def createKeyboardEventSource(environ: Any | None = None) -> LinuxKeyboardEventSource | None:
+	"""Pick the most appropriate keyboard event source for the current Linux session."""
+
+	if environ is None:
+		import os
+
+		environ = os.environ
+	if environ.get("WAYLAND_DISPLAY"):
+		return WaylandKeyboardEventSource()
+	if environ.get("DISPLAY"):
+		return X11KeyboardEventSource()
+	return None
+
+
 class LinuxInputAdapter:
-	def __init__(self) -> None:
+	def __init__(self, keyboardEventSource: LinuxKeyboardEventSource | None = None) -> None:
 		self._keyboardObserver: Any | None = None
 		self._keyboardListeners: list[Callable[[LinuxKeyEvent], None]] = []
 		self._keyboardGestureExecutor: Callable[[LinuxKeyboardGesture], None] | None = None
+		self._keyboardEventSource = keyboardEventSource
+		self._keyboardEventSourceStartError: Exception | None = None
 		self._keyboardInitialized = False
+
+	@property
+	def keyboardEventSourceStartError(self) -> Exception | None:
+		return self._keyboardEventSourceStartError
 
 	def initialize_keyboard(self, observer) -> None:
 		self._keyboardObserver = observer
 		self._keyboardInitialized = True
+		if self._keyboardEventSource is None:
+			self._keyboardEventSource = createKeyboardEventSource()
+		if self._keyboardEventSource is not None:
+			try:
+				self._keyboardEventSource.start(self.feedRawKeyboardEvent)
+			except NotSupportedYetError as error:
+				self._keyboardEventSourceStartError = error
 
 	def registerKeyboardListener(self, listener: Callable[[LinuxKeyEvent], None]) -> None:
 		if listener not in self._keyboardListeners:
@@ -302,6 +378,9 @@ class LinuxInputAdapter:
 		raise NotSupportedYetError("Touch hook initialization")
 
 	def terminate_keyboard(self) -> None:
+		if self._keyboardEventSource is not None:
+			self._keyboardEventSource.stop()
+		self._keyboardEventSourceStartError = None
 		self._keyboardListeners.clear()
 		self._keyboardGestureExecutor = None
 		self._keyboardObserver = None
