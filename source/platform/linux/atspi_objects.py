@@ -8,6 +8,7 @@ from typing import Any
 import controlTypes
 from NVDAObjects import NVDAObject, NVDAObjectTextInfo
 
+from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent
 
 
@@ -76,6 +77,7 @@ class LinuxATSPIObject(NVDAObject):
 	def __init__(
 		self,
 		*,
+		chooseBestAPI: bool = False,
 		sourceKey: str,
 		accessible: Any = None,
 		processID: int = 0,
@@ -211,12 +213,26 @@ class LinuxATSPIObject(NVDAObject):
 		self._selectionOffsets = (start, end)
 		self._caretOffset = end
 
+	def updateFromTranslatedSource(self, source: TranslatedATSPISource) -> None:
+		self.accessible = source.source
+		if source.sourceName is not None:
+			self._name = source.sourceName
+		if source.sourceDescription is not None:
+			self._description = source.sourceDescription
+		self._role = source.role
+		self._states = set(source.states)
+
 	def updateFromTranslatedEvent(self, event: TranslatedATSPIEvent) -> None:
-		self.accessible = event.source
-		if event.sourceName is not None:
-			self._name = event.sourceName
-		if event.sourceDescription is not None:
-			self._description = event.sourceDescription
+		self.updateFromTranslatedSource(
+			TranslatedATSPISource(
+				source=event.source,
+				sourceKey=event.sourceKey,
+				sourceName=event.sourceName,
+				sourceDescription=event.sourceDescription,
+				role=event.role,
+				states=event.states,
+			),
+		)
 		if event.propertyName == "name" and event.propertyValue is not None:
 			self._name = str(event.propertyValue)
 		elif event.propertyName == "description" and event.propertyValue is not None:
@@ -226,5 +242,3 @@ class LinuxATSPIObject(NVDAObject):
 		elif event.kind == "caret" and event.caretOffset is not None:
 			self._caretOffset = max(0, event.caretOffset)
 			self._selectionOffsets = (self._caretOffset, self._caretOffset)
-		self._role = event.role
-		self._states = set(event.states)

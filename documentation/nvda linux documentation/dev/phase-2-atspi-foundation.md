@@ -43,10 +43,25 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
   - Caret-position fallback from translated `object:text-caret-moved` events when AT-SPI text is not available.
 - Fixed Linux AT-SPI object cache initialization so the first translated event is immediately applied to new objects (for example initial property-change payloads and initial caret offsets).
 - Linux event bridge now falls back to generic `stateChange` dispatch for unsuffixed or unmapped AT-SPI property-change events.
+- Added normalized AT-SPI source translation so Linux NVDA objects can be created from raw accessibles as well as from queued events.
+- Linux accessibility now exposes `getNVDAObjectFromAccessible` for early object-creation integration points that already have an AT-SPI accessible.
+- Unsuffixed `accessible:property-change` events now read the property name from `detail1` when available.
+- Focus-event buffering now keeps only the latest focus event globally, while property and caret queues remain keyed per source.
+- Added `tests/linuxPortUnitRunner.py` so dependency-light Linux AT-SPI unit tests can run from a Windows checkout before `nvdaHelperLocal.dll` is available.
+
+## Validation
+
+Run focused Linux-port validation from the repository root with:
+
+```powershell
+uv run python tests/linuxPortUnitRunner.py
+```
+
+This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, and baseline Linux TextInfo behavior.
 
 ## Remaining Phase 2 work
 
-- Full event dispatch bridge from translated Linux events into real NVDA objects and the NVDA event queue.
+- Replace placeholder Linux AT-SPI objects with deeper integration into the existing NVDA object creation and tree navigation flow.
 - Object tree navigation and browse/review parity validation.
 - D-Bus event prioritization and smarter throttling (beyond key-based coalescing and bounded buffering).
 - Extend AT-SPI TextInfo beyond baseline primitives (line/word/sentence offsets, richer formatting, geometry and hit-testing).

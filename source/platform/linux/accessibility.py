@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Callable
+from typing import Any, Callable
 
 import api
 import eventHandler
 
 from .atspi_backend import ATSPI2Backend
+from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent
 from .atspi_objects import LinuxATSPIObject
 
@@ -17,37 +18,59 @@ from .atspi_objects import LinuxATSPIObject
 class LinuxATSPINVDAEventBridge:
 	_MAX_CACHED_OBJECTS = 512
 
-	def __init__(self) -> None:
+	def __init__(self, backend: ATSPI2Backend | None = None) -> None:
+		self._backend = backend
 		self._objectsByKey: OrderedDict[str, LinuxATSPIObject] = OrderedDict()
 
-	def _getCacheKey(self, event: TranslatedATSPIEvent) -> str | None:
-		if event.sourceKey is not None:
-			return event.sourceKey
-		if event.source is not None:
-			return f"atspi:{id(event.source)}"
-		return None
+	def _getCacheKeyFromTranslatedSource(self, source: TranslatedATSPISource) -> str:
+		return source.sourceKey or f"atspi:{id(source.source)}"
 
-	def getOrCreateObjectForEvent(self, event: TranslatedATSPIEvent) -> LinuxATSPIObject | None:
-		cacheKey = self._getCacheKey(event)
-		if cacheKey is None:
+	def getOrCreateObjectForSource(
+		self,
+		source: Any,
+		translatedSource: TranslatedATSPISource | None = None,
+	) -> LinuxATSPIObject | None:
+		if translatedSource is None:
+			backend = self._backend
+			if backend is None:
+				return None
+			translatedSource = backend.translateSource(source)
+		if translatedSource is None:
 			return None
+		cacheKey = self._getCacheKeyFromTranslatedSource(translatedSource)
 		obj = self._objectsByKey.get(cacheKey)
 		if obj is None:
 			obj = LinuxATSPIObject(
 				chooseBestAPI=False,
 				sourceKey=cacheKey,
-				accessible=event.source,
-				name=event.sourceName,
-				description=event.sourceDescription,
-				role=event.role,
-				states=event.states,
+				accessible=translatedSource.source,
+				name=translatedSource.sourceName,
+				description=translatedSource.sourceDescription,
+				role=translatedSource.role,
+				states=translatedSource.states,
 			)
-			obj.updateFromTranslatedEvent(event)
 			self._objectsByKey[cacheKey] = obj
 			self._evictCachedObjectsIfNeeded()
 		else:
-			obj.updateFromTranslatedEvent(event)
 			self._objectsByKey.move_to_end(cacheKey)
+		obj.updateFromTranslatedSource(translatedSource)
+		return obj
+
+	def getOrCreateObjectForEvent(self, event: TranslatedATSPIEvent) -> LinuxATSPIObject | None:
+		obj = self.getOrCreateObjectForSource(
+			event.source,
+			TranslatedATSPISource(
+				source=event.source,
+				sourceKey=event.sourceKey,
+				sourceName=event.sourceName,
+				sourceDescription=event.sourceDescription,
+				role=event.role,
+				states=event.states,
+			),
+		)
+		if obj is None:
+			return None
+		obj.updateFromTranslatedEvent(event)
 		return obj
 
 	def clearCachedObjects(self) -> None:
@@ -86,7 +109,7 @@ class LinuxATSPINVDAEventBridge:
 class LinuxAccessibilityAdapter:
 	def __init__(self) -> None:
 		self._backend = ATSPI2Backend()
-		self._eventBridge = LinuxATSPINVDAEventBridge()
+		self._eventBridge = LinuxATSPINVDAEventBridge(self._backend)
 		self._initialized = False
 
 	def initialize(self) -> None:
@@ -100,6 +123,9 @@ class LinuxAccessibilityAdapter:
 
 	def unregisterEventListener(self, listener: Callable[[TranslatedATSPIEvent], None]) -> None:
 		self._backend.unregisterEventListener(listener)
+
+	def getNVDAObjectFromAccessible(self, accessible: Any) -> LinuxATSPIObject | None:
+		return self._eventBridge.getOrCreateObjectForSource(accessible)
 
 	def terminate(self) -> None:
 		self.terminate_iaccessible()

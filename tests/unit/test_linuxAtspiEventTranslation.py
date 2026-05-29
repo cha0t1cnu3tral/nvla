@@ -135,6 +135,21 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual(controlTypes.Role.EDITABLETEXT, translated.role)
 		self.assertIn(controlTypes.State.EDITABLE, translated.states)
 
+	def test_translates_generic_property_change_event_name_from_detail1(self):
+		event = SimpleNamespace(
+			type="accessible:property-change",
+			detail1="description",
+			any_data="Primary editor",
+			source=_FakeSource(role=11, states=(2, 3, 4), name="editor"),
+		)
+
+		translated = self._translate(event)
+
+		self.assertIsNotNone(translated)
+		self.assertEqual("propertyChange", translated.kind)
+		self.assertEqual("description", translated.propertyName)
+		self.assertEqual("Primary editor", translated.propertyValue)
+
 	def test_translates_caret_event(self):
 		event = SimpleNamespace(
 			type="object:text-caret-moved",
@@ -227,8 +242,8 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		for i in range(4):
 			backend._onAtspiEvent(
 				SimpleNamespace(
-					type="object:state-changed:focused",
-					detail1=1,
+					type="accessible:property-change:name",
+					any_data=f"btn{i}",
 					source=_FakeSource(
 						role=10,
 						states=(1, 2, 3),
@@ -240,8 +255,8 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 
 		queued = backend.drainTranslatedEvents()
 		self.assertEqual(3, len(queued))
-		self.assertEqual("10:btn1", queued[0].sourceKey)
-		self.assertEqual("10:btn3", queued[-1].sourceKey)
+		self.assertEqual("7:1", queued[0].sourceKey)
+		self.assertEqual("7:3", queued[-1].sourceKey)
 
 	def test_backend_queue_eviction_preserves_focus_when_possible(self):
 		backend = atspi_backend.ATSPI2Backend()
@@ -277,6 +292,32 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("focus", queued[0].kind)
 		self.assertEqual("caret", queued[1].kind)
 
+	def test_backend_coalesces_focus_events_globally(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+
+		backend._onAtspiEvent(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=1,
+				source=_FakeSource(role=10, states=(1, 2, 3), name="first", path=(4, 1)),
+			),
+		)
+		backend._onAtspiEvent(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=1,
+				source=_FakeSource(role=10, states=(1, 2, 3), name="second", path=(4, 2)),
+			),
+		)
+
+		queued = backend.drainTranslatedEvents()
+		self.assertEqual(1, len(queued))
+		self.assertEqual("focus", queued[0].kind)
+		self.assertEqual("4:2", queued[0].sourceKey)
+
 	def test_linux_event_bridge_caches_objects_by_source(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		source = _FakeSource(role=11, states=(2, 3, 4), name="Draft", path=(9, 1))
@@ -300,6 +341,38 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 
 		self.assertIs(firstObj, secondObj)
 		self.assertEqual("Final", secondObj.name)
+
+	def test_linux_event_bridge_creates_object_from_source_with_backend_mapping(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+
+		obj = bridge.getOrCreateObjectForSource(
+			_FakeSource(role=11, states=(2, 3, 4), name="editor", description="Desc", path=(7, 3)),
+		)
+
+		self.assertIsNotNone(obj)
+		self.assertEqual(controlTypes.Role.EDITABLETEXT, obj.role)
+		self.assertIn(controlTypes.State.EDITABLE, obj.states)
+		self.assertEqual("editor", obj.name)
+		self.assertEqual("Desc", obj.description)
+
+	def test_linux_accessibility_adapter_creates_objects_from_accessible_sources(self):
+		adapter = accessibility.LinuxAccessibilityAdapter()
+		adapter._backend.roleMap = self.roleMap
+		adapter._backend.stateMap = self.stateMap
+		adapter._backend.invertedStateValues = self.invertedStateValues
+		source = _FakeSource(role=10, states=(1, 2, 3), name="OK", path=(3, 1))
+
+		firstObj = adapter.getNVDAObjectFromAccessible(source)
+		secondObj = adapter.getNVDAObjectFromAccessible(source)
+
+		self.assertIsNotNone(firstObj)
+		self.assertIs(firstObj, secondObj)
+		self.assertEqual(controlTypes.Role.BUTTON, firstObj.role)
+		self.assertIn(controlTypes.State.FOCUSED, firstObj.states)
 
 	def test_linux_event_bridge_routes_focus_and_property_events(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
@@ -362,7 +435,7 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			SimpleNamespace(
 				type="object:text-caret-moved",
 				detail1=7,
-				source=_FakeSource(role=11, states=(2, 3, 4), name="editor", path=(6, 2)),
+				source=_FakeSource(role=11, states=(2, 3, 4), name="editor text", path=(6, 2)),
 			),
 		)
 

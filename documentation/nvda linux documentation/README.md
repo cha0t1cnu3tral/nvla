@@ -9,3 +9,14 @@ Current dev milestones documented:
 
 - Phase 0 baseline artifacts
 - Phase 1 PAL scaffolding and core import routing
+- Phase 2 AT-SPI2 mapping, event translation, object-wrapper, and baseline TextInfo work
+
+## Focused validation on Windows
+
+The full NVDA unit harness currently requires built Windows helper DLLs. For dependency-light Linux-port work, run:
+
+```powershell
+uv run python tests/linuxPortUnitRunner.py
+```
+
+This runner installs narrow test stubs and runs the AT-SPI mapping/event/object tests without loading `nvdaHelperLocal.dll`.

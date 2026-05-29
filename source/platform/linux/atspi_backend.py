@@ -39,6 +39,18 @@ class TranslatedATSPIEvent:
 	caretOffset: int | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class TranslatedATSPISource:
+	"""Normalized AT-SPI accessible metadata for Linux NVDA object construction."""
+
+	source: Any
+	sourceKey: str | None
+	sourceName: str | None
+	sourceDescription: str | None
+	role: controlTypes.Role
+	states: frozenset[controlTypes.State]
+
+
 def _coerce_bool(value: Any) -> bool:
 	if isinstance(value, bool):
 		return value
@@ -114,6 +126,19 @@ def _parse_property_name(rawType: str) -> str | None:
 	return rawType[len(prefix) + 1 :] if rawType.startswith(prefix + ":") else None
 
 
+def _coerce_property_name(value: Any) -> str | None:
+	if value is None:
+		return None
+	if isinstance(value, str):
+		coerced = value.strip()
+		return coerced or None
+	try:
+		coerced = str(value).strip()
+	except Exception:
+		return None
+	return coerced or None
+
+
 def translate_atspi_event(
 	event: Any,
 	roleMap: dict[int, controlTypes.Role],
@@ -169,10 +194,44 @@ def translate_atspi_event(
 		except Exception:
 			caretOffset = None
 		return replace(translated, caretOffset=caretOffset)
+	propertyName = _parse_property_name(rawType)
+	if propertyName is None:
+		propertyName = _coerce_property_name(getattr(event, "detail1", None))
 	return replace(
 		translated,
-		propertyName=_parse_property_name(rawType),
+		propertyName=propertyName,
 		propertyValue=getattr(event, "any_data", None),
+	)
+
+
+def translate_atspi_source(
+	source: Any,
+	roleMap: dict[int, controlTypes.Role],
+	stateMap: dict[int, controlTypes.State],
+	invertedStateValues: set[int],
+) -> TranslatedATSPISource | None:
+	if source is None:
+		return None
+	roleValue = _get_source_role_value(source)
+	role = (
+		atspi_mappings.map_role(roleValue, roleMap)
+		if roleValue is not None
+		else controlTypes.Role.UNKNOWN
+	)
+	states = frozenset(
+		atspi_mappings.map_states(
+			_get_source_state_values(source),
+			stateMap,
+			invertedStateValues,
+		),
+	)
+	return TranslatedATSPISource(
+		source=source,
+		sourceKey=_make_source_key(source),
+		sourceName=getattr(source, "name", None),
+		sourceDescription=getattr(source, "description", None),
+		role=role,
+		states=states,
 	)
 
 
@@ -202,6 +261,8 @@ class ATSPI2Backend:
 			return
 
 	def _makeEventQueueKey(self, event: TranslatedATSPIEvent) -> tuple[Any, ...]:
+		if event.kind == "focus":
+			return (event.kind,)
 		if event.kind == "propertyChange":
 			return (event.kind, event.sourceKey, event.propertyName)
 		return (event.kind, event.sourceKey)
@@ -296,6 +357,14 @@ class ATSPI2Backend:
 	def translateEvent(self, event: Any) -> TranslatedATSPIEvent | None:
 		return translate_atspi_event(
 			event,
+			self.roleMap,
+			self.stateMap,
+			self.invertedStateValues,
+		)
+
+	def translateSource(self, source: Any) -> TranslatedATSPISource | None:
+		return translate_atspi_source(
+			source,
 			self.roleMap,
 			self.stateMap,
 			self.invertedStateValues,
