@@ -890,6 +890,9 @@ def main():
 
 	log.debug("Initializing keyboard handler")
 	_pal.input.initialize_keyboard(watchdog.WatchdogObserver())
+	enableInputCoreGestureExecution = getattr(_pal.input, "enableInputCoreGestureExecution", None)
+	if callable(enableInputCoreGestureExecution):
+		enableInputCoreGestureExecution(inputCore.manager)
 	import mouseHandler
 
 	log.debug("initializing mouse handler")

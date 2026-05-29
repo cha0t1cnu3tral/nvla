@@ -4,9 +4,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any, Callable
 
 from platform.common.errors import NotSupportedYetError
+
+try:
+	import inputCore
+except Exception:
+	inputCore = None
 
 
 _MODIFIER_NAMES = {
@@ -32,10 +38,42 @@ _MODIFIER_ORDER = {
 	"super": 4,
 	"meta": 5,
 }
+_MODIFIER_KEY_NAMES = frozenset(_MODIFIER_ORDER)
+_IDENTIFIER_RE = re.compile(r"^kb(?:\((.+?)\))?:(.*)$")
+
+
+if inputCore is None:
+
+	class _InputGestureBase:
+		@property
+		def identifiers(self) -> tuple[str, ...]:
+			return self._get_identifiers()
+
+else:
+	_InputGestureBase = inputCore.InputGesture
 
 
 def _sortModifiers(modifiers: frozenset[str]) -> list[str]:
 	return sorted(modifiers, key=lambda modifier: (_MODIFIER_ORDER.get(modifier, 100), modifier))
+
+
+def _normalizeGestureIdentifier(identifier: str) -> str:
+	inputCoreModule = _getInputCore()
+	if inputCoreModule is not None:
+		return inputCoreModule.normalizeGestureIdentifier(identifier)
+	return identifier.lower()
+
+
+def _getInputCore() -> Any | None:
+	global inputCore
+	if inputCore is not None:
+		return inputCore
+	try:
+		import inputCore as inputCoreModule
+	except Exception:
+		return None
+	inputCore = inputCoreModule
+	return inputCore
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,15 +92,28 @@ class LinuxKeyEvent:
 		return "+".join(part for part in parts if part)
 
 
-@dataclass(frozen=True, slots=True)
-class LinuxKeyboardGesture:
-	"""Keyboard gesture shape ready for later NVDA inputCore integration."""
+class LinuxKeyboardGesture(_InputGestureBase):
+	"""Keyboard gesture that can be handed to NVDA's inputCore gesture map."""
 
-	event: LinuxKeyEvent
-	compatibleLayouts: tuple[str, ...] = ("desktop", "laptop")
+	SPEECHEFFECT_CANCEL = "cancel"
+	SPEECHEFFECT_PAUSE = "pause"
+	SPEECHEFFECT_RESUME = "resume"
+	bypassInputHelp = False
+	reportInInputHelp = True
+	shouldPreventSystemIdle = False
+	wasInSayAll = False
+	speechEffectWhenExecuted = SPEECHEFFECT_CANCEL
 
-	@property
-	def identifiers(self) -> tuple[str, ...]:
+	def __init__(
+		self,
+		event: LinuxKeyEvent,
+		compatibleLayouts: tuple[str, ...] = ("desktop", "laptop"),
+	) -> None:
+		self.event = event
+		self.compatibleLayouts = compatibleLayouts
+		super().__init__()
+
+	def _get_identifiers(self) -> tuple[str, ...]:
 		gestureName = self.event.gestureName
 		return (
 			*(f"kb({layout}):{gestureName}" for layout in self.compatibleLayouts),
@@ -71,7 +122,7 @@ class LinuxKeyboardGesture:
 
 	@property
 	def normalizedIdentifiers(self) -> tuple[str, ...]:
-		return tuple(identifier.lower() for identifier in self.identifiers)
+		return tuple(_normalizeGestureIdentifier(identifier) for identifier in self.identifiers)
 
 	@property
 	def displayName(self) -> str:
@@ -81,12 +132,85 @@ class LinuxKeyboardGesture:
 	def isCharacter(self) -> bool:
 		return len(self.event.keyName) == 1 and not self.event.modifiers
 
+	@property
+	def shouldReportAsCommand(self) -> bool:
+		return not self.isCharacter
+
+	@property
+	def isModifier(self) -> bool:
+		return self.event.keyName in _MODIFIER_KEY_NAMES
+
+	@property
+	def scriptableObject(self) -> None:
+		return None
+
+	@property
+	def script(self) -> Any | None:
+		import scriptHandler
+
+		return scriptHandler.findScript(self)
+
+	def send(self) -> None:
+		raise NotImplementedError
+
+	def reportExtra(self) -> None:
+		return None
+
+	def executeScript(self, script: Callable[["LinuxKeyboardGesture"], None]) -> None:
+		import scriptHandler
+
+		scriptHandler.executeScript(script, self)
+
+	@classmethod
+	def getDisplayTextForIdentifier(cls, identifier: str) -> tuple[str, str]:
+		match = _IDENTIFIER_RE.match(identifier)
+		if match is None:
+			raise ValueError(f"Invalid keyboard gesture identifier: {identifier}")
+		layout, keys = match.groups()
+		if layout:
+			source = f"{layout} keyboard"
+		else:
+			source = "keyboard, all layouts"
+		return source, keys
+
+
+def executeKeyboardGesture(
+	gesture: LinuxKeyboardGesture,
+	manager: Any | None = None,
+) -> bool:
+	"""Execute a Linux keyboard gesture through NVDA inputCore when available."""
+
+	if manager is None:
+		inputCoreModule = _getInputCore()
+		if inputCoreModule is None:
+			raise NotSupportedYetError("NVDA inputCore gesture execution")
+		manager = inputCoreModule.manager
+	else:
+		inputCoreModule = _getInputCore()
+	noInputGestureAction = getattr(inputCoreModule, "NoInputGestureAction", LookupError)
+	try:
+		manager.executeGesture(gesture)
+	except noInputGestureAction:
+		return False
+	return True
+
+
+def registerKeyboardGestureSource() -> None:
+	"""Register Linux keyboard gestures for `kb:` display lookups when inputCore is loaded."""
+
+	inputCoreModule = _getInputCore()
+	if inputCoreModule is not None:
+		inputCoreModule.registerGestureSource("kb", LinuxKeyboardGesture)
+
 
 def _normalizeKeyName(value: Any) -> str:
 	keyName = str(value or "").strip()
 	if not keyName:
 		return "unknown"
 	keyName = keyName.replace(" ", "")
+	modifierName = keyName.lower().replace("-", "_")
+	if modifierName in _MODIFIER_NAMES:
+		return _MODIFIER_NAMES[modifierName]
 	if len(keyName) == 1:
 		return keyName.upper()
 	return keyName[0].upper() + keyName[1:]
@@ -154,6 +278,10 @@ class LinuxInputAdapter:
 		executor: Callable[[LinuxKeyboardGesture], None] | None,
 	) -> None:
 		self._keyboardGestureExecutor = executor
+
+	def enableInputCoreGestureExecution(self, manager: Any | None = None) -> None:
+		registerKeyboardGestureSource()
+		self.setKeyboardGestureExecutor(lambda gesture: executeKeyboardGesture(gesture, manager=manager))
 
 	def feedRawKeyboardEvent(self, event: Any) -> LinuxKeyEvent:
 		translated = translateRawKeyEvent(event)

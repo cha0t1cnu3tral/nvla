@@ -4,7 +4,12 @@
 from types import SimpleNamespace
 import unittest
 
-from platform.linux.input import LinuxInputAdapter, makeKeyboardGesture, translateRawKeyEvent
+from platform.linux.input import (
+	LinuxInputAdapter,
+	executeKeyboardGesture,
+	makeKeyboardGesture,
+	translateRawKeyEvent,
+)
 
 
 class TestLinuxInputAdapter(unittest.TestCase):
@@ -86,6 +91,17 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual("NVDA+control+F1", gesture.displayName)
 		self.assertFalse(gesture.isCharacter)
 
+	def test_keyboard_gesture_exposes_input_core_shape(self):
+		event = translateRawKeyEvent(SimpleNamespace(key="shift", modifiers=()))
+
+		gesture = makeKeyboardGesture(event)
+
+		self.assertEqual(("kb(desktop):shift", "kb(laptop):shift", "kb:shift"), gesture.identifiers)
+		self.assertTrue(gesture.isModifier)
+		self.assertEqual(("desktop keyboard", "shift"), gesture.getDisplayTextForIdentifier("kb(desktop):shift"))
+		with self.assertRaises(NotImplementedError):
+			gesture.send()
+
 	def test_unmodified_single_character_gesture_is_character(self):
 		event = translateRawKeyEvent(SimpleNamespace(key="x"))
 
@@ -134,6 +150,28 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		)
 
 		self.assertEqual([], executed)
+
+	def test_executes_keyboard_gesture_through_input_core_manager(self):
+		event = translateRawKeyEvent(SimpleNamespace(key="n", modifiers=("NVDA",)))
+		gesture = makeKeyboardGesture(event)
+		executed = []
+		manager = SimpleNamespace(executeGesture=executed.append)
+
+		self.assertTrue(executeKeyboardGesture(gesture, manager=manager))
+
+		self.assertEqual([gesture], executed)
+
+	def test_enable_input_core_execution_dispatches_pressed_key_to_manager(self):
+		adapter = LinuxInputAdapter()
+		executed = []
+		manager = SimpleNamespace(executeGesture=executed.append)
+
+		adapter.initialize_keyboard(SimpleNamespace())
+		adapter.enableInputCoreGestureExecution(manager=manager)
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="n", modifiers=("NVDA",), pressed=True))
+
+		self.assertEqual(1, len(executed))
+		self.assertEqual(("kb(desktop):NVDA+N", "kb(laptop):NVDA+N", "kb:NVDA+N"), executed[0].identifiers)
 
 	def test_terminate_keyboard_clears_runtime_state(self):
 		adapter = LinuxInputAdapter()

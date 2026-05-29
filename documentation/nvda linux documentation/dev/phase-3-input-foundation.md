@@ -18,7 +18,11 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Makes keyboard initialize/terminate non-fatal while real global hooks are still pending.
   - Added `LinuxKeyboardGesture`, a gesture-shaped wrapper that exposes the same user-facing `kb(desktop):...`, `kb(laptop):...`, and `kb:...` identifiers used by existing NVDA keyboard gesture bindings.
   - Avoids a separate Linux gesture namespace so Windows NVDA gestures can be reused on Linux wherever the physical/user-facing keystroke is the same.
-  - Added key-down-only gesture executor dispatch for the future `inputCore` handoff.
+  - Made `LinuxKeyboardGesture` compatible with NVDA's `inputCore.InputGesture` contract when `inputCore` is available.
+  - Added an `executeKeyboardGesture` handoff helper and `LinuxInputAdapter.enableInputCoreGestureExecution()` so injected Linux key events can be executed through an `inputCore`-style manager.
+  - Registers the Linux keyboard gesture class as the `kb` gesture source when execution is enabled, preserving display lookup compatibility for `kb(...)` gesture identifiers.
+  - Wired Linux startup through `core.main()` so the Linux input adapter hands key-down gestures to `inputCore.manager` after `inputCore.initialize()`.
+  - Added key-down-only gesture executor dispatch for the `inputCore` handoff.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 
@@ -30,7 +34,7 @@ Run focused Linux-port validation from the repository root with:
 uv run python tests/linuxPortUnitRunner.py
 ```
 
-This currently validates AT-SPI accessibility scaffolding plus Linux keyboard event normalization and dispatch without requiring a Linux desktop session.
+This currently validates AT-SPI accessibility scaffolding plus Linux keyboard event normalization, Windows-compatible gesture identifiers, and an injected `inputCore`-style execution handoff without requiring a Linux desktop session.
 
 ## Keyboard Support Status
 
@@ -43,6 +47,9 @@ Done:
 - Listener/observer dispatch path.
 - Linux keyboard gesture identifiers and display names.
 - Desktop, laptop, and all-layout NVDA keyboard binding compatibility without a special Linux binding mode.
+- `inputCore`-compatible gesture object shape.
+- Injected key-down execution through an `inputCore`-style manager.
+- Linux startup wiring that enables keyboard execution through `inputCore.manager`.
 - Key-down-only gesture executor callback.
 - Windows-testable injected event path.
 
@@ -50,7 +57,6 @@ Remaining:
 
 - X11 backend capture, likely XInput2.
 - Wayland-compatible strategy, likely portal/compositor-specific support plus a restricted fallback mode.
-- Final conversion from `LinuxKeyboardGesture` into NVDA `InputGesture`/gesture-map execution.
 - NVDA modifier handling on Linux.
 - Secure handling of global hotkeys and pass-through behavior.
 - Integration tests on a real Linux desktop.
