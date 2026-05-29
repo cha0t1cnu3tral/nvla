@@ -67,8 +67,24 @@ class TestLinuxInputAdapter(unittest.TestCase):
 
 		gesture = makeKeyboardGesture(event)
 
-		self.assertEqual(("kb(linux):NVDA+control+F1",), gesture.identifiers)
-		self.assertEqual(("kb(linux):nvda+control+f1",), gesture.normalizedIdentifiers)
+		self.assertEqual(
+			(
+				"kb(linux):NVDA+control+F1",
+				"kb(desktop):NVDA+control+F1",
+				"kb(laptop):NVDA+control+F1",
+				"kb:NVDA+control+F1",
+			),
+			gesture.identifiers,
+		)
+		self.assertEqual(
+			(
+				"kb(linux):nvda+control+f1",
+				"kb(desktop):nvda+control+f1",
+				"kb(laptop):nvda+control+f1",
+				"kb:nvda+control+f1",
+			),
+			gesture.normalizedIdentifiers,
+		)
 		self.assertEqual("NVDA+control+F1", gesture.displayName)
 		self.assertFalse(gesture.isCharacter)
 
@@ -78,7 +94,15 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		gesture = makeKeyboardGesture(event)
 
 		self.assertTrue(gesture.isCharacter)
-		self.assertEqual(("kb(linux):X",), gesture.identifiers)
+		self.assertEqual(
+			(
+				"kb(linux):X",
+				"kb(desktop):X",
+				"kb(laptop):X",
+				"kb:X",
+			),
+			gesture.identifiers,
+		)
 
 	def test_dispatches_pressed_key_to_gesture_executor(self):
 		adapter = LinuxInputAdapter()
@@ -96,7 +120,7 @@ class TestLinuxInputAdapter(unittest.TestCase):
 
 		self.assertEqual(1, len(executed))
 		self.assertEqual(event, executed[0].event)
-		self.assertEqual(("kb(linux):NVDA+N",), executed[0].identifiers)
+		self.assertEqual("kb(desktop):NVDA+N", executed[0].identifiers[1])
 
 	def test_does_not_dispatch_released_key_to_gesture_executor(self):
 		adapter = LinuxInputAdapter()

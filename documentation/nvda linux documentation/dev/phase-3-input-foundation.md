@@ -17,6 +17,7 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Allows listeners and an observer to receive normalized key events.
   - Makes keyboard initialize/terminate non-fatal while real global hooks are still pending.
   - Added `LinuxKeyboardGesture`, a gesture-shaped wrapper with identifiers such as `kb(linux):NVDA+control+F1`.
+  - Linux keyboard gestures also expose `kb(desktop):...`, `kb(laptop):...`, and `kb:...` compatibility identifiers so existing NVDA gesture bindings can be reused where the user-facing keystroke is the same.
   - Added key-down-only gesture executor dispatch for the future `inputCore` handoff.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
@@ -41,6 +42,7 @@ Done:
 - Modifier/key normalization.
 - Listener/observer dispatch path.
 - Linux keyboard gesture identifiers and display names.
+- Compatibility identifiers for desktop, laptop, and all-layout NVDA keyboard bindings.
 - Key-down-only gesture executor callback.
 - Windows-testable injected event path.
 

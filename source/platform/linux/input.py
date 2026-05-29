@@ -60,10 +60,16 @@ class LinuxKeyboardGesture:
 
 	event: LinuxKeyEvent
 	source: str = "kb(linux)"
+	compatibleLayouts: tuple[str, ...] = ("desktop", "laptop")
 
 	@property
 	def identifiers(self) -> tuple[str, ...]:
-		return (f"{self.source}:{self.event.gestureName}",)
+		gestureName = self.event.gestureName
+		return (
+			f"{self.source}:{gestureName}",
+			*(f"kb({layout}):{gestureName}" for layout in self.compatibleLayouts),
+			f"kb:{gestureName}",
+		)
 
 	@property
 	def normalizedIdentifiers(self) -> tuple[str, ...]:
