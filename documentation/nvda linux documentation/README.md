@@ -10,6 +10,7 @@ Current dev milestones documented:
 - Phase 0 baseline artifacts
 - Phase 1 PAL scaffolding and core import routing
 - Phase 2 AT-SPI2 mapping, event translation, object-wrapper, and baseline TextInfo work
+- Phase 3 input foundation and Linux keyboard event normalization
 
 ## Focused validation on Windows
 
