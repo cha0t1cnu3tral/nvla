@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 import controlTypes
 from NVDAObjects import NVDAObject, NVDAObjectTextInfo
@@ -14,6 +14,65 @@ from .atspi_backend import TranslatedATSPIEvent
 
 def _clampOffset(offset: int, storyLength: int) -> int:
 	return max(0, min(offset, storyLength))
+
+
+def _callAccessibleMethod(accessible: Any, methodName: str, *args: Any) -> Any | None:
+	if accessible is None:
+		return None
+	method = getattr(accessible, methodName, None)
+	if not callable(method):
+		return None
+	try:
+		return method(*args)
+	except Exception:
+		return None
+
+
+def _getAccessibleChildCount(accessible: Any) -> int:
+	value = getattr(accessible, "childCount", None)
+	if value is None:
+		value = _callAccessibleMethod(accessible, "getChildCount")
+	if value is None:
+		children = getattr(accessible, "children", None)
+		try:
+			return len(children)
+		except Exception:
+			return 0
+	try:
+		return max(0, int(value))
+	except Exception:
+		return 0
+
+
+def _getAccessibleChildAt(accessible: Any, index: int) -> Any | None:
+	if index < 0:
+		return None
+	child = _callAccessibleMethod(accessible, "getChildAtIndex", index)
+	if child is not None:
+		return child
+	children = getattr(accessible, "children", None)
+	try:
+		return children[index]
+	except Exception:
+		return None
+
+
+def _getAccessibleIndexInParent(accessible: Any) -> int | None:
+	value = getattr(accessible, "indexInParent", None)
+	if value is None:
+		value = _callAccessibleMethod(accessible, "getIndexInParent")
+	try:
+		index = int(value)
+	except Exception:
+		return None
+	return index if index >= 0 else None
+
+
+def _getAccessibleParent(accessible: Any) -> Any | None:
+	parent = getattr(accessible, "parent", None)
+	if parent is not None:
+		return parent
+	return _callAccessibleMethod(accessible, "getParent") or _callAccessibleMethod(accessible, "get_parent")
 
 
 class LinuxATSPITextInfo(NVDAObjectTextInfo):
@@ -86,10 +145,12 @@ class LinuxATSPIObject(NVDAObject):
 		description: str | None = None,
 		role: controlTypes.Role = controlTypes.Role.UNKNOWN,
 		states: frozenset[controlTypes.State] | None = None,
+		objectFactory: Callable[[Any], "LinuxATSPIObject | None"] | None = None,
 	) -> None:
 		super().__init__()
 		self.sourceKey = sourceKey
 		self.accessible = accessible
+		self._objectFactory = objectFactory
 		self._processID = processID
 		self._appModule = appModule or _LinuxStubAppModule(processID=processID)
 		self._name = name or ""
@@ -132,6 +193,37 @@ class LinuxATSPIObject(NVDAObject):
 
 	def _get_isInForeground(self) -> bool:
 		return controlTypes.State.FOCUSED in self._states
+
+	def _makeObjectFromAccessible(self, accessible: Any) -> "LinuxATSPIObject | None":
+		if accessible is None or self._objectFactory is None:
+			return None
+		return self._objectFactory(accessible)
+
+	def _get_parent(self) -> "LinuxATSPIObject | None":
+		return self._makeObjectFromAccessible(_getAccessibleParent(self.accessible))
+
+	def _get_firstChild(self) -> "LinuxATSPIObject | None":
+		return self._makeObjectFromAccessible(_getAccessibleChildAt(self.accessible, 0))
+
+	def _get_lastChild(self) -> "LinuxATSPIObject | None":
+		childCount = _getAccessibleChildCount(self.accessible)
+		if childCount <= 0:
+			return None
+		return self._makeObjectFromAccessible(_getAccessibleChildAt(self.accessible, childCount - 1))
+
+	def _get_next(self) -> "LinuxATSPIObject | None":
+		parent = _getAccessibleParent(self.accessible)
+		index = _getAccessibleIndexInParent(self.accessible)
+		if parent is None or index is None:
+			return None
+		return self._makeObjectFromAccessible(_getAccessibleChildAt(parent, index + 1))
+
+	def _get_previous(self) -> "LinuxATSPIObject | None":
+		parent = _getAccessibleParent(self.accessible)
+		index = _getAccessibleIndexInParent(self.accessible)
+		if parent is None or index is None or index <= 0:
+			return None
+		return self._makeObjectFromAccessible(_getAccessibleChildAt(parent, index - 1))
 
 	def _queryAccessibleText(self) -> Any | None:
 		accessible = self.accessible

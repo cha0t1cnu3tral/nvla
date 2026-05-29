@@ -48,6 +48,7 @@ class LinuxATSPINVDAEventBridge:
 				description=translatedSource.sourceDescription,
 				role=translatedSource.role,
 				states=translatedSource.states,
+				objectFactory=self.getOrCreateObjectForSource,
 			)
 			self._objectsByKey[cacheKey] = obj
 			self._evictCachedObjectsIfNeeded()

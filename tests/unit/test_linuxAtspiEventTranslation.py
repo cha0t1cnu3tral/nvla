@@ -28,6 +28,7 @@ class _FakeSource:
 		description=None,
 		path=None,
 		text=None,
+		children=None,
 	):
 		self._role = role
 		self._state = _FakeStateSet(states)
@@ -35,12 +36,28 @@ class _FakeSource:
 		self.description = description
 		self.path = path
 		self._text = text
+		self.children = list(children or ())
+		self.parent = None
+		self.indexInParent = -1
+		for index, child in enumerate(self.children):
+			child.parent = self
+			child.indexInParent = index
 
 	def getRole(self):
 		return self._role
 
 	def getState(self):
 		return self._state
+
+	@property
+	def childCount(self):
+		return len(self.children)
+
+	def getChildAtIndex(self, index):
+		return self.children[index]
+
+	def getIndexInParent(self):
+		return self.indexInParent
 
 	def queryText(self):
 		if self._text is None:
@@ -373,6 +390,54 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertIs(firstObj, secondObj)
 		self.assertEqual(controlTypes.Role.BUTTON, firstObj.role)
 		self.assertIn(controlTypes.State.FOCUSED, firstObj.states)
+
+	def test_linux_atspi_object_exposes_parent_and_children(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+		firstChild = _FakeSource(role=10, states=(2, 3), name="First", path=(10, 1))
+		secondChild = _FakeSource(role=10, states=(2, 3), name="Second", path=(10, 2))
+		parent = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="Parent",
+			path=(10,),
+			children=(firstChild, secondChild),
+		)
+
+		parentObj = bridge.getOrCreateObjectForSource(parent)
+		firstObj = bridge.getOrCreateObjectForSource(firstChild)
+		secondObj = bridge.getOrCreateObjectForSource(secondChild)
+
+		self.assertIs(firstObj.parent, parentObj)
+		self.assertIs(parentObj.firstChild, firstObj)
+		self.assertIs(parentObj.lastChild, secondObj)
+
+	def test_linux_atspi_object_exposes_sibling_navigation(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+		firstChild = _FakeSource(role=10, states=(2, 3), name="First", path=(11, 1))
+		secondChild = _FakeSource(role=10, states=(2, 3), name="Second", path=(11, 2))
+		_FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="Parent",
+			path=(11,),
+			children=(firstChild, secondChild),
+		)
+
+		firstObj = bridge.getOrCreateObjectForSource(firstChild)
+		secondObj = bridge.getOrCreateObjectForSource(secondChild)
+
+		self.assertIs(firstObj.next, secondObj)
+		self.assertIs(secondObj.previous, firstObj)
+		self.assertIsNone(firstObj.previous)
+		self.assertIsNone(secondObj.next)
 
 	def test_linux_event_bridge_routes_focus_and_property_events(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()

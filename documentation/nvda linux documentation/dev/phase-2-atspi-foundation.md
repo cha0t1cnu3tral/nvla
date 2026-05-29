@@ -48,6 +48,8 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Unsuffixed `accessible:property-change` events now read the property name from `detail1` when available.
 - Focus-event buffering now keeps only the latest focus event globally, while property and caret queues remain keyed per source.
 - Added `tests/linuxPortUnitRunner.py` so dependency-light Linux AT-SPI unit tests can run from a Windows checkout before `nvdaHelperLocal.dll` is available.
+- Linux AT-SPI placeholder objects now expose basic object navigation getters for parent, first/last child, and previous/next sibling using AT-SPI-style accessible relationships.
+- Navigation-created Linux AT-SPI objects flow through the same bridge cache and role/state mapping path as event-created objects.
 
 ## Validation
 
@@ -57,11 +59,11 @@ Run focused Linux-port validation from the repository root with:
 uv run python tests/linuxPortUnitRunner.py
 ```
 
-This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, and baseline Linux TextInfo behavior.
+This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, and baseline Linux TextInfo behavior.
 
 ## Remaining Phase 2 work
 
-- Replace placeholder Linux AT-SPI objects with deeper integration into the existing NVDA object creation and tree navigation flow.
-- Object tree navigation and browse/review parity validation.
+- Replace placeholder Linux AT-SPI objects with deeper integration into the existing NVDA object creation flow.
+- Expand object tree navigation coverage beyond parent/child/sibling primitives and validate browse/review parity.
 - D-Bus event prioritization and smarter throttling (beyond key-based coalescing and bounded buffering).
 - Extend AT-SPI TextInfo beyond baseline primitives (line/word/sentence offsets, richer formatting, geometry and hit-testing).
