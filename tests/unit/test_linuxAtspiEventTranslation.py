@@ -484,6 +484,24 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual(4321, obj.processID)
 		self.assertEqual(4321, obj.appModule.processID)
 
+	def test_linux_event_bridge_namespaces_source_paths_by_process_id(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+
+		firstObj = bridge.getOrCreateObjectForSource(
+			_FakeSource(role=10, states=(2, 3), name="First", path=(3, 2), processID=1001),
+		)
+		secondObj = bridge.getOrCreateObjectForSource(
+			_FakeSource(role=10, states=(2, 3), name="Second", path=(3, 2), processID=1002),
+		)
+
+		self.assertIsNot(firstObj, secondObj)
+		self.assertEqual("1001:3:2", firstObj.sourceKey)
+		self.assertEqual("1002:3:2", secondObj.sourceKey)
+
 	def test_linux_atspi_object_exposes_parent_and_children(self):
 		backend = atspi_backend.ATSPI2Backend()
 		backend.roleMap = self.roleMap

@@ -105,17 +105,21 @@ def _get_source_state_values(source: Any) -> tuple[int, ...]:
 def _make_source_key(source: Any) -> str | None:
 	if source is None:
 		return None
+	processID = _get_source_process_id(source)
 	for attrName in ("path", "accessibleId", "id"):
 		value = getattr(source, attrName, None)
 		if value is None:
 			continue
 		if isinstance(value, (tuple, list)):
-			return ":".join(str(part) for part in value)
-		return str(value)
+			value = ":".join(str(part) for part in value)
+		else:
+			value = str(value)
+		return f"{processID}:{value}" if processID else value
 	name = getattr(source, "name", None)
 	roleValue = _get_source_role_value(source)
 	if name is not None or roleValue is not None:
-		return f"{roleValue}:{name}"
+		value = f"{roleValue}:{name}"
+		return f"{processID}:{value}" if processID else value
 	return None
 
 

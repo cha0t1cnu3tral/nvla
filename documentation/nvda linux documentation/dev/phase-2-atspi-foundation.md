@@ -56,6 +56,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Linux AT-SPI TextInfo now supports line and word offset expansion, preferring AT-SPI-style `getTextAtOffset` boundaries and falling back to local story-text parsing.
 - Linux AT-SPI TextInfo now supports sentence and paragraph expansion using the same AT-SPI-boundary-first, local-fallback strategy.
 - Linux AT-SPI source translation now carries accessible process IDs into Linux NVDA objects and their placeholder app modules when available.
+- Stable AT-SPI cache keys now include the process ID when available, preventing identical per-application object paths from colliding across applications.
 
 ## Validation
 
