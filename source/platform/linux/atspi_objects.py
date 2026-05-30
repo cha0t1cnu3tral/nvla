@@ -280,6 +280,12 @@ class LinuxATSPITextInfo(NVDAObjectTextInfo):
 		return self.obj._getAccessibleText()
 
 	def _getStoryLength(self) -> int:
+		textInterface = self.obj._queryAccessibleText()
+		if textInterface is not None:
+			try:
+				return max(0, int(getattr(textInterface, "characterCount")))
+			except Exception:
+				pass
 		return len(self._getStoryText())
 
 	def _getTextRange(self, start: int, end: int) -> str:

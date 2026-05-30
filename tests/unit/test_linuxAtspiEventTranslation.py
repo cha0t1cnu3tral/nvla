@@ -983,6 +983,31 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("hello world", allText.text)
 		self.assertEqual((6, 6), caretText.offsets)
 
+	def test_linux_atspi_text_info_uses_character_count_for_story_length(self):
+		text = _FakeText("hello world", caretOffset=6)
+		text.getText = mock.Mock(wraps=text.getText)
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(3, 8),
+			text=text,
+		)
+		obj = accessibility.LinuxATSPINVDAEventBridge().getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		caretText = obj.makeTextInfo(textInfos.POSITION_CARET)
+
+		self.assertEqual((6, 6), caretText.offsets)
+		text.getText.assert_not_called()
+
 	def test_linux_atspi_text_info_updates_caret_and_selection(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		text = _FakeText("abcde", caretOffset=1)
