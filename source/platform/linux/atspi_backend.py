@@ -209,9 +209,15 @@ def translate_atspi_event(
 		states=states,
 	)
 	if kind == "focus":
+		isFocused = _coerce_bool(getattr(event, "detail1", False))
+		if isFocused:
+			states = states | {controlTypes.State.FOCUSED}
+		else:
+			states = states - {controlTypes.State.FOCUSED}
 		return replace(
 			translated,
-			isFocused=_coerce_bool(getattr(event, "detail1", False)),
+			states=frozenset(states),
+			isFocused=isFocused,
 		)
 	if kind == "caret":
 		caretOffset = getattr(event, "detail1", None)

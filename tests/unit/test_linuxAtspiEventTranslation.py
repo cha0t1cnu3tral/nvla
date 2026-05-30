@@ -215,6 +215,30 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual(controlTypes.Role.BUTTON, translated.role)
 		self.assertEqual({controlTypes.State.FOCUSED}, set(translated.states))
 
+	def test_focus_event_adds_focused_state_when_source_snapshot_is_stale(self):
+		translated = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=1,
+				source=_FakeSource(role=10, states=(2, 3), name="OK"),
+			),
+		)
+
+		self.assertTrue(translated.isFocused)
+		self.assertIn(controlTypes.State.FOCUSED, translated.states)
+
+	def test_blur_event_removes_focused_state_when_source_snapshot_is_stale(self):
+		translated = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=0,
+				source=_FakeSource(role=10, states=(1, 2, 3), name="OK"),
+			),
+		)
+
+		self.assertFalse(translated.isFocused)
+		self.assertNotIn(controlTypes.State.FOCUSED, translated.states)
+
 	def test_translates_property_change_event(self):
 		event = SimpleNamespace(
 			type="accessible:property-change:name",
