@@ -444,8 +444,9 @@ class LinuxInputAdapter:
 		handleKeyEvent = getattr(observer, "handleKeyEvent", None)
 		if callable(handleKeyEvent):
 			handleKeyEvent(translated)
-		if translated.isPressed and self._keyboardGestureExecutor is not None:
-			self._keyboardGestureExecutor(makeKeyboardGesture(translated))
+		gesture = makeKeyboardGesture(translated)
+		if translated.isPressed and not gesture.isModifier and self._keyboardGestureExecutor is not None:
+			self._keyboardGestureExecutor(gesture)
 		return translated
 
 	def initialize_mouse(self) -> None:

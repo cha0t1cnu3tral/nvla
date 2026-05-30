@@ -248,8 +248,19 @@ class TestLinuxInputAdapter(unittest.TestCase):
 
 		self.assertEqual("NVDA+N", event.gestureName)
 		self.assertEqual("N", unmodifiedEvent.gestureName)
-		self.assertEqual("kb(desktop):NVDA+N", executed[1].identifiers[0])
-		self.assertEqual("kb(desktop):N", executed[2].identifiers[0])
+		self.assertEqual("kb(desktop):NVDA+N", executed[0].identifiers[0])
+		self.assertEqual("kb(desktop):N", executed[1].identifiers[0])
+
+	def test_does_not_dispatch_modifier_only_key_to_gesture_executor(self):
+		adapter = LinuxInputAdapter()
+		executed = []
+
+		adapter.initialize_keyboard(SimpleNamespace())
+		adapter.setKeyboardGestureExecutor(executed.append)
+		event = adapter.feedRawKeyboardEvent(SimpleNamespace(key="insert", pressed=True, nvdaModifierKeys=4))
+
+		self.assertEqual("NVDA", event.gestureName)
+		self.assertEqual([], executed)
 
 	def test_keeps_nvda_modifier_pressed_until_all_configured_keys_are_released(self):
 		adapter = LinuxInputAdapter()
