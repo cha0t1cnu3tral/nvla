@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from enum import Enum
 import re
 import time
 from typing import Any, Callable, Protocol
@@ -58,6 +59,12 @@ _LINUX_NVDA_MODIFIER_KEY_ALIASES = {
 	"numpad_insert": "numpadinsert",
 	"numpadinsert": "numpadinsert",
 }
+
+
+class KeyboardCaptureMode(Enum):
+	DISABLED = "disabled"
+	GLOBAL = "global"
+	LOCAL_ONLY = "localOnly"
 
 
 if inputCore is None:
@@ -400,6 +407,7 @@ class LinuxInputAdapter:
 		self._keyboardGestureExecutor: Callable[[LinuxKeyboardGesture], bool | None] | None = None
 		self._keyboardEventSource = keyboardEventSource
 		self._keyboardEventSourceStartError: Exception | None = None
+		self._keyboardCaptureMode = KeyboardCaptureMode.DISABLED
 		self._keyboardInitialized = False
 		self._pressedNVDAModifierKeys: set[str] = set()
 		self._bypassedNVDAModifierKeys: set[str] = set()
@@ -416,6 +424,10 @@ class LinuxInputAdapter:
 	def keyboardEventSourceStartError(self) -> Exception | None:
 		return self._keyboardEventSourceStartError
 
+	@property
+	def keyboardCaptureMode(self) -> KeyboardCaptureMode:
+		return self._keyboardCaptureMode
+
 	def initialize_keyboard(self, observer) -> None:
 		self._keyboardObserver = observer
 		self._keyboardInitialized = True
@@ -426,6 +438,11 @@ class LinuxInputAdapter:
 				self._keyboardEventSource.start(self.feedRawKeyboardEvent)
 			except NotSupportedYetError as error:
 				self._keyboardEventSourceStartError = error
+				self._keyboardCaptureMode = KeyboardCaptureMode.LOCAL_ONLY
+			else:
+				self._keyboardCaptureMode = KeyboardCaptureMode.GLOBAL
+		else:
+			self._keyboardCaptureMode = KeyboardCaptureMode.LOCAL_ONLY
 
 	def registerKeyboardListener(self, listener: Callable[[LinuxKeyEvent], None]) -> None:
 		if listener not in self._keyboardListeners:
@@ -515,6 +532,7 @@ class LinuxInputAdapter:
 		if self._keyboardEventSource is not None:
 			self._keyboardEventSource.stop()
 		self._keyboardEventSourceStartError = None
+		self._keyboardCaptureMode = KeyboardCaptureMode.DISABLED
 		self._keyboardListeners.clear()
 		self._keyboardGestureExecutor = None
 		self._keyboardObserver = None

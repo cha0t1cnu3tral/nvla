@@ -32,6 +32,7 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Marks a configured NVDA modifier for normal pass-through when it is pressed twice within the configured multi-press timeout, matching the existing Windows interaction.
   - Marks key events for desktop pass-through when `inputCore` reports that no NVDA command handled the gesture.
   - Dispatches normalized observer/listener events after the NVDA command handoff so physical backends and diagnostics see the final pass-through decision.
+  - Exposes keyboard capture mode as disabled, global, or local-only so callers can detect the restricted fallback used when global hooks are unavailable.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 
@@ -68,11 +69,12 @@ Done:
 - Modifier-only events are filtered from the `inputCore` execution handoff.
 - NVDA modifier double-press pass-through intent is exposed to physical event sources.
 - Unbound gesture pass-through intent is exposed to physical event sources.
+- Restricted local-only fallback mode is explicit when no global keyboard source can start.
 
 Remaining:
 
 - X11 backend capture implementation, likely XInput2.
-- Wayland-compatible implementation strategy, likely portal/compositor-specific support plus a restricted fallback mode.
+- Wayland-compatible implementation strategy, likely portal/compositor-specific support on top of the explicit restricted fallback mode.
 - Full NVDA modifier behavior on Linux, including system Sticky Keys latch/lock support and physical backend pass-through enforcement.
 - Secure handling of global hotkeys and pass-through behavior.
 - Integration tests on a real Linux desktop.

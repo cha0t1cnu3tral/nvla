@@ -3,8 +3,10 @@
 
 from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 from platform.linux.input import (
+	KeyboardCaptureMode,
 	LinuxInputAdapter,
 	ManualKeyboardEventSource,
 	X11KeyboardEventSource,
@@ -133,6 +135,7 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		event = source.emit(SimpleNamespace(key="f2", modifiers=("NVDA",)))
 
 		self.assertTrue(source.isStarted)
+		self.assertEqual(KeyboardCaptureMode.GLOBAL, adapter.keyboardCaptureMode)
 		self.assertEqual("NVDA+F2", received[0].gestureName)
 		self.assertEqual(event, received[0])
 
@@ -144,6 +147,7 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		adapter.terminate_keyboard()
 
 		self.assertFalse(source.isStarted)
+		self.assertEqual(KeyboardCaptureMode.DISABLED, adapter.keyboardCaptureMode)
 		with self.assertRaises(RuntimeError):
 			source.emit(SimpleNamespace(key="a"))
 
@@ -162,6 +166,15 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		adapter.initialize_keyboard(SimpleNamespace())
 
 		self.assertIsNotNone(adapter.keyboardEventSourceStartError)
+		self.assertEqual(KeyboardCaptureMode.LOCAL_ONLY, adapter.keyboardCaptureMode)
+
+	def test_uses_local_only_fallback_without_session_keyboard_source(self):
+		adapter = LinuxInputAdapter()
+
+		with mock.patch("platform.linux.input.createKeyboardEventSource", return_value=None):
+			adapter.initialize_keyboard(SimpleNamespace())
+
+		self.assertEqual(KeyboardCaptureMode.LOCAL_ONLY, adapter.keyboardCaptureMode)
 
 	def test_creates_keyboard_gesture_from_key_event(self):
 		event = translateRawKeyEvent(
