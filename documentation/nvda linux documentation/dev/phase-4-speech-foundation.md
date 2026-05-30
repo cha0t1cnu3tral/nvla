@@ -28,6 +28,7 @@ The first Linux-native speech path is in place for an early `0.1` milestone. It 
   - Linux uses a lifecycle-compatible placeholder instead of a Win32 message window.
   - Linux uses a lightweight watchdog compatibility module and skips the synthetic Win32 desktop object cache.
   - Linux system reporting and basic window show-mode calls have non-fatal PAL defaults.
+  - Linux skips optional Windows-heavy app-module, hardware I/O, braille, vision, display-model, remote, and update-check initialization during `0.1` bring-up.
 
 ## Validation
 
@@ -57,5 +58,6 @@ The first usable screen-reader preview still needs:
 - Real X11 keyboard capture with pass-through enforcement.
 - A documented restricted Wayland fallback until compositor-specific global capture is available.
 - Continue Linux startup cleanup for remaining Windows-only imports beyond the early helper/audio path.
+- Reintroduce optional subsystems behind real Linux implementations, starting with brlapi-backed braille.
 - Real desktop smoke tests: focus an application, receive AT-SPI focus events, speak the focused control, and execute commands such as `NVDA+t`.
 - A simple launch script and package dependency list for Speech Dispatcher, eSpeak NG, AT-SPI2, Python, and wxPython.

@@ -313,30 +313,31 @@ def restart(disableAddons=False, debugLogging=False):
 def resetConfiguration(factoryDefaults=False):
 	"""Loads the configuration, installs the correct language support and initialises audio so that it will use the configured synth and speech settings."""
 	import config
-	import braille
-	import brailleInput
-	import brailleTables
 	import speech
 	import characterProcessing
-	import vision
 	import inputCore
-	import bdDetect
-	import hwIo
-	import screenCurtain
 	if sys.platform.startswith("win"):
 		import audio
+		import bdDetect
+		import braille
+		import brailleInput
+		import brailleTables
+		import hwIo
+		import screenCurtain
 		import tones
+		import vision
 
-	log.debug("Terminating vision")
-	vision.terminate()
-	log.debug("Terminating Screen Curtain")
-	screenCurtain.terminate()
-	log.debug("Terminating braille")
-	braille.terminate()
-	log.debug("Terminating brailleInput")
-	brailleInput.terminate()
-	log.debug("Terminating brailleTables")
-	brailleTables.terminate()
+	if sys.platform.startswith("win"):
+		log.debug("Terminating vision")
+		vision.terminate()
+		log.debug("Terminating Screen Curtain")
+		screenCurtain.terminate()
+		log.debug("Terminating braille")
+		braille.terminate()
+		log.debug("Terminating brailleInput")
+		brailleInput.terminate()
+		log.debug("Terminating brailleTables")
+		brailleTables.terminate()
 	log.debug("terminating speech")
 	speech.terminate()
 	log.debug("terminating character processing")
@@ -346,10 +347,11 @@ def resetConfiguration(factoryDefaults=False):
 		tones.terminate()
 		log.debug("terminating sound split")
 		audio.soundSplit.terminate()
-	log.debug("Terminating background braille display detection")
-	bdDetect.terminate()
-	log.debug("Terminating background i/o")
-	hwIo.terminate()
+	if sys.platform.startswith("win"):
+		log.debug("Terminating background braille display detection")
+		bdDetect.terminate()
+		log.debug("Terminating background i/o")
+		hwIo.terminate()
 	log.debug("terminating addonHandler")
 	addonHandler.terminate()
 	# Addons
@@ -369,12 +371,12 @@ def resetConfiguration(factoryDefaults=False):
 	languageHandler.setLanguage(lang)
 	dataManager.initialize()
 	addonHandler.initialize()
-	# Hardware background i/o
-	log.debug("initializing background i/o")
-	hwIo.initialize()
-	log.debug("Initializing background braille display detection")
-	bdDetect.initialize()
 	if sys.platform.startswith("win"):
+		# Hardware background i/o
+		log.debug("initializing background i/o")
+		hwIo.initialize()
+		log.debug("Initializing background braille display detection")
+		bdDetect.initialize()
 		# Tones
 		tones.initialize()
 		# Sound split
@@ -386,18 +388,19 @@ def resetConfiguration(factoryDefaults=False):
 	# Speech
 	log.debug("initializing speech")
 	speech.initialize()
-	# braille
-	log.debug("Initializing brailleTables")
-	brailleTables.initialize()
-	log.debug("Initializing brailleInput")
-	brailleInput.initialize()
-	log.debug("Initializing braille")
-	braille.initialize()
-	# Vision
-	log.debug("initializing vision")
-	vision.initialize()
-	log.debug("initializing Screen Curtain")
-	screenCurtain.initialize()
+	if sys.platform.startswith("win"):
+		# braille
+		log.debug("Initializing brailleTables")
+		brailleTables.initialize()
+		log.debug("Initializing brailleInput")
+		brailleInput.initialize()
+		log.debug("Initializing braille")
+		braille.initialize()
+		# Vision
+		log.debug("initializing vision")
+		vision.initialize()
+		log.debug("initializing Screen Curtain")
+		screenCurtain.initialize()
 	log.debug("Reloading user and locale input gesture maps")
 	inputCore.manager.loadUserGestureMap()
 	inputCore.manager.loadLocaleGestureMap()
@@ -556,30 +559,32 @@ def _handleNVDAModuleCleanupBeforeGUIExit():
 	"""Terminates various modules that rely on the GUI. This should be used before closing all windows
 	and terminating the GUI.
 	"""
-	import brailleViewer
-	import globalPluginHandler
 	if sys.platform.startswith("win"):
+		import brailleViewer
+		import globalPluginHandler
 		import watchdog
+		import _remoteClient
 	else:
 		from platform.linux import watchdog
-	import _remoteClient
 
-	try:
-		import updateCheck
+	if sys.platform.startswith("win"):
+		try:
+			import updateCheck
 
-		# before the GUI is terminated we must terminate the update checker
-		_terminate(updateCheck)
-	except RuntimeError:
-		pass
+			# before the GUI is terminated we must terminate the update checker
+			_terminate(updateCheck)
+		except RuntimeError:
+			pass
 
 	# The core is expected to terminate, so we should not treat this as a crash
 	_terminate(watchdog)
-	# plugins must be allowed to close safely before we terminate the GUI as dialogs may be unsaved
-	_terminate(globalPluginHandler)
-	# the brailleViewer should be destroyed safely before closing the window
-	brailleViewer.destroyBrailleViewer()
-	# Terminating remoteClient causes it to clean up its menus, so do it here while they still exist
-	_terminate(_remoteClient)
+	if sys.platform.startswith("win"):
+		# plugins must be allowed to close safely before we terminate the GUI as dialogs may be unsaved
+		_terminate(globalPluginHandler)
+		# the brailleViewer should be destroyed safely before closing the window
+		brailleViewer.destroyBrailleViewer()
+		# Terminating remoteClient causes it to clean up its menus, so do it here while they still exist
+		_terminate(_remoteClient)
 
 
 def _initializeObjectCaches():
@@ -766,18 +771,19 @@ def main():
 	addonStoreGui.initialize()
 	if globalVars.appArgs.disableAddons:
 		log.info("Add-ons are disabled. Restart NVDA to enable them.")
-	import appModuleHandler
+	if sys.platform.startswith("win"):
+		import appModuleHandler
 
-	log.debug("Initializing appModule Handler")
-	appModuleHandler.initialize()
-	log.debug("initializing background i/o")
-	import hwIo
+		log.debug("Initializing appModule Handler")
+		appModuleHandler.initialize()
+		log.debug("initializing background i/o")
+		import hwIo
 
-	hwIo.initialize()
-	log.debug("Initializing background braille display detection")
-	import bdDetect
+		hwIo.initialize()
+		log.debug("Initializing background braille display detection")
+		import bdDetect
 
-	bdDetect.initialize()
+		bdDetect.initialize()
 	if sys.platform.startswith("win"):
 		log.debug("Initializing tones")
 		import tones
@@ -813,32 +819,33 @@ def main():
 
 	app = _setUpWxApp()
 
-	log.debug("Initializing brailleTables")
-	import brailleTables
+	if sys.platform.startswith("win"):
+		log.debug("Initializing brailleTables")
+		import brailleTables
 
-	brailleTables.initialize()
-	log.debug("Initializing braille input")
-	import brailleInput
+		brailleTables.initialize()
+		log.debug("Initializing braille input")
+		import brailleInput
 
-	brailleInput.initialize()
-	import braille
+		brailleInput.initialize()
+		import braille
 
-	log.debug("Initializing braille")
-	braille.initialize()
+		log.debug("Initializing braille")
+		braille.initialize()
 
-	import screenCurtain
+		import screenCurtain
 
-	log.debug("Initializing Screen Curtain")
-	screenCurtain.initialize()
+		log.debug("Initializing Screen Curtain")
+		screenCurtain.initialize()
 
-	import vision
+		import vision
 
-	log.debug("Initializing vision")
-	vision.initialize()
-	import displayModel
+		log.debug("Initializing vision")
+		vision.initialize()
+		import displayModel
 
-	log.debug("Initializing displayModel")
-	displayModel.initialize()
+		log.debug("Initializing displayModel")
+		displayModel.initialize()
 	log.debug("Initializing GUI")
 	import gui
 
@@ -933,14 +940,15 @@ def main():
 		_pal.input.initialize_touch()
 	except (NotImplementedError, NotSupportedYetError):
 		pass
-	import globalPluginHandler
+	if sys.platform.startswith("win"):
+		import globalPluginHandler
 
-	log.debug("Initializing global plugin handler")
-	globalPluginHandler.initialize()
+		log.debug("Initializing global plugin handler")
+		globalPluginHandler.initialize()
 
-	import _remoteClient
+		import _remoteClient
 
-	_remoteClient.initialize()
+		_remoteClient.initialize()
 
 	if globalVars.appArgs.install or globalVars.appArgs.installSilent:
 		import gui.installerGui
@@ -965,7 +973,7 @@ def main():
 			startAfterCreate=not globalVars.appArgs.createPortableSilent,
 			warnForNonEmptyDirectory=warnForNonEmptyDirectory,
 		)
-	elif not globalVars.appArgs.minimal:
+	elif sys.platform.startswith("win") and not globalVars.appArgs.minimal:
 		try:
 			# Translators: This is shown on a braille display (if one is connected) when NVDA starts.
 			braille.handler.message(_("NVDA started"))
@@ -1030,8 +1038,9 @@ def main():
 				queueHandler.pumpAll()
 				if sys.platform.startswith("win"):
 					mouseHandler.pumpAll()
-				braille.pumpAll()
-				vision.pumpAll()
+				if sys.platform.startswith("win"):
+					braille.pumpAll()
+					vision.pumpAll()
 				_pal.session.pump_all()
 			except Exception:
 				log.exception("errors in this core pump cycle")
@@ -1057,15 +1066,19 @@ def main():
 
 	log.debug("Initializing watchdog")
 	watchdog.initialize()
-	try:
-		import updateCheck
-	except RuntimeError:
+	if not sys.platform.startswith("win"):
 		updateCheck = None
 		log.debug("Update checking not supported")
 	else:
-		log.debug("initializing updateCheck")
-		updateCheck.initialize()
-		log.debug(f"NVDA user ID {updateCheck.state['id']}")
+		try:
+			import updateCheck
+		except RuntimeError:
+			updateCheck = None
+			log.debug("Update checking not supported")
+		else:
+			log.debug("initializing updateCheck")
+			updateCheck.initialize()
+			log.debug(f"NVDA user ID {updateCheck.state['id']}")
 
 	_pal.session.initialize()
 
@@ -1124,7 +1137,8 @@ def main():
 		log.exception("Error terminating legacy winConsole support")
 	if sys.platform.startswith("win"):
 		_terminate(JABHandler, name="Java Access Bridge support")
-	_terminate(appModuleHandler, name="app module handler")
+	if sys.platform.startswith("win"):
+		_terminate(appModuleHandler, name="app module handler")
 	if sys.platform.startswith("win"):
 		_terminate(tones)
 	log.debug("Terminating touch handler")
@@ -1143,15 +1157,17 @@ def main():
 	except:  # noqa: E722
 		log.exception("Error terminating mouse handler")
 	_terminate(inputCore)
-	_terminate(screenCurtain)
-	_terminate(vision)
-	_terminate(brailleInput)
-	_terminate(braille)
-	_terminate(brailleTables)
+	if sys.platform.startswith("win"):
+		_terminate(screenCurtain)
+		_terminate(vision)
+		_terminate(brailleInput)
+		_terminate(braille)
+		_terminate(brailleTables)
 	_terminate(speech)
 	_terminate(characterProcessing)
-	_terminate(bdDetect)
-	_terminate(hwIo)
+	if sys.platform.startswith("win"):
+		_terminate(bdDetect)
+		_terminate(hwIo)
 	_terminate(addonHandler)
 	_terminate(dataManager, name="addon dataManager")
 	_terminate(garbageHandler)
