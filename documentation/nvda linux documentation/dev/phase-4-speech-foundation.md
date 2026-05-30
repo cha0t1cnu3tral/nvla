@@ -21,6 +21,9 @@ The first Linux-native speech path is in place for an early `0.1` milestone. It 
 - Updated automatic synth selection.
   - Linux tries `linuxSpeech` and then `silence`.
   - Windows keeps its existing `oneCore`, `espeak`, and `silence` order.
+- Removed early Linux boot dependencies on Windows-only helper/audio initialization.
+  - Linux skips `NVDAHelper`, `nvwave`, tones, sound splitting, audio ducking, and comtypes logging.
+  - Unfinished Linux mouse and touch hooks are treated as explicit non-fatal limitations during startup.
 
 ## Validation
 
@@ -49,6 +52,6 @@ The first usable screen-reader preview still needs:
 
 - Real X11 keyboard capture with pass-through enforcement.
 - A documented restricted Wayland fallback until compositor-specific global capture is available.
-- Linux startup cleanup for remaining Windows-only imports on the boot path.
+- Continue Linux startup cleanup for remaining Windows-only imports beyond the early helper/audio path.
 - Real desktop smoke tests: focus an application, receive AT-SPI focus events, speak the focused control, and execute commands such as `NVDA+t`.
 - A simple launch script and package dependency list for Speech Dispatcher, eSpeak NG, AT-SPI2, Python, and wxPython.

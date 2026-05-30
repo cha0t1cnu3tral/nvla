@@ -13,7 +13,6 @@ from typing import (
 	List,
 	Optional,
 )
-import comtypes
 import sys
 import threading
 import os
@@ -24,12 +23,16 @@ import languageHandler
 import globalVars
 import argsParsing
 from platform import pal
+from platform.common.errors import NotSupportedYetError
 from logHandler import log
 import addonHandler
 import extensionPoints
 import garbageHandler
 import NVDAState
 from NVDAState import WritePaths
+
+if sys.platform.startswith("win"):
+	import comtypes
 
 if TYPE_CHECKING:
 	import wx
@@ -319,9 +322,10 @@ def resetConfiguration(factoryDefaults=False):
 	import inputCore
 	import bdDetect
 	import hwIo
-	import tones
-	import audio
 	import screenCurtain
+	if sys.platform.startswith("win"):
+		import audio
+		import tones
 
 	log.debug("Terminating vision")
 	vision.terminate()
@@ -337,10 +341,11 @@ def resetConfiguration(factoryDefaults=False):
 	speech.terminate()
 	log.debug("terminating character processing")
 	characterProcessing.terminate()
-	log.debug("terminating tones")
-	tones.terminate()
-	log.debug("terminating sound split")
-	audio.soundSplit.terminate()
+	if sys.platform.startswith("win"):
+		log.debug("terminating tones")
+		tones.terminate()
+		log.debug("terminating sound split")
+		audio.soundSplit.terminate()
 	log.debug("Terminating background braille display detection")
 	bdDetect.terminate()
 	log.debug("Terminating background i/o")
@@ -369,11 +374,12 @@ def resetConfiguration(factoryDefaults=False):
 	hwIo.initialize()
 	log.debug("Initializing background braille display detection")
 	bdDetect.initialize()
-	# Tones
-	tones.initialize()
-	# Sound split
-	log.debug("initializing sound split")
-	audio.soundSplit.initialize()
+	if sys.platform.startswith("win"):
+		# Tones
+		tones.initialize()
+		# Sound split
+		log.debug("initializing sound split")
+		audio.soundSplit.initialize()
 	# Character processing
 	log.debug("initializing character processing")
 	characterProcessing.initialize()
@@ -395,10 +401,11 @@ def resetConfiguration(factoryDefaults=False):
 	log.debug("Reloading user and locale input gesture maps")
 	inputCore.manager.loadUserGestureMap()
 	inputCore.manager.loadLocaleGestureMap()
-	import audioDucking
+	if sys.platform.startswith("win"):
+		import audioDucking
 
-	if audioDucking.isAudioDuckingSupported():
-		audioDucking.handlePostConfigProfileSwitch()
+		if audioDucking.isAudioDuckingSupported():
+			audioDucking.handlePostConfigProfileSwitch()
 	log.info("Reverted to saved configuration")
 
 
@@ -611,8 +618,9 @@ def _setUpWxApp() -> "wx.App":
 	import wx
 
 	import config
-	import nvwave
 	import speech
+	if sys.platform.startswith("win"):
+		import nvwave
 
 	log.info(f"Using wx version {wx.version()}")
 
@@ -651,7 +659,11 @@ def _setUpWxApp() -> "wx.App":
 		# NVDA will be terminated as soon as this function returns, so save configuration if appropriate.
 		config.saveOnExit()
 		speech.cancelSpeech()
-		if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
+		if (
+			sys.platform.startswith("win")
+			and not globalVars.appArgs.minimal
+			and config.conf["general"]["playStartAndExitSounds"]
+		):
 			try:
 				nvwave.playWaveFile(
 					os.path.join(globalVars.appDir, "waves", "exit.wav"),
@@ -659,7 +671,7 @@ def _setUpWxApp() -> "wx.App":
 				)
 			except Exception:
 				log.exception("Error playing exit sound")
-		log.info("Windows session ending")
+		log.info("Session ending")
 
 	app.Bind(wx.EVT_END_SESSION, onEndSession)
 
@@ -709,23 +721,25 @@ def main():
 		lang = config.conf["general"]["language"]
 	log.debug(f"setting language to {lang}")
 	languageHandler.setLanguage(lang)
-	import NVDAHelper
+	if sys.platform.startswith("win"):
+		import NVDAHelper
 
-	log.debug("Initializing NVDAHelper")
-	NVDAHelper.initialize()
-	import nvwave
+		log.debug("Initializing NVDAHelper")
+		NVDAHelper.initialize()
+		import nvwave
 
-	log.debug("initializing nvwave")
-	nvwave.initialize()
-	if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
-		try:
-			nvwave.playWaveFile(os.path.join(globalVars.appDir, "waves", "start.wav"))
-		except Exception:
-			pass
+		log.debug("initializing nvwave")
+		nvwave.initialize()
+		if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
+			try:
+				nvwave.playWaveFile(os.path.join(globalVars.appDir, "waves", "start.wav"))
+			except Exception:
+				pass
 	logHandler.setLogLevelFromConfig()
-	log.info(f"Windows version: {_pal.system.get_os_version_string()}")
+	log.info(f"Operating system: {_pal.system.get_os_version_string()}")
 	log.info("Using Python version %s" % sys.version)
-	log.info("Using comtypes version %s" % comtypes.__version__)
+	if sys.platform.startswith("win"):
+		log.info("Using comtypes version %s" % comtypes.__version__)
 	from utils import schedule
 
 	schedule.initialize()
@@ -761,14 +775,15 @@ def main():
 	import bdDetect
 
 	bdDetect.initialize()
-	log.debug("Initializing tones")
-	import tones
+	if sys.platform.startswith("win"):
+		log.debug("Initializing tones")
+		import tones
 
-	tones.initialize()
-	log.debug("Initializing sound split")
-	import audio
+		tones.initialize()
+		log.debug("Initializing sound split")
+		import audio
 
-	audio.soundSplit.initialize()
+		audio.soundSplit.initialize()
 	import speechDictHandler
 
 	log.debug("Speech Dictionary processing")
@@ -825,11 +840,12 @@ def main():
 	import gui
 
 	gui.initialize()
-	import audioDucking
+	if sys.platform.startswith("win"):
+		import audioDucking
 
-	if audioDucking.isAudioDuckingSupported():
-		# the GUI mainloop must be running for this to work so delay it
-		wx.CallAfter(audioDucking.initialize)
+		if audioDucking.isAudioDuckingSupported():
+			# the GUI mainloop must be running for this to work so delay it
+			wx.CallAfter(audioDucking.initialize)
 
 	import buildVersion
 
@@ -854,16 +870,17 @@ def main():
 
 	_initializeObjectCaches()
 
-	import JABHandler
+	if sys.platform.startswith("win"):
+		import JABHandler
 
-	log.debug("initializing Java Access Bridge support")
-	try:
-		JABHandler.initialize()
-		log.info("Java Access Bridge support initialized")
-	except NotImplementedError:
-		log.warning("Java Access Bridge not available")
-	except:  # noqa: E722
-		log.error("Error initializing Java Access Bridge support", exc_info=True)
+		log.debug("initializing Java Access Bridge support")
+		try:
+			JABHandler.initialize()
+			log.info("Java Access Bridge support initialized")
+		except NotImplementedError:
+			log.warning("Java Access Bridge not available")
+		except:  # noqa: E722
+			log.error("Error initializing Java Access Bridge support", exc_info=True)
 	log.debug("Initializing legacy winConsole support")
 	try:
 		_pal.accessibility.initialize_legacy_console_support()
@@ -893,16 +910,21 @@ def main():
 	enableInputCoreGestureExecution = getattr(_pal.input, "enableInputCoreGestureExecution", None)
 	if callable(enableInputCoreGestureExecution):
 		enableInputCoreGestureExecution(inputCore.manager)
-	import mouseHandler
+	if sys.platform.startswith("win"):
+		import mouseHandler
 
 	log.debug("initializing mouse handler")
-	_pal.input.initialize_mouse()
-	import touchHandler
+	try:
+		_pal.input.initialize_mouse()
+	except NotSupportedYetError:
+		log.warning("Mouse input is not supported yet")
+	if sys.platform.startswith("win"):
+		import touchHandler
 
 	log.debug("Initializing touchHandler")
 	try:
 		_pal.input.initialize_touch()
-	except NotImplementedError:
+	except (NotImplementedError, NotSupportedYetError):
 		pass
 	import globalPluginHandler
 
@@ -993,12 +1015,14 @@ def main():
 			self.pending = _PumpPending.NONE
 			watchdog.alive()
 			try:
-				if touchHandler.handler:
-					touchHandler.handler.pump()
-				JABHandler.pumpAll()
+				if sys.platform.startswith("win"):
+					if touchHandler.handler:
+						touchHandler.handler.pump()
+					JABHandler.pumpAll()
 				_pal.accessibility.pump_all()
 				queueHandler.pumpAll()
-				mouseHandler.pumpAll()
+				if sys.platform.startswith("win"):
+					mouseHandler.pumpAll()
 				braille.pumpAll()
 				vision.pumpAll()
 				_pal.session.pump_all()
@@ -1091,9 +1115,11 @@ def main():
 		_pal.accessibility.terminate_legacy_console_support()
 	except:  # noqa: E722
 		log.exception("Error terminating legacy winConsole support")
-	_terminate(JABHandler, name="Java Access Bridge support")
+	if sys.platform.startswith("win"):
+		_terminate(JABHandler, name="Java Access Bridge support")
 	_terminate(appModuleHandler, name="app module handler")
-	_terminate(tones)
+	if sys.platform.startswith("win"):
+		_terminate(tones)
 	log.debug("Terminating touch handler")
 	try:
 		_pal.input.terminate_touch()
@@ -1124,17 +1150,18 @@ def main():
 	_terminate(garbageHandler)
 	_terminate(schedule, name="task scheduler")
 
-	if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
-		try:
-			nvwave.playWaveFile(
-				os.path.join(globalVars.appDir, "waves", "exit.wav"),
-				asynchronous=False,
-			)
-		except:  # noqa: E722
-			pass
-	# We cannot terminate nvwave until after we perform nvwave.playWaveFile
-	_terminate(nvwave)
-	_terminate(NVDAHelper)
+	if sys.platform.startswith("win"):
+		if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
+			try:
+				nvwave.playWaveFile(
+					os.path.join(globalVars.appDir, "waves", "exit.wav"),
+					asynchronous=False,
+				)
+			except:  # noqa: E722
+				pass
+		# We cannot terminate nvwave until after we perform nvwave.playWaveFile
+		_terminate(nvwave)
+		_terminate(NVDAHelper)
 	# Log and join any remaining non-daemon threads here,
 	# before releasing our mutex and exiting.
 	# In a perfect world there should be none.
