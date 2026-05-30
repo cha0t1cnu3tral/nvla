@@ -119,12 +119,8 @@ def _make_source_key(source: Any) -> str | None:
 		else:
 			value = str(value)
 		return f"{processID}:{value}" if processID else value
-	name = getattr(source, "name", None)
-	roleValue = _get_source_role_value(source)
-	if name is not None or roleValue is not None:
-		value = f"{roleValue}:{name}"
-		return f"{processID}:{value}" if processID else value
-	return None
+	value = f"atspi:{id(source)}"
+	return f"{processID}:{value}" if processID else value
 
 
 def _get_source_process_id(source: Any) -> int:

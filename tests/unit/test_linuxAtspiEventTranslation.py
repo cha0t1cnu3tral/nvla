@@ -602,6 +602,37 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("1001:3:2", firstObj.sourceKey)
 		self.assertEqual("1002:3:2", secondObj.sourceKey)
 
+	def test_linux_event_bridge_keeps_same_named_sources_without_paths_distinct(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+
+		firstObj = bridge.getOrCreateObjectForSource(
+			_FakeSource(role=10, states=(2, 3), name="Button"),
+		)
+		secondObj = bridge.getOrCreateObjectForSource(
+			_FakeSource(role=10, states=(2, 3), name="Button"),
+		)
+
+		self.assertIsNot(firstObj, secondObj)
+
+	def test_linux_event_bridge_keeps_source_without_path_cached_across_rename(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+		source = _FakeSource(role=10, states=(2, 3), name="Old")
+
+		firstObj = bridge.getOrCreateObjectForSource(source)
+		source.name = "New"
+		secondObj = bridge.getOrCreateObjectForSource(source)
+
+		self.assertIs(firstObj, secondObj)
+		self.assertEqual("New", secondObj.name)
+
 	def test_linux_atspi_object_exposes_parent_and_children(self):
 		backend = atspi_backend.ATSPI2Backend()
 		backend.roleMap = self.roleMap
