@@ -191,9 +191,11 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		adapter = LinuxInputAdapter(keyboardEventSource=source)
 
 		adapter.initialize_keyboard(SimpleNamespace())
-
-		self.assertIsInstance(adapter.keyboardEventSourceStartError, RuntimeError)
+		startError = adapter.keyboardEventSourceStartError
 		self.assertEqual(KeyboardCaptureMode.LOCAL_ONLY, adapter.keyboardCaptureMode)
+		adapter.terminate_keyboard()
+
+		self.assertIsInstance(startError, RuntimeError)
 		self.assertEqual(1, source.stopCount)
 
 	def test_keyboard_initialize_and_terminate_are_idempotent(self):

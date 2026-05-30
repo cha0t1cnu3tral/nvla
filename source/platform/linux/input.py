@@ -406,6 +406,7 @@ class LinuxInputAdapter:
 		self._keyboardListeners: list[Callable[[LinuxKeyEvent], None]] = []
 		self._keyboardGestureExecutor: Callable[[LinuxKeyboardGesture], bool | None] | None = None
 		self._keyboardEventSource = keyboardEventSource
+		self._keyboardEventSourceStarted = False
 		self._keyboardEventSourceStartError: Exception | None = None
 		self._keyboardCaptureMode = KeyboardCaptureMode.DISABLED
 		self._keyboardInitialized = False
@@ -447,6 +448,7 @@ class LinuxInputAdapter:
 				self._keyboardEventSourceStartError = error
 				self._keyboardCaptureMode = KeyboardCaptureMode.LOCAL_ONLY
 			else:
+				self._keyboardEventSourceStarted = True
 				self._keyboardCaptureMode = KeyboardCaptureMode.GLOBAL
 		else:
 			self._keyboardCaptureMode = KeyboardCaptureMode.LOCAL_ONLY
@@ -545,11 +547,12 @@ class LinuxInputAdapter:
 	def terminate_keyboard(self) -> None:
 		if not self._keyboardInitialized:
 			return
-		if self._keyboardEventSource is not None:
+		if self._keyboardEventSourceStarted and self._keyboardEventSource is not None:
 			try:
 				self._keyboardEventSource.stop()
 			except Exception:
 				pass
+		self._keyboardEventSourceStarted = False
 		self._keyboardEventSourceStartError = None
 		self._keyboardCaptureMode = KeyboardCaptureMode.DISABLED
 		self._keyboardListeners.clear()
