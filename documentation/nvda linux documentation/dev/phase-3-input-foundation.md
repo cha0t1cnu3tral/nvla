@@ -27,6 +27,7 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Added a manual event source for dependency-light tests and early smoke tools.
   - Added X11 and Wayland event-source placeholders selected from session environment, with startup kept non-fatal until real capture is implemented.
   - Added Linux NVDA modifier normalization for configured Caps Lock, numpad Insert, and extended Insert keys so they produce the same `NVDA+...` gesture names as Windows.
+  - Tracks configured NVDA modifier key-down/key-up state so physical event sources do not need to repeat modifier metadata on each raw event.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 
@@ -59,11 +60,12 @@ Done:
 - Keyboard event-source interface for X11/Wayland capture backends.
 - Manual event source for Windows-hosted tests.
 - NVDA modifier key normalization for Linux key names.
+- Held NVDA modifier tracking across physical key-down/key-up events.
 
 Remaining:
 
 - X11 backend capture implementation, likely XInput2.
 - Wayland-compatible implementation strategy, likely portal/compositor-specific support plus a restricted fallback mode.
-- Full NVDA modifier behavior on Linux, including sticky/latch timing and pass-through behavior.
+- Full NVDA modifier behavior on Linux, including sticky/latch timing and pass-through behavior beyond held-key tracking.
 - Secure handling of global hotkeys and pass-through behavior.
 - Integration tests on a real Linux desktop.

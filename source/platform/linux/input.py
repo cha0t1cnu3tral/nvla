@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import re
 from typing import Any, Callable, Protocol
 
@@ -281,15 +281,21 @@ def _normalizeModifiers(modifiers: Any, nvdaModifierKeys: int | None = None) -> 
 	return frozenset(normalized)
 
 
+def _getRawKeyName(event: Any) -> Any:
+	return (
+		getattr(event, "keyName", None)
+		or getattr(event, "key", None)
+		or getattr(event, "name", None)
+	)
+
+
 def translateRawKeyEvent(event: Any) -> LinuxKeyEvent:
 	"""Translate a backend-specific Linux key event shape into a stable payload."""
 
 	nvdaModifierKeys = getattr(event, "nvdaModifierKeys", None)
 	return LinuxKeyEvent(
 		keyName=_normalizeKeyName(
-			getattr(event, "keyName", None)
-			or getattr(event, "key", None)
-			or getattr(event, "name", None),
+			_getRawKeyName(event),
 			nvdaModifierKeys,
 		),
 		isPressed=bool(
@@ -378,6 +384,7 @@ class LinuxInputAdapter:
 		self._keyboardEventSource = keyboardEventSource
 		self._keyboardEventSourceStartError: Exception | None = None
 		self._keyboardInitialized = False
+		self._pressedNVDAModifierKeys: set[str] = set()
 
 	@property
 	def keyboardEventSourceStartError(self) -> Exception | None:
@@ -414,8 +421,23 @@ class LinuxInputAdapter:
 		registerKeyboardGestureSource()
 		self.setKeyboardGestureExecutor(lambda gesture: executeKeyboardGesture(gesture, manager=manager))
 
+	def _applyPressedNVDAModifierKeys(self, event: Any, translated: LinuxKeyEvent) -> LinuxKeyEvent:
+		nvdaModifierKeys = getattr(event, "nvdaModifierKeys", None)
+		rawKeyName = _canonicalizeLinuxKeyName(_getRawKeyName(event))
+		nvdaModifierName = _getLinuxNVDAModifierKeyName(rawKeyName, nvdaModifierKeys)
+		if nvdaModifierName is not None:
+			if translated.isPressed:
+				self._pressedNVDAModifierKeys.add(rawKeyName)
+			else:
+				self._pressedNVDAModifierKeys.discard(rawKeyName)
+			return translated
+		if not self._pressedNVDAModifierKeys or "NVDA" in translated.modifiers:
+			return translated
+		return replace(translated, modifiers=translated.modifiers | {"NVDA"})
+
 	def feedRawKeyboardEvent(self, event: Any) -> LinuxKeyEvent:
 		translated = translateRawKeyEvent(event)
+		translated = self._applyPressedNVDAModifierKeys(event, translated)
 		for listener in tuple(self._keyboardListeners):
 			listener(translated)
 		observer = self._keyboardObserver
@@ -440,6 +462,7 @@ class LinuxInputAdapter:
 		self._keyboardGestureExecutor = None
 		self._keyboardObserver = None
 		self._keyboardInitialized = False
+		self._pressedNVDAModifierKeys.clear()
 
 	def terminate_mouse(self) -> None:
 		raise NotSupportedYetError("Mouse hook termination")
