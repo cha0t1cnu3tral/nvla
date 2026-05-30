@@ -1,10 +1,10 @@
 # NVDA Linux Port Status
 
-Last updated: 2026-02-16
+Last updated: 2026-05-30
 
 ## Current phase
 
-Phase 0 is established and Phase 1 PAL scaffolding has started:
+Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations are usable for dependency-light testing, and Phase 3 keyboard input work has started:
 
 - Branch and CI quality gate established for Linux-port work.
 - Windows behavior parity baseline and golden-log checkpoints defined.
@@ -12,9 +12,15 @@ Phase 0 is established and Phase 1 PAL scaffolding has started:
 - Windows-only dependency map and compatibility matrix drafted.
 - PAL structure added with Windows wrappers and Linux stubs.
 - Core accessibility lifecycle imports are now routed through PAL.
+- AT-SPI events are translated, coalesced, and routed into placeholder Linux NVDA objects.
+- Linux AT-SPI objects expose basic tree navigation, screen geometry, and baseline TextInfo review primitives.
+- Linux keyboard events can be normalized and handed to existing `kb:` gesture bindings through `inputCore`.
+- Linux NVDA modifier handling covers configured modifier keys, held modifiers, and pass-through intent.
+- Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
 
 ## What to expect right now
 
 - Linux support is not yet production-ready.
-- The current focus is architecture and parity planning, not full feature availability.
-- User-facing Linux builds will come after platform abstractions and AT-SPI2 backend work.
+- The current focus is physical keyboard capture plus deeper AT-SPI integration and parity validation.
+- Global X11 and Wayland keyboard capture are not implemented yet.
+- User-facing Linux builds will come after core accessibility, input, audio, and packaging work.

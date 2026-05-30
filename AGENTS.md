@@ -46,24 +46,34 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Added Phase 2 status doc:
   - `documentation/nvda linux documentation/dev/phase-2-atspi-foundation.md`
 
+- Added translated event dispatch, bounded coalescing, Linux NVDA object wrappers, basic object tree navigation, geometry, and AT-SPI-backed TextInfo primitives.
+
+### Phase 3 (Initial Slice): Input Foundation
+
+- Added normalized Linux keyboard event and `kb:` gesture handoff in:
+  - `source/platform/linux/input.py`
+- Wired Linux keyboard gesture execution into NVDA `inputCore`.
+- Added manual test injection plus X11/Wayland event-source boundaries.
+- Added Linux NVDA modifier normalization, held-modifier tracking, double-press pass-through, unbound-command pass-through, and explicit local-only fallback status.
+- Added Linux input unit tests:
+  - `tests/unit/test_linuxInput.py`
+- Added Phase 3 status doc:
+  - `documentation/nvda linux documentation/dev/phase-3-input-foundation.md`
+
 ## Next Phase Work (Immediate)
 
-### Phase 2: Accessibility API Backend (AT-SPI2)
+### Phase 3: Input and Focus Infrastructure
 
-1. Implement event bridge in `ATSPI2Backend._onAtspiEvent`:
-   - Focus (`object:state-changed:focused`)
-   - Property changes (`accessible:property-change`)
-   - Caret (`object:text-caret-moved`)
-2. Add AT-SPI object wrapper + role/state mapping integration into NVDA object creation flow.
-3. Implement AT-SPI TextInfo primitives for review/navigation.
-4. Add event coalescing and cache policy to reduce D-Bus overhead.
-5. Add Linux-focused unit tests for mapping/event translation behavior.
+1. Implement X11 keyboard capture, likely with XInput2.
+2. Define and implement a Wayland-compatible capture strategy.
+3. Enforce physical backend pass-through decisions for unbound gestures and NVDA modifier double presses.
+4. Validate keyboard focus and hotkey behavior on a real Linux desktop.
 
-### Phase 3 Prep (After Phase 2 Bridge Is Usable)
+### Phase 2 Follow-Up
 
-1. Define X11/Wayland input adapter interface details in PAL.
-2. Implement initial keyboard focus path for Linux session.
-3. Add fallback mode when global hooks are unavailable.
+1. Deepen AT-SPI object creation integration with existing NVDA object flows.
+2. Extend TextInfo formatting and embedded-object handling.
+3. Validate review and browse-mode parity on a real Linux desktop.
 
 ## Full Phase Plan (Reference)
 
@@ -140,7 +150,7 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 ### Current Workspace State
 
 - This repo is already a git working tree (`.git` present).
-- Linux-port work currently appears as local/uncommitted changes in this checkout.
+- Linux-port work is committed incrementally on the `linux-port` branch.
 
 ### UV / Python Setup Notes
 
