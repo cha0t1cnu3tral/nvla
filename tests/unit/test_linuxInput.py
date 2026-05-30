@@ -130,10 +130,11 @@ class TestLinuxInputAdapter(unittest.TestCase):
 
 		adapter.registerKeyboardListener(received.append)
 		adapter.initialize_keyboard(SimpleNamespace())
-		source.emit(SimpleNamespace(key="f2", modifiers=("NVDA",)))
+		event = source.emit(SimpleNamespace(key="f2", modifiers=("NVDA",)))
 
 		self.assertTrue(source.isStarted)
 		self.assertEqual("NVDA+F2", received[0].gestureName)
+		self.assertEqual(event, received[0])
 
 	def test_terminate_keyboard_stops_event_source(self):
 		source = ManualKeyboardEventSource()
@@ -271,6 +272,52 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		event = adapter.feedRawKeyboardEvent(SimpleNamespace(key="t", pressed=True, nvdaModifierKeys=6))
 
 		self.assertEqual("NVDA+T", event.gestureName)
+
+	def test_second_nvda_modifier_press_within_timeout_requests_pass_through(self):
+		now = 10.0
+		adapter = LinuxInputAdapter(clock=lambda: now, multiPressTimeoutSeconds=0.5)
+		executed = []
+		adapter.setKeyboardGestureExecutor(executed.append)
+
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="capslock", pressed=True, nvdaModifierKeys=1))
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="capslock", pressed=False, nvdaModifierKeys=1))
+		now += 0.25
+		pressedEvent = adapter.feedRawKeyboardEvent(
+			SimpleNamespace(key="capslock", pressed=True, nvdaModifierKeys=1),
+		)
+		releasedEvent = adapter.feedRawKeyboardEvent(
+			SimpleNamespace(key="capslock", pressed=False, nvdaModifierKeys=1),
+		)
+
+		self.assertEqual("capslock", pressedEvent.keyName)
+		self.assertTrue(pressedEvent.shouldPassThrough)
+		self.assertTrue(releasedEvent.shouldPassThrough)
+		self.assertEqual([], executed)
+
+	def test_nvda_modifier_press_after_timeout_remains_nvda_modifier(self):
+		now = 10.0
+		adapter = LinuxInputAdapter(clock=lambda: now, multiPressTimeoutSeconds=0.5)
+
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="insert", pressed=True, nvdaModifierKeys=4))
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="insert", pressed=False, nvdaModifierKeys=4))
+		now += 0.75
+		event = adapter.feedRawKeyboardEvent(SimpleNamespace(key="insert", pressed=True, nvdaModifierKeys=4))
+
+		self.assertEqual("NVDA", event.keyName)
+		self.assertFalse(event.shouldPassThrough)
+
+	def test_non_modifier_press_clears_nvda_modifier_pass_through_candidate(self):
+		now = 10.0
+		adapter = LinuxInputAdapter(clock=lambda: now, multiPressTimeoutSeconds=0.5)
+
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="insert", pressed=True, nvdaModifierKeys=4))
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="n", pressed=True, nvdaModifierKeys=4))
+		adapter.feedRawKeyboardEvent(SimpleNamespace(key="insert", pressed=False, nvdaModifierKeys=4))
+		now += 0.25
+		event = adapter.feedRawKeyboardEvent(SimpleNamespace(key="insert", pressed=True, nvdaModifierKeys=4))
+
+		self.assertEqual("NVDA", event.keyName)
+		self.assertFalse(event.shouldPassThrough)
 
 	def test_does_not_dispatch_released_key_to_gesture_executor(self):
 		adapter = LinuxInputAdapter()

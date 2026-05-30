@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import re
+import time
 from typing import Any, Callable, Protocol
 
 from platform.common.errors import NotSupportedYetError
@@ -44,6 +45,7 @@ _NVDA_KEY_CAPS_LOCK = 1
 _NVDA_KEY_NUMPAD_INSERT = 2
 _NVDA_KEY_EXTENDED_INSERT = 4
 _DEFAULT_NVDA_MODIFIER_KEYS = _NVDA_KEY_NUMPAD_INSERT | _NVDA_KEY_EXTENDED_INSERT
+_DEFAULT_MULTI_PRESS_TIMEOUT_SECONDS = 0.5
 _LINUX_NVDA_MODIFIER_KEY_ALIASES = {
 	"caps_lock": "capslock",
 	"capslock": "capslock",
@@ -101,6 +103,15 @@ def _getConfiguredNVDAModifierKeys() -> int:
 		return _DEFAULT_NVDA_MODIFIER_KEYS
 
 
+def _getConfiguredMultiPressTimeoutSeconds() -> float:
+	try:
+		import config
+
+		return float(config.conf["keyboard"]["multiPressTimeout"]) / 1000
+	except Exception:
+		return _DEFAULT_MULTI_PRESS_TIMEOUT_SECONDS
+
+
 def _canonicalizeLinuxKeyName(value: Any) -> str:
 	return str(value or "").strip().lower().replace("-", "_").replace(" ", "")
 
@@ -129,6 +140,7 @@ class LinuxKeyEvent:
 	modifiers: frozenset[str]
 	scanCode: int | None = None
 	virtualKey: int | None = None
+	shouldPassThrough: bool = False
 
 	@property
 	def gestureName(self) -> str:
@@ -312,7 +324,7 @@ def translateRawKeyEvent(event: Any) -> LinuxKeyEvent:
 class LinuxKeyboardEventSource(Protocol):
 	"""Source of raw Linux keyboard events, such as X11 or Wayland backends."""
 
-	def start(self, emit: Callable[[Any], None]) -> None: ...
+	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None: ...
 
 	def stop(self) -> None: ...
 
@@ -321,10 +333,10 @@ class ManualKeyboardEventSource:
 	"""Dependency-light keyboard event source used by tests and early smoke tools."""
 
 	def __init__(self) -> None:
-		self._emit: Callable[[Any], None] | None = None
+		self._emit: Callable[[Any], LinuxKeyEvent] | None = None
 		self.isStarted = False
 
-	def start(self, emit: Callable[[Any], None]) -> None:
+	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None:
 		self._emit = emit
 		self.isStarted = True
 
@@ -332,16 +344,16 @@ class ManualKeyboardEventSource:
 		self._emit = None
 		self.isStarted = False
 
-	def emit(self, event: Any) -> None:
+	def emit(self, event: Any) -> LinuxKeyEvent:
 		if self._emit is None:
 			raise RuntimeError("Keyboard event source has not been started")
-		self._emit(event)
+		return self._emit(event)
 
 
 class X11KeyboardEventSource:
 	"""X11 keyboard event source placeholder for the upcoming XInput2 implementation."""
 
-	def start(self, emit: Callable[[Any], None]) -> None:
+	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None:
 		raise NotSupportedYetError("X11 keyboard event capture")
 
 	def stop(self) -> None:
@@ -351,7 +363,7 @@ class X11KeyboardEventSource:
 class WaylandKeyboardEventSource:
 	"""Wayland keyboard event source placeholder for portal/compositor-backed capture."""
 
-	def start(self, emit: Callable[[Any], None]) -> None:
+	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None:
 		raise NotSupportedYetError("Wayland keyboard event capture")
 
 	def stop(self) -> None:
@@ -377,7 +389,12 @@ def createKeyboardEventSource(environ: Any | None = None) -> LinuxKeyboardEventS
 
 
 class LinuxInputAdapter:
-	def __init__(self, keyboardEventSource: LinuxKeyboardEventSource | None = None) -> None:
+	def __init__(
+		self,
+		keyboardEventSource: LinuxKeyboardEventSource | None = None,
+		clock: Callable[[], float] = time.monotonic,
+		multiPressTimeoutSeconds: float | None = None,
+	) -> None:
 		self._keyboardObserver: Any | None = None
 		self._keyboardListeners: list[Callable[[LinuxKeyEvent], None]] = []
 		self._keyboardGestureExecutor: Callable[[LinuxKeyboardGesture], None] | None = None
@@ -385,6 +402,15 @@ class LinuxInputAdapter:
 		self._keyboardEventSourceStartError: Exception | None = None
 		self._keyboardInitialized = False
 		self._pressedNVDAModifierKeys: set[str] = set()
+		self._bypassedNVDAModifierKeys: set[str] = set()
+		self._lastNVDAModifierKey: str | None = None
+		self._lastNVDAModifierReleaseTime: float | None = None
+		self._clock = clock
+		self._multiPressTimeoutSeconds = (
+			_getConfiguredMultiPressTimeoutSeconds()
+			if multiPressTimeoutSeconds is None
+			else multiPressTimeoutSeconds
+		)
 
 	@property
 	def keyboardEventSourceStartError(self) -> Exception | None:
@@ -427,10 +453,34 @@ class LinuxInputAdapter:
 		nvdaModifierName = _getLinuxNVDAModifierKeyName(rawKeyName, nvdaModifierKeys)
 		if nvdaModifierName is not None:
 			if translated.isPressed:
+				if rawKeyName in self._bypassedNVDAModifierKeys or (
+					rawKeyName == self._lastNVDAModifierKey
+					and self._lastNVDAModifierReleaseTime is not None
+					and self._clock() - self._lastNVDAModifierReleaseTime < self._multiPressTimeoutSeconds
+				):
+					self._bypassedNVDAModifierKeys.add(rawKeyName)
+					return replace(
+						translated,
+						keyName=_normalizeKeyName(rawKeyName, nvdaModifierKeys=0),
+						shouldPassThrough=True,
+					)
 				self._pressedNVDAModifierKeys.add(rawKeyName)
 			else:
+				if rawKeyName in self._bypassedNVDAModifierKeys:
+					self._bypassedNVDAModifierKeys.discard(rawKeyName)
+					return replace(
+						translated,
+						keyName=_normalizeKeyName(rawKeyName, nvdaModifierKeys=0),
+						shouldPassThrough=True,
+					)
 				self._pressedNVDAModifierKeys.discard(rawKeyName)
+				if rawKeyName == self._lastNVDAModifierKey:
+					self._lastNVDAModifierReleaseTime = self._clock()
+			self._lastNVDAModifierKey = rawKeyName
 			return translated
+		if translated.isPressed:
+			self._lastNVDAModifierKey = None
+			self._lastNVDAModifierReleaseTime = None
 		if not self._pressedNVDAModifierKeys or "NVDA" in translated.modifiers:
 			return translated
 		return replace(translated, modifiers=translated.modifiers | {"NVDA"})
@@ -445,7 +495,12 @@ class LinuxInputAdapter:
 		if callable(handleKeyEvent):
 			handleKeyEvent(translated)
 		gesture = makeKeyboardGesture(translated)
-		if translated.isPressed and not gesture.isModifier and self._keyboardGestureExecutor is not None:
+		if (
+			translated.isPressed
+			and not translated.shouldPassThrough
+			and not gesture.isModifier
+			and self._keyboardGestureExecutor is not None
+		):
 			self._keyboardGestureExecutor(gesture)
 		return translated
 
@@ -464,6 +519,9 @@ class LinuxInputAdapter:
 		self._keyboardObserver = None
 		self._keyboardInitialized = False
 		self._pressedNVDAModifierKeys.clear()
+		self._bypassedNVDAModifierKeys.clear()
+		self._lastNVDAModifierKey = None
+		self._lastNVDAModifierReleaseTime = None
 
 	def terminate_mouse(self) -> None:
 		raise NotSupportedYetError("Mouse hook termination")

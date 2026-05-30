@@ -29,6 +29,7 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Added Linux NVDA modifier normalization for configured Caps Lock, numpad Insert, and extended Insert keys so they produce the same `NVDA+...` gesture names as Windows.
   - Tracks configured NVDA modifier key-down/key-up state so physical event sources do not need to repeat modifier metadata on each raw event.
   - Keeps modifier-only key events observable without executing them as `inputCore` commands.
+  - Marks a configured NVDA modifier for normal pass-through when it is pressed twice within the configured multi-press timeout, matching the existing Windows interaction.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 
@@ -63,11 +64,12 @@ Done:
 - NVDA modifier key normalization for Linux key names.
 - Held NVDA modifier tracking across physical key-down/key-up events.
 - Modifier-only events are filtered from the `inputCore` execution handoff.
+- NVDA modifier double-press pass-through intent is exposed to physical event sources.
 
 Remaining:
 
 - X11 backend capture implementation, likely XInput2.
 - Wayland-compatible implementation strategy, likely portal/compositor-specific support plus a restricted fallback mode.
-- Full NVDA modifier behavior on Linux, including sticky/latch timing and pass-through behavior beyond held-key tracking.
+- Full NVDA modifier behavior on Linux, including system Sticky Keys latch/lock support and physical backend pass-through enforcement.
 - Secure handling of global hotkeys and pass-through behavior.
 - Integration tests on a real Linux desktop.
