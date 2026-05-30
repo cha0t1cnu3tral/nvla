@@ -63,6 +63,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Cached Linux AT-SPI objects now accumulate named state deltas during bursts instead of allowing later stale source snapshots to overwrite earlier changes.
 - Unknown AT-SPI state names still refresh cached objects from their source snapshot, while mapped inverted states such as visibility apply explicit deltas.
 - Objects that receive an AT-SPI defunct-state update are evicted from the Linux wrapper cache after their NVDA state-change event is queued.
+- Linux accessibility startup now removes its event bridge listener and clears cached wrappers if AT-SPI backend initialization fails.
 
 ## Validation
 

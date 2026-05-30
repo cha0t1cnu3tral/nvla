@@ -153,7 +153,12 @@ class LinuxAccessibilityAdapter:
 		if self._initialized:
 			return
 		self._backend.registerEventListener(self._eventBridge.handleEvent)
-		self._backend.initialize()
+		try:
+			self._backend.initialize()
+		except Exception:
+			self._backend.unregisterEventListener(self._eventBridge.handleEvent)
+			self._eventBridge.clearCachedObjects()
+			raise
 		self._initialized = True
 
 	def terminate_iaccessible(self) -> None:

@@ -916,6 +916,18 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 
 		self.assertEqual({}, dict(adapter._eventBridge._objectsByKey))
 
+	def test_linux_accessibility_adapter_cleans_up_failed_initialization(self):
+		adapter = accessibility.LinuxAccessibilityAdapter()
+		adapter._eventBridge._objectsByKey["1:10"] = mock.Mock()
+
+		with mock.patch.object(adapter._backend, "initialize", side_effect=RuntimeError("Unavailable")):
+			with self.assertRaises(RuntimeError):
+				adapter.initialize_iaccessible()
+
+		self.assertFalse(adapter._initialized)
+		self.assertEqual([], adapter._backend._eventListeners)
+		self.assertEqual({}, dict(adapter._eventBridge._objectsByKey))
+
 	def test_linux_atspi_text_info_uses_accessible_text_interface(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		source = _FakeSource(
