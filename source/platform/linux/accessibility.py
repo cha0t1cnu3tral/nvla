@@ -44,6 +44,7 @@ class LinuxATSPINVDAEventBridge:
 				chooseBestAPI=False,
 				sourceKey=cacheKey,
 				accessible=translatedSource.source,
+				processID=translatedSource.sourceProcessID,
 				name=translatedSource.sourceName,
 				description=translatedSource.sourceDescription,
 				role=translatedSource.role,
@@ -63,6 +64,7 @@ class LinuxATSPINVDAEventBridge:
 			TranslatedATSPISource(
 				source=event.source,
 				sourceKey=event.sourceKey,
+				sourceProcessID=event.sourceProcessID,
 				sourceName=event.sourceName,
 				sourceDescription=event.sourceDescription,
 				role=event.role,

@@ -626,6 +626,9 @@ class LinuxATSPIObject(NVDAObject):
 
 	def updateFromTranslatedSource(self, source: TranslatedATSPISource) -> None:
 		self.accessible = source.source
+		self._processID = source.sourceProcessID
+		if isinstance(self._appModule, _LinuxStubAppModule):
+			self._appModule.processID = source.sourceProcessID
 		if source.sourceName is not None:
 			self._name = source.sourceName
 		if source.sourceDescription is not None:
@@ -638,6 +641,7 @@ class LinuxATSPIObject(NVDAObject):
 			TranslatedATSPISource(
 				source=event.source,
 				sourceKey=event.sourceKey,
+				sourceProcessID=event.sourceProcessID,
 				sourceName=event.sourceName,
 				sourceDescription=event.sourceDescription,
 				role=event.role,

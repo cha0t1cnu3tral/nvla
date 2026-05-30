@@ -58,6 +58,7 @@ class _FakeSource:
 		children=None,
 		component=None,
 		extents=None,
+		processID=0,
 	):
 		self._role = role
 		self._state = _FakeStateSet(states)
@@ -67,6 +68,7 @@ class _FakeSource:
 		self._text = text
 		self.component = component
 		self.extents = extents
+		self.processID = processID
 		self.children = list(children or ())
 		self.parent = None
 		self.indexInParent = -1
@@ -79,6 +81,9 @@ class _FakeSource:
 
 	def getState(self):
 		return self._state
+
+	def get_process_id(self):
+		return self.processID
 
 	@property
 	def childCount(self):
@@ -206,6 +211,7 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("focus", translated.kind)
 		self.assertTrue(translated.isFocused)
 		self.assertEqual("1:3:7", translated.sourceKey)
+		self.assertEqual(0, translated.sourceProcessID)
 		self.assertEqual(controlTypes.Role.BUTTON, translated.role)
 		self.assertEqual({controlTypes.State.FOCUSED}, set(translated.states))
 
@@ -463,6 +469,20 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertIs(firstObj, secondObj)
 		self.assertEqual(controlTypes.Role.BUTTON, firstObj.role)
 		self.assertIn(controlTypes.State.FOCUSED, firstObj.states)
+
+	def test_linux_atspi_object_exposes_accessible_process_id(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		bridge = accessibility.LinuxATSPINVDAEventBridge(backend)
+
+		obj = bridge.getOrCreateObjectForSource(
+			_FakeSource(role=10, states=(2, 3), name="Button", path=(3, 2), processID=4321),
+		)
+
+		self.assertEqual(4321, obj.processID)
+		self.assertEqual(4321, obj.appModule.processID)
 
 	def test_linux_atspi_object_exposes_parent_and_children(self):
 		backend = atspi_backend.ATSPI2Backend()

@@ -29,6 +29,7 @@ class TranslatedATSPIEvent:
 	rawType: str
 	source: Any
 	sourceKey: str | None
+	sourceProcessID: int
 	sourceName: str | None
 	sourceDescription: str | None
 	role: controlTypes.Role
@@ -45,6 +46,7 @@ class TranslatedATSPISource:
 
 	source: Any
 	sourceKey: str | None
+	sourceProcessID: int
 	sourceName: str | None
 	sourceDescription: str | None
 	role: controlTypes.Role
@@ -117,6 +119,25 @@ def _make_source_key(source: Any) -> str | None:
 	return None
 
 
+def _get_source_process_id(source: Any) -> int:
+	if source is None:
+		return 0
+	for methodName in ("get_process_id", "getProcessId"):
+		method = getattr(source, methodName, None)
+		if not callable(method):
+			continue
+		try:
+			return max(0, int(method()))
+		except Exception:
+			continue
+	for attrName in ("process_id", "processID"):
+		try:
+			return max(0, int(getattr(source, attrName)))
+		except Exception:
+			continue
+	return 0
+
+
 def _parse_property_name(rawType: str) -> str | None:
 	prefix = "accessible:property-change"
 	if not rawType.startswith(prefix):
@@ -177,6 +198,7 @@ def translate_atspi_event(
 		rawType=rawType,
 		source=source,
 		sourceKey=_make_source_key(source),
+		sourceProcessID=_get_source_process_id(source),
 		sourceName=getattr(source, "name", None),
 		sourceDescription=getattr(source, "description", None),
 		role=role,
@@ -228,6 +250,7 @@ def translate_atspi_source(
 	return TranslatedATSPISource(
 		source=source,
 		sourceKey=_make_source_key(source),
+		sourceProcessID=_get_source_process_id(source),
 		sourceName=getattr(source, "name", None),
 		sourceDescription=getattr(source, "description", None),
 		role=role,
