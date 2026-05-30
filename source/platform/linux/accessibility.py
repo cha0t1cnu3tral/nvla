@@ -7,6 +7,7 @@ from collections import OrderedDict
 from typing import Any, Callable
 
 import api
+import controlTypes
 import eventHandler
 
 from .atspi_backend import ATSPI2Backend
@@ -102,6 +103,8 @@ class LinuxATSPINVDAEventBridge:
 			return
 		if event.kind == "stateChange":
 			eventHandler.queueEvent("stateChange", obj)
+			if controlTypes.State.DEFUNCT in obj.states:
+				self._objectsByKey.pop(obj.sourceKey, None)
 			return
 		if event.kind != "propertyChange":
 			return

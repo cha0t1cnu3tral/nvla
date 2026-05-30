@@ -181,6 +181,7 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			STATE_SHOWING=3,
 			STATE_EDITABLE=4,
 			STATE_CHECKED=5,
+			STATE_DEFUNCT=6,
 		)
 		self.roleMap = atspi_mappings.build_role_map(fakeAtspi)
 		self.stateMap, self.invertedStateValues = atspi_mappings.build_state_map(fakeAtspi)
@@ -811,6 +812,34 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		)
 
 		self.assertIn(controlTypes.State.OFFSCREEN, obj.states)
+
+	def test_linux_event_bridge_evicts_defunct_object_after_state_dispatch(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(role=10, states=(2, 3), name="Closed", path=(6, 13))
+		event = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:defunct",
+				detail1=1,
+				source=source,
+			),
+		)
+
+		with mock.patch.object(accessibility.eventHandler, "queueEvent") as queueEvent:
+			firstObj = bridge.getOrCreateObjectForSource(
+				source,
+				atspi_backend.translate_atspi_source(
+					source,
+					self.roleMap,
+					self.stateMap,
+					self.invertedStateValues,
+				),
+			)
+			bridge.handleEvent(event)
+
+		secondObj = bridge.getOrCreateObjectForEvent(event)
+
+		self.assertEqual("stateChange", queueEvent.call_args_list[0].args[0])
+		self.assertIsNot(firstObj, secondObj)
 
 	def test_linux_event_bridge_applies_property_change_on_first_event(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
