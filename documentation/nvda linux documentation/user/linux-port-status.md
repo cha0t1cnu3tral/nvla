@@ -18,10 +18,12 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux NVDA modifier handling covers configured modifier keys, held modifiers, and pass-through intent.
 - Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
 - Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
+- Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
+- Linux automatic synth selection now prefers the Linux-native speech path without changing Windows synth selection.
 
 ## What to expect right now
 
 - Linux support is not yet production-ready.
-- The current focus is physical keyboard capture plus deeper AT-SPI integration and parity validation.
+- The current focus is physical keyboard capture, Linux boot-path cleanup, and real desktop AT-SPI-to-speech smoke testing.
 - Global X11 and Wayland keyboard capture are not implemented yet.
 - User-facing Linux builds will come after core accessibility, input, audio, and packaging work.

@@ -27,6 +27,7 @@ DEFAULT_TESTS = (
 	ROOT_DIR / "tests" / "unit" / "test_linuxAtspiEventTranslation.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxInput.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxSpeech.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxSpeechDriver.py",
 )
 
 

@@ -15,7 +15,7 @@ Legend:
 | Global keyboard hooks | Win32 hooks / `SendInput` ecosystem | X11 XInput2 + Wayland/libinput or portals | Planned |
 | Mouse tracking / routing | Win32 cursor APIs | X11 input + Wayland compositors/portals | Planned |
 | Touch gestures | Windows touch and gesture stack | Wayland/libinput gesture translation | Gap |
-| Speech output | SAPI, eSpeak, Windows audio routing | Speech Dispatcher + eSpeak NG direct fallback | Planned |
+| Speech output | SAPI, eSpeak, Windows audio routing | Speech Dispatcher + eSpeak NG command fallback | Initial path available |
 | Audio backend | WASAPI-centric behavior | PipeWire primary, Pulse fallback, ALSA last resort | Planned |
 | Tones/beeps | Existing `tones.py`/`nvwave` path | Linux audio backend equivalent | Planned |
 | Braille transport and I/O | COM ports, HID, Windows device discovery | brlapi + udev/HID/Bluetooth discovery | Planned |

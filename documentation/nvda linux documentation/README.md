@@ -11,6 +11,7 @@ Current dev milestones documented:
 - Phase 1 PAL scaffolding and core import routing
 - Phase 2 AT-SPI2 mapping, event translation, object-wrapper, and baseline TextInfo work
 - Phase 3 input foundation and Linux keyboard event normalization
+- Phase 4 Linux speech transport and initial NVDA synth driver
 
 ## Focused validation on Windows
 

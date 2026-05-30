@@ -6,6 +6,7 @@
 
 import pkgutil
 import importlib
+import sys
 from typing import (
 	List,
 	Optional,
@@ -487,7 +488,11 @@ def getSynthInstance(name, asDefault=False):
 
 # The synthDrivers that should be used by default.
 # The first that successfully initializes will be used when config is set to auto (I.e. new installs of NVDA).
-defaultSynthPriorityList = ["oneCore", "espeak", "silence"]
+defaultSynthPriorityList = (
+	["linuxSpeech", "silence"]
+	if sys.platform.startswith("linux")
+	else ["oneCore", "espeak", "silence"]
+)
 
 
 def setSynth(name: Optional[str], isFallback: bool = False):

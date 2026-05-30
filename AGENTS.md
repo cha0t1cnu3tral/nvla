@@ -61,6 +61,17 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Added Phase 3 status doc:
   - `documentation/nvda linux documentation/dev/phase-3-input-foundation.md`
 
+### Phase 4 (Initial Slice): Speech Foundation
+
+- Added Linux command-backed speech transport:
+  - Speech Dispatcher through `spd-say` first.
+  - `espeak-ng` command fallback.
+- Added discoverable `linuxSpeech` synth driver and Linux-specific automatic synth priority.
+- Preserved the existing Windows automatic synth priority.
+- Added dependency-light Linux speech transport and synth-driver tests.
+- Added Phase 4 status doc:
+  - `documentation/nvda linux documentation/dev/phase-4-speech-foundation.md`
+
 ## Next Phase Work (Immediate)
 
 ### Phase 3: Input and Focus Infrastructure
