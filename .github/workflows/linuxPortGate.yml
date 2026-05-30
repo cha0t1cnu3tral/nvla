@@ -17,12 +17,11 @@ concurrency:
 
 env:
   pythonVersion: "3.13.11"
-  runner: "windows-2025"
 
 jobs:
   focusedLinuxPortTests:
     name: Focused Linux port tests
-    runs-on: ${{ env.runner }}
+    runs-on: windows-2025
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
