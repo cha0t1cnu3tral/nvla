@@ -27,6 +27,8 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Added a manual event source for dependency-light tests and early smoke tools.
   - Added X11 and Wayland event-source placeholders selected from session environment, with startup kept non-fatal until real capture is implemented.
   - Added Linux NVDA modifier normalization for configured Caps Lock, numpad Insert, and extended Insert keys so they produce the same `NVDA+...` gesture names as Windows.
+  - Maps Linux Super key names to NVDA's existing `windows` modifier identifier so commands using that modifier remain compatible with the shared gesture maps.
+  - Maps common Linux navigation and keypad names such as `Page_Up`, `Left`, and `KP_Enter` to the existing NVDA key identifiers such as `pageUp`, `leftArrow`, and `numpadEnter`.
   - Tracks configured NVDA modifier key-down/key-up state so physical event sources do not need to repeat modifier metadata on each raw event.
   - Keeps modifier-only key events observable without executing them as `inputCore` commands.
   - Marks a configured NVDA modifier for normal pass-through when it is pressed twice within the configured multi-press timeout, matching the existing Windows interaction.
@@ -67,6 +69,7 @@ Done:
 - Keyboard event-source interface for X11/Wayland capture backends.
 - Manual event source for Windows-hosted tests.
 - NVDA modifier key normalization for Linux key names.
+- Windows-compatible Super, navigation, and keypad key-name aliases.
 - Held NVDA modifier tracking across physical key-down/key-up events.
 - Modifier-only events are filtered from the `inputCore` execution handoff.
 - NVDA modifier double-press pass-through intent is exposed to physical event sources.

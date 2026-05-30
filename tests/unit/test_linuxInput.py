@@ -103,6 +103,54 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual(frozenset(("NVDA",)), event.modifiers)
 		self.assertEqual("NVDA+T", event.gestureName)
 
+	def test_translates_title_shortcut_to_shared_nvda_identifier(self):
+		event = translateRawKeyEvent(
+			SimpleNamespace(
+				key="t",
+				modifiers=("Caps_Lock",),
+				nvdaModifierKeys=1,
+			),
+		)
+
+		gesture = makeKeyboardGesture(event)
+
+		self.assertIn("kb:nvda+t", gesture.normalizedIdentifiers)
+
+	def test_translates_linux_super_modifier_to_windows_compatible_identifier(self):
+		event = translateRawKeyEvent(
+			SimpleNamespace(
+				key="d",
+				modifiers=("Super_L",),
+			),
+		)
+
+		self.assertEqual(frozenset(("windows",)), event.modifiers)
+		self.assertEqual("windows+D", event.gestureName)
+
+	def test_translates_linux_named_keys_to_existing_nvda_key_names(self):
+		expectedKeyNames = {
+			"Back_Space": "backspace",
+			"Down": "downArrow",
+			"KP_1": "numpad1",
+			"KP_Add": "numpadPlus",
+			"KP_Decimal": "numpadDelete",
+			"KP_Divide": "numpadDivide",
+			"KP_Enter": "numpadEnter",
+			"KP_Multiply": "numpadMultiply",
+			"KP_Subtract": "numpadMinus",
+			"Left": "leftArrow",
+			"Page_Down": "pageDown",
+			"Page_Up": "pageUp",
+			"Right": "rightArrow",
+			"Up": "upArrow",
+		}
+
+		for linuxKeyName, nvdaKeyName in expectedKeyNames.items():
+			with self.subTest(linuxKeyName=linuxKeyName):
+				event = translateRawKeyEvent(SimpleNamespace(key=linuxKeyName))
+				self.assertEqual(nvdaKeyName, event.keyName)
+				self.assertEqual(nvdaKeyName, event.gestureName)
+
 	def test_leaves_unconfigured_nvda_modifier_keys_as_regular_keys(self):
 		event = translateRawKeyEvent(
 			SimpleNamespace(
@@ -139,7 +187,7 @@ class TestLinuxInputAdapter(unittest.TestCase):
 			),
 		)
 
-		self.assertEqual("super+Enter", event.gestureName)
+		self.assertEqual("windows+Enter", event.gestureName)
 		self.assertEqual([event], received)
 		self.assertEqual([event], observerEvents)
 

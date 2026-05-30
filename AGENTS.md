@@ -55,6 +55,7 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Wired Linux keyboard gesture execution into NVDA `inputCore`.
 - Added manual test injection plus X11/Wayland event-source boundaries.
 - Added Linux NVDA modifier normalization, held-modifier tracking, double-press pass-through, unbound-command pass-through, and explicit local-only fallback status.
+- Added Windows-compatible Linux Super, navigation, and keypad aliases so the existing NVDA keyboard command maps are reused without a separate Linux shortcut table.
 - Added Linux input unit tests:
   - `tests/unit/test_linuxInput.py`
 - Added Phase 3 status doc:

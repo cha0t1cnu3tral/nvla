@@ -16,6 +16,7 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux AT-SPI objects expose basic tree navigation, screen geometry, and baseline TextInfo review primitives.
 - Linux keyboard events can be normalized and handed to existing `kb:` gesture bindings through `inputCore`.
 - Linux NVDA modifier handling covers configured modifier keys, held modifiers, and pass-through intent.
+- Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
 - Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
 
 ## What to expect right now

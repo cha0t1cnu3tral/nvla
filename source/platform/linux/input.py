@@ -27,7 +27,13 @@ _MODIFIER_NAMES = {
 	"control_r": "control",
 	"meta": "meta",
 	"nvda": "NVDA",
-	"super": "super",
+	"super": "windows",
+	"super_l": "windows",
+	"super_r": "windows",
+	"win": "windows",
+	"windows": "windows",
+	"windows_l": "windows",
+	"windows_r": "windows",
 	"shift": "shift",
 	"shift_l": "shift",
 	"shift_r": "shift",
@@ -37,7 +43,7 @@ _MODIFIER_ORDER = {
 	"control": 1,
 	"alt": 2,
 	"shift": 3,
-	"super": 4,
+	"windows": 4,
 	"meta": 5,
 }
 _MODIFIER_KEY_NAMES = frozenset(_MODIFIER_ORDER)
@@ -58,6 +64,42 @@ _LINUX_NVDA_MODIFIER_KEY_ALIASES = {
 	"kp_insert": "numpadinsert",
 	"numpad_insert": "numpadinsert",
 	"numpadinsert": "numpadinsert",
+}
+_LINUX_KEY_NAME_ALIASES = {
+	"back_space": "backspace",
+	"caps_lock": "capslock",
+	"down": "downArrow",
+	"down_arrow": "downArrow",
+	"esc": "escape",
+	"kp_0": "numpadinsert",
+	"kp_1": "numpad1",
+	"kp_2": "numpad2",
+	"kp_3": "numpad3",
+	"kp_4": "numpad4",
+	"kp_5": "numpad5",
+	"kp_6": "numpad6",
+	"kp_7": "numpad7",
+	"kp_8": "numpad8",
+	"kp_9": "numpad9",
+	"kp_add": "numpadPlus",
+	"kp_decimal": "numpadDelete",
+	"kp_delete": "numpadDelete",
+	"kp_divide": "numpadDivide",
+	"kp_enter": "numpadEnter",
+	"kp_insert": "numpadinsert",
+	"kp_multiply": "numpadMultiply",
+	"kp_subtract": "numpadMinus",
+	"left": "leftArrow",
+	"left_arrow": "leftArrow",
+	"num_lock": "numLock",
+	"page_down": "pageDown",
+	"page_up": "pageUp",
+	"print_screen": "printScreen",
+	"right": "rightArrow",
+	"right_arrow": "rightArrow",
+	"scroll_lock": "scrollLock",
+	"up": "upArrow",
+	"up_arrow": "upArrow",
 }
 
 
@@ -277,6 +319,8 @@ def _normalizeKeyName(value: Any, nvdaModifierKeys: int | None = None) -> str:
 	modifierName = _canonicalizeLinuxKeyName(keyName)
 	if modifierName in _MODIFIER_NAMES:
 		return _MODIFIER_NAMES[modifierName]
+	if modifierName in _LINUX_KEY_NAME_ALIASES:
+		return _LINUX_KEY_NAME_ALIASES[modifierName]
 	if modifierName in _LINUX_NVDA_MODIFIER_KEY_ALIASES:
 		return _LINUX_NVDA_MODIFIER_KEY_ALIASES[modifierName]
 	if len(keyName) == 1:
