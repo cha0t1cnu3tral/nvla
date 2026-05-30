@@ -128,7 +128,8 @@ def _normalizeGestureIdentifier(identifier: str) -> str:
 	inputCoreModule = _getInputCore()
 	if inputCoreModule is not None:
 		return inputCoreModule.normalizeGestureIdentifier(identifier)
-	return identifier.lower()
+	prefix, keys = identifier.lower().split(":", 1)
+	return f"{prefix}:{'+'.join(sorted(keys.split('+')))}"
 
 
 def _getInputCore() -> Any | None:

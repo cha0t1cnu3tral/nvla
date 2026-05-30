@@ -1,6 +1,8 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 
+import ast
+from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -36,7 +38,42 @@ class _FailingKeyboardEventSource(_CountingKeyboardEventSource):
 		raise RuntimeError("Capture unavailable")
 
 
+def _normalizeIdentifier(identifier):
+	prefix, chord = identifier.lower().split(":", 1)
+	return f"{prefix}:{'+'.join(sorted(chord.split('+')))}"
+
+
 class TestLinuxInputAdapter(unittest.TestCase):
+	def test_translates_all_global_keyboard_commands_to_shared_identifiers(self):
+		globalCommandsPath = Path(__file__).resolve().parents[2] / "source" / "globalCommands.py"
+		tree = ast.parse(globalCommandsPath.read_text(encoding="utf-8"))
+		keyboardIdentifiers = {
+			node.value
+			for node in ast.walk(tree)
+			if isinstance(node, ast.Constant)
+			and isinstance(node.value, str)
+			and node.value.startswith("kb")
+			and ":" in node.value
+		}
+
+		self.assertGreater(len(keyboardIdentifiers), 100)
+		for identifier in keyboardIdentifiers:
+			with self.subTest(identifier=identifier):
+				_, chord = identifier.split(":", 1)
+				*modifiers, keyName = chord.split("+")
+				event = translateRawKeyEvent(
+					SimpleNamespace(
+						key=keyName,
+						modifiers=modifiers,
+						nvdaModifierKeys=0,
+					),
+				)
+				gesture = makeKeyboardGesture(event)
+				self.assertIn(
+					_normalizeIdentifier(identifier),
+					gesture.normalizedIdentifiers,
+				)
+
 	def test_translates_raw_key_event(self):
 		event = translateRawKeyEvent(
 			SimpleNamespace(
@@ -286,9 +323,9 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		)
 		self.assertEqual(
 			(
-				"kb(desktop):nvda+control+f1",
-				"kb(laptop):nvda+control+f1",
-				"kb:nvda+control+f1",
+				"kb(desktop):control+f1+nvda",
+				"kb(laptop):control+f1+nvda",
+				"kb:control+f1+nvda",
 			),
 			gesture.normalizedIdentifiers,
 		)

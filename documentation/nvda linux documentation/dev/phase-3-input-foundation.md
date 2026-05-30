@@ -49,6 +49,7 @@ uv run python tests/linuxPortUnitRunner.py
 ```
 
 This currently validates AT-SPI accessibility scaffolding plus Linux keyboard event normalization, Windows-compatible gesture identifiers, and an injected `inputCore`-style execution handoff without requiring a Linux desktop session.
+The Linux input tests also extract every built-in `kb:` binding from `source/globalCommands.py` and verify that the Linux translator emits an equivalent normalized identifier.
 
 ## Keyboard Support Status
 
