@@ -66,6 +66,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Linux accessibility startup now removes its event bridge listener and clears cached wrappers if AT-SPI backend initialization fails.
 - AT-SPI accessibles without a stable path or explicit ID now use per-accessible fallback identity, avoiding collisions between same-named controls and cache splits when names change.
 - Linux AT-SPI TextInfo selection reads now accept both offset-pair and text-plus-offset tuple shapes exposed by AT-SPI providers.
+- Malformed AT-SPI selection tuples now fall back to the wrapper's cached selection state instead of suppressing the fallback path.
 
 ## Validation
 

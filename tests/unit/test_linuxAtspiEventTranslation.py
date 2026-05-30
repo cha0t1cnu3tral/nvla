@@ -1036,6 +1036,29 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 
 		self.assertEqual((1, 4), obj._getAccessibleSelectionOffsets())
 
+	def test_linux_atspi_text_info_falls_back_from_malformed_selection_tuple(self):
+		text = _FakeText("abcde")
+		text.getSelection = lambda index: ("invalid",)
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(3, 7),
+			text=text,
+		)
+		obj = accessibility.LinuxATSPINVDAEventBridge().getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+		obj._selectionOffsets = (2, 3)
+
+		self.assertEqual((2, 3), obj._getAccessibleSelectionOffsets())
+
 	def test_linux_atspi_text_info_falls_back_to_caret_event_offset(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		source = _FakeSource(role=11, states=(2, 3, 4), name="editor", path=(3, 9))
