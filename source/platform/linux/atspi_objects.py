@@ -607,7 +607,7 @@ class LinuxATSPIObject(NVDAObject):
 			try:
 				getSelection = getattr(textInterface, "getSelection")
 				if callable(getSelection):
-					return tuple(int(x) for x in getSelection(0))
+					return _coerceOffsetRange(getSelection(0))
 			except Exception:
 				pass
 		return self._selectionOffsets

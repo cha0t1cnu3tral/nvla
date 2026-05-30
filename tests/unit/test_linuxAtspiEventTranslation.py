@@ -1014,6 +1014,28 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		selectionText.updateSelection()
 		self.assertEqual((0, 4), text.getSelection(0))
 
+	def test_linux_atspi_text_info_accepts_selection_tuple_with_text(self):
+		text = _FakeText("abcde", selection=(1, 4))
+		text.getSelection = lambda index: ("bcd", 1, 4)
+		source = _FakeSource(
+			role=11,
+			states=(2, 3, 4),
+			name="editor",
+			path=(3, 6),
+			text=text,
+		)
+		obj = accessibility.LinuxATSPINVDAEventBridge().getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:focused",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+
+		self.assertEqual((1, 4), obj._getAccessibleSelectionOffsets())
+
 	def test_linux_atspi_text_info_falls_back_to_caret_event_offset(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
 		source = _FakeSource(role=11, states=(2, 3, 4), name="editor", path=(3, 9))
