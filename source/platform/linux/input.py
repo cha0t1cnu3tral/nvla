@@ -429,6 +429,8 @@ class LinuxInputAdapter:
 		return self._keyboardCaptureMode
 
 	def initialize_keyboard(self, observer) -> None:
+		if self._keyboardInitialized:
+			return
 		self._keyboardObserver = observer
 		self._keyboardInitialized = True
 		if self._keyboardEventSource is None:
@@ -436,7 +438,11 @@ class LinuxInputAdapter:
 		if self._keyboardEventSource is not None:
 			try:
 				self._keyboardEventSource.start(self.feedRawKeyboardEvent)
-			except NotSupportedYetError as error:
+			except Exception as error:
+				try:
+					self._keyboardEventSource.stop()
+				except Exception:
+					pass
 				self._keyboardEventSourceStartError = error
 				self._keyboardCaptureMode = KeyboardCaptureMode.LOCAL_ONLY
 			else:
@@ -529,8 +535,13 @@ class LinuxInputAdapter:
 		raise NotSupportedYetError("Touch hook initialization")
 
 	def terminate_keyboard(self) -> None:
+		if not self._keyboardInitialized:
+			return
 		if self._keyboardEventSource is not None:
-			self._keyboardEventSource.stop()
+			try:
+				self._keyboardEventSource.stop()
+			except Exception:
+				pass
 		self._keyboardEventSourceStartError = None
 		self._keyboardCaptureMode = KeyboardCaptureMode.DISABLED
 		self._keyboardListeners.clear()

@@ -18,6 +18,24 @@ from platform.linux.input import (
 )
 
 
+class _CountingKeyboardEventSource:
+	def __init__(self):
+		self.startCount = 0
+		self.stopCount = 0
+
+	def start(self, emit):
+		self.startCount += 1
+
+	def stop(self):
+		self.stopCount += 1
+
+
+class _FailingKeyboardEventSource(_CountingKeyboardEventSource):
+	def start(self, emit):
+		super().start(emit)
+		raise RuntimeError("Capture unavailable")
+
+
 class TestLinuxInputAdapter(unittest.TestCase):
 	def test_translates_raw_key_event(self):
 		event = translateRawKeyEvent(
@@ -167,6 +185,28 @@ class TestLinuxInputAdapter(unittest.TestCase):
 
 		self.assertIsNotNone(adapter.keyboardEventSourceStartError)
 		self.assertEqual(KeyboardCaptureMode.LOCAL_ONLY, adapter.keyboardCaptureMode)
+
+	def test_keyboard_event_source_failure_uses_local_only_fallback(self):
+		source = _FailingKeyboardEventSource()
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		self.assertIsInstance(adapter.keyboardEventSourceStartError, RuntimeError)
+		self.assertEqual(KeyboardCaptureMode.LOCAL_ONLY, adapter.keyboardCaptureMode)
+		self.assertEqual(1, source.stopCount)
+
+	def test_keyboard_initialize_and_terminate_are_idempotent(self):
+		source = _CountingKeyboardEventSource()
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+
+		adapter.initialize_keyboard(SimpleNamespace())
+		adapter.initialize_keyboard(SimpleNamespace())
+		adapter.terminate_keyboard()
+		adapter.terminate_keyboard()
+
+		self.assertEqual(1, source.startCount)
+		self.assertEqual(1, source.stopCount)
 
 	def test_uses_local_only_fallback_without_session_keyboard_source(self):
 		adapter = LinuxInputAdapter()
