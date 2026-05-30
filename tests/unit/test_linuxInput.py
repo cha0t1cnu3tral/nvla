@@ -236,6 +236,20 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual(event, executed[0].event)
 		self.assertEqual("kb(desktop):NVDA+N", executed[0].identifiers[0])
 
+	def test_unhandled_gesture_requests_pass_through_before_observer_dispatch(self):
+		adapter = LinuxInputAdapter()
+		received = []
+		observerEvents = []
+
+		adapter.initialize_keyboard(SimpleNamespace(handleKeyEvent=observerEvents.append))
+		adapter.registerKeyboardListener(received.append)
+		adapter.setKeyboardGestureExecutor(lambda gesture: False)
+		event = adapter.feedRawKeyboardEvent(SimpleNamespace(key="a", pressed=True))
+
+		self.assertTrue(event.shouldPassThrough)
+		self.assertEqual([event], received)
+		self.assertEqual([event], observerEvents)
+
 	def test_tracks_pressed_nvda_modifier_for_following_key_events(self):
 		adapter = LinuxInputAdapter()
 		executed = []

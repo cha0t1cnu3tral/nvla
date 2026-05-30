@@ -30,6 +30,8 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Tracks configured NVDA modifier key-down/key-up state so physical event sources do not need to repeat modifier metadata on each raw event.
   - Keeps modifier-only key events observable without executing them as `inputCore` commands.
   - Marks a configured NVDA modifier for normal pass-through when it is pressed twice within the configured multi-press timeout, matching the existing Windows interaction.
+  - Marks key events for desktop pass-through when `inputCore` reports that no NVDA command handled the gesture.
+  - Dispatches normalized observer/listener events after the NVDA command handoff so physical backends and diagnostics see the final pass-through decision.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 
@@ -65,6 +67,7 @@ Done:
 - Held NVDA modifier tracking across physical key-down/key-up events.
 - Modifier-only events are filtered from the `inputCore` execution handoff.
 - NVDA modifier double-press pass-through intent is exposed to physical event sources.
+- Unbound gesture pass-through intent is exposed to physical event sources.
 
 Remaining:
 

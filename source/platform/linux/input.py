@@ -397,7 +397,7 @@ class LinuxInputAdapter:
 	) -> None:
 		self._keyboardObserver: Any | None = None
 		self._keyboardListeners: list[Callable[[LinuxKeyEvent], None]] = []
-		self._keyboardGestureExecutor: Callable[[LinuxKeyboardGesture], None] | None = None
+		self._keyboardGestureExecutor: Callable[[LinuxKeyboardGesture], bool | None] | None = None
 		self._keyboardEventSource = keyboardEventSource
 		self._keyboardEventSourceStartError: Exception | None = None
 		self._keyboardInitialized = False
@@ -439,7 +439,7 @@ class LinuxInputAdapter:
 
 	def setKeyboardGestureExecutor(
 		self,
-		executor: Callable[[LinuxKeyboardGesture], None] | None,
+		executor: Callable[[LinuxKeyboardGesture], bool | None] | None,
 	) -> None:
 		self._keyboardGestureExecutor = executor
 
@@ -488,20 +488,21 @@ class LinuxInputAdapter:
 	def feedRawKeyboardEvent(self, event: Any) -> LinuxKeyEvent:
 		translated = translateRawKeyEvent(event)
 		translated = self._applyPressedNVDAModifierKeys(event, translated)
-		for listener in tuple(self._keyboardListeners):
-			listener(translated)
-		observer = self._keyboardObserver
-		handleKeyEvent = getattr(observer, "handleKeyEvent", None)
-		if callable(handleKeyEvent):
-			handleKeyEvent(translated)
 		gesture = makeKeyboardGesture(translated)
 		if (
 			translated.isPressed
 			and not translated.shouldPassThrough
 			and not gesture.isModifier
 			and self._keyboardGestureExecutor is not None
+			and self._keyboardGestureExecutor(gesture) is False
 		):
-			self._keyboardGestureExecutor(gesture)
+			translated = replace(translated, shouldPassThrough=True)
+		for listener in tuple(self._keyboardListeners):
+			listener(translated)
+		observer = self._keyboardObserver
+		handleKeyEvent = getattr(observer, "handleKeyEvent", None)
+		if callable(handleKeyEvent):
+			handleKeyEvent(translated)
 		return translated
 
 	def initialize_mouse(self) -> None:
