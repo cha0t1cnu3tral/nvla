@@ -28,6 +28,7 @@ DEFAULT_TESTS = (
 	ROOT_DIR / "tests" / "unit" / "test_linuxCoreBootGuards.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxInput.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxPalFallbacks.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxPreflight.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxSpeech.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxSpeechDriver.py",
 )

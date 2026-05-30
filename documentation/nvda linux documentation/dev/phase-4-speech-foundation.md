@@ -40,6 +40,12 @@ uv run python tests/linuxPortUnitRunner.py
 
 The dependency-light suite validates Speech Dispatcher selection, eSpeak NG fallback, cancellation, process cleanup, synth-driver completion notifications, stale-notification suppression, and platform-specific availability.
 
+Run Linux preview dependency checks on a Linux desktop with:
+
+```bash
+python tools/runLinuxPortPreflight.py
+```
+
 ## Scope
 
 This is an early speech path, not the final Linux audio architecture. It is enough to connect NVDA announcements to system speech tools during `0.1` bring-up.

@@ -22,3 +22,13 @@ uv run --no-project python tests/linuxPortUnitRunner.py
 ```
 
 This runner installs narrow test stubs and runs the AT-SPI mapping/event/object tests without loading `nvdaHelperLocal.dll`.
+
+## Linux preview preflight
+
+On a Linux desktop, check the early preview dependencies with:
+
+```bash
+python tools/runLinuxPortPreflight.py
+```
+
+The command checks the desktop session, AT-SPI2 Python bindings, wxPython, and Linux speech commands. Global keyboard capture is reported as pending until the X11 and Wayland backends are implemented.
