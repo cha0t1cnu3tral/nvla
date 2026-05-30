@@ -14,7 +14,7 @@ from platform.common.errors import NotSupportedYetError
 from . import atspi_mappings
 
 _AT_SPI_EVENT_NAMES = (
-	"object:state-changed:focused",
+	"object:state-changed",
 	"accessible:property-change",
 	"object:text-caret-moved",
 )
@@ -175,6 +175,8 @@ def translate_atspi_event(
 		return None
 	if rawType == "object:state-changed:focused":
 		kind = "focus"
+	elif rawType.startswith("object:state-changed:"):
+		kind = "stateChange"
 	elif rawType.startswith("accessible:property-change"):
 		kind = "propertyChange"
 	elif rawType == "object:text-caret-moved":

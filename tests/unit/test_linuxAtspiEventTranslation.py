@@ -180,6 +180,7 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			STATE_VISIBLE=2,
 			STATE_SHOWING=3,
 			STATE_EDITABLE=4,
+			STATE_CHECKED=5,
 		)
 		self.roleMap = atspi_mappings.build_role_map(fakeAtspi)
 		self.stateMap, self.invertedStateValues = atspi_mappings.build_state_map(fakeAtspi)
@@ -282,6 +283,18 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertIsNotNone(translated)
 		self.assertEqual("caret", translated.kind)
 		self.assertEqual(42, translated.caretOffset)
+
+	def test_translates_non_focus_state_change_event(self):
+		translated = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:checked",
+				detail1=1,
+				source=_FakeSource(role=10, states=(2, 3, 5), name="Remember"),
+			),
+		)
+
+		self.assertEqual("stateChange", translated.kind)
+		self.assertIn(controlTypes.State.CHECKED, translated.states)
 
 	def test_ignores_unsupported_event(self):
 		event = SimpleNamespace(type="object:children-changed:add", source=None)
@@ -663,6 +676,21 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 				type="accessible:property-change",
 				any_data="opaque",
 				source=_FakeSource(role=11, states=(2, 3, 4), name="editor", path=(6, 9)),
+			),
+		)
+
+		with mock.patch.object(accessibility.eventHandler, "queueEvent") as queueEvent:
+			bridge.handleEvent(event)
+
+		self.assertEqual("stateChange", queueEvent.call_args_list[0].args[0])
+
+	def test_linux_event_bridge_routes_object_state_change(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		event = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:checked",
+				detail1=1,
+				source=_FakeSource(role=10, states=(2, 3, 5), name="Remember", path=(6, 10)),
 			),
 		)
 

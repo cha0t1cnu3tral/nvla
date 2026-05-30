@@ -97,6 +97,9 @@ class LinuxATSPINVDAEventBridge:
 		if event.kind == "caret":
 			eventHandler.queueEvent("caret", obj)
 			return
+		if event.kind == "stateChange":
+			eventHandler.queueEvent("stateChange", obj)
+			return
 		if event.kind != "propertyChange":
 			return
 		if event.propertyName == "name":

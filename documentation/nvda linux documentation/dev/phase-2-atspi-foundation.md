@@ -11,7 +11,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Added `source/platform/linux/atspi_backend.py`:
   - AT-SPI2 binding bootstrap via `pyatspi`.
   - Event listener lifecycle for:
-    - `object:state-changed:focused`
+    - `object:state-changed`
     - `accessible:property-change`
     - `object:text-caret-moved`
   - GLib main-context pumping support in `pump_all`.
@@ -58,6 +58,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Linux AT-SPI source translation now carries accessible process IDs into Linux NVDA objects and their placeholder app modules when available.
 - Stable AT-SPI cache keys now include the process ID when available, preventing identical per-application object paths from colliding across applications.
 - Focus event translation now applies the event's focused value to normalized states, avoiding stale AT-SPI state snapshots during focus transitions.
+- General AT-SPI object state changes are now translated and routed into NVDA `stateChange` events while focus transitions keep their specialized handling.
 
 ## Validation
 
