@@ -294,7 +294,28 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		)
 
 		self.assertEqual("stateChange", translated.kind)
+		self.assertEqual("checked", translated.stateName)
+		self.assertTrue(translated.stateEnabled)
 		self.assertIn(controlTypes.State.CHECKED, translated.states)
+
+	def test_state_change_event_applies_value_when_source_snapshot_is_stale(self):
+		checked = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:checked",
+				detail1=1,
+				source=_FakeSource(role=10, states=(2, 3), name="Remember"),
+			),
+		)
+		unchecked = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:checked",
+				detail1=0,
+				source=_FakeSource(role=10, states=(2, 3, 5), name="Remember"),
+			),
+		)
+
+		self.assertIn(controlTypes.State.CHECKED, checked.states)
+		self.assertNotIn(controlTypes.State.CHECKED, unchecked.states)
 
 	def test_ignores_unsupported_event(self):
 		event = SimpleNamespace(type="object:children-changed:add", source=None)
@@ -342,6 +363,26 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		queued = backend.drainTranslatedEvents()
 		self.assertEqual(1, len(queued))
 		self.assertEqual("Final", queued[0].propertyValue)
+
+	def test_backend_coalesces_state_changes_per_state_name(self):
+		backend = atspi_backend.ATSPI2Backend()
+		backend.roleMap = self.roleMap
+		backend.stateMap = self.stateMap
+		backend.invertedStateValues = self.invertedStateValues
+		source = _FakeSource(role=10, states=(2, 3), name="Remember", path=(5, 2))
+
+		for stateName in ("checked", "selected", "checked"):
+			backend._onAtspiEvent(
+				SimpleNamespace(
+					type=f"object:state-changed:{stateName}",
+					detail1=1,
+					source=source,
+				),
+			)
+
+		queued = backend.drainTranslatedEvents()
+		self.assertEqual(2, len(queued))
+		self.assertEqual({"checked", "selected"}, {event.stateName for event in queued})
 
 	def test_backend_pump_dispatches_to_registered_listeners(self):
 		backend = atspi_backend.ATSPI2Backend()

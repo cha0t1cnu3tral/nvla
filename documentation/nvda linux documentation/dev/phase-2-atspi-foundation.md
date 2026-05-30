@@ -59,6 +59,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - Stable AT-SPI cache keys now include the process ID when available, preventing identical per-application object paths from colliding across applications.
 - Focus event translation now applies the event's focused value to normalized states, avoiding stale AT-SPI state snapshots during focus transitions.
 - General AT-SPI object state changes are now translated and routed into NVDA `stateChange` events while focus transitions keep their specialized handling.
+- Named state-change events now apply their event value over stale source snapshots and coalesce per object and state name so distinct updates survive burst handling.
 
 ## Validation
 

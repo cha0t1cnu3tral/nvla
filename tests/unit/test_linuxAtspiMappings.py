@@ -61,3 +61,14 @@ class TestLinuxAtspiMappings(unittest.TestCase):
 		self.assertEqual({}, roleMap)
 		self.assertEqual({}, stateMap)
 		self.assertEqual(set(), inverted)
+
+	def test_maps_named_state_event(self):
+		self.assertEqual(
+			(controlTypes.State.CHECKED, False),
+			atspi_mappings.map_state_name("checked"),
+		)
+		self.assertEqual(
+			(controlTypes.State.INVISIBLE, True),
+			atspi_mappings.map_state_name("visible"),
+		)
+		self.assertIsNone(atspi_mappings.map_state_name("not-real"))

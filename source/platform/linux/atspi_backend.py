@@ -35,6 +35,8 @@ class TranslatedATSPIEvent:
 	role: controlTypes.Role
 	states: frozenset[controlTypes.State]
 	isFocused: bool | None = None
+	stateName: str | None = None
+	stateEnabled: bool | None = None
 	propertyName: str | None = None
 	propertyValue: Any = None
 	caretOffset: int | None = None
@@ -221,6 +223,22 @@ def translate_atspi_event(
 			states=frozenset(states),
 			isFocused=isFocused,
 		)
+	if kind == "stateChange":
+		stateName = rawType.removeprefix("object:state-changed:")
+		stateEnabled = _coerce_bool(getattr(event, "detail1", False))
+		mappedState = atspi_mappings.map_state_name(stateName)
+		if mappedState is not None:
+			nvdaState, isInverted = mappedState
+			if stateEnabled != isInverted:
+				states = states | {nvdaState}
+			else:
+				states = states - {nvdaState}
+		return replace(
+			translated,
+			states=frozenset(states),
+			stateName=stateName,
+			stateEnabled=stateEnabled,
+		)
 	if kind == "caret":
 		caretOffset = getattr(event, "detail1", None)
 		try:
@@ -300,6 +318,8 @@ class ATSPI2Backend:
 			return (event.kind,)
 		if event.kind == "propertyChange":
 			return (event.kind, event.sourceKey, event.propertyName)
+		if event.kind == "stateChange":
+			return (event.kind, event.sourceKey, event.stateName)
 		return (event.kind, event.sourceKey)
 
 	def _queueTranslatedEvent(self, event: TranslatedATSPIEvent) -> None:

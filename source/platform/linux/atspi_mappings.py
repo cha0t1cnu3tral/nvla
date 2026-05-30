@@ -123,3 +123,11 @@ def map_states(
 		if atspiState in stateSet:
 			nvdaStates.add(nvdaState)
 	return nvdaStates
+
+
+def map_state_name(atspiStateName: str) -> tuple[controlTypes.State, bool] | None:
+	normalizedName = f"STATE_{atspiStateName.upper().replace('-', '_')}"
+	nvdaState = _STATE_NAME_TO_NVDA_STATE.get(normalizedName)
+	if nvdaState is None:
+		return None
+	return nvdaState, normalizedName in _INVERTED_STATE_NAMES
