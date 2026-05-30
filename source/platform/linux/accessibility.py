@@ -29,6 +29,8 @@ class LinuxATSPINVDAEventBridge:
 		self,
 		source: Any,
 		translatedSource: TranslatedATSPISource | None = None,
+		*,
+		updateStates: bool = True,
 	) -> LinuxATSPIObject | None:
 		if translatedSource is None:
 			backend = self._backend
@@ -55,7 +57,7 @@ class LinuxATSPINVDAEventBridge:
 			self._evictCachedObjectsIfNeeded()
 		else:
 			self._objectsByKey.move_to_end(cacheKey)
-		obj.updateFromTranslatedSource(translatedSource)
+		obj.updateFromTranslatedSource(translatedSource, updateStates=updateStates)
 		return obj
 
 	def getOrCreateObjectForEvent(self, event: TranslatedATSPIEvent) -> LinuxATSPIObject | None:
@@ -70,6 +72,7 @@ class LinuxATSPINVDAEventBridge:
 				role=event.role,
 				states=event.states,
 			),
+			updateStates=event.kind != "stateChange",
 		)
 		if obj is None:
 			return None

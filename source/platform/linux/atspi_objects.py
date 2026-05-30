@@ -624,7 +624,12 @@ class LinuxATSPIObject(NVDAObject):
 		self._selectionOffsets = (start, end)
 		self._caretOffset = end
 
-	def updateFromTranslatedSource(self, source: TranslatedATSPISource) -> None:
+	def updateFromTranslatedSource(
+		self,
+		source: TranslatedATSPISource,
+		*,
+		updateStates: bool = True,
+	) -> None:
 		self.accessible = source.source
 		self._processID = source.sourceProcessID
 		if isinstance(self._appModule, _LinuxStubAppModule):
@@ -634,7 +639,8 @@ class LinuxATSPIObject(NVDAObject):
 		if source.sourceDescription is not None:
 			self._description = source.sourceDescription
 		self._role = source.role
-		self._states = set(source.states)
+		if updateStates:
+			self._states = set(source.states)
 
 	def updateFromTranslatedEvent(self, event: TranslatedATSPIEvent) -> None:
 		self.updateFromTranslatedSource(
@@ -647,8 +653,14 @@ class LinuxATSPIObject(NVDAObject):
 				role=event.role,
 				states=event.states,
 			),
+			updateStates=event.kind != "stateChange",
 		)
-		if event.propertyName == "name" and event.propertyValue is not None:
+		if event.kind == "stateChange" and event.mappedState is not None:
+			if event.isMappedStateEnabled:
+				self._states.add(event.mappedState)
+			else:
+				self._states.discard(event.mappedState)
+		elif event.propertyName == "name" and event.propertyValue is not None:
 			self._name = str(event.propertyValue)
 		elif event.propertyName == "description" and event.propertyValue is not None:
 			self._description = str(event.propertyValue)

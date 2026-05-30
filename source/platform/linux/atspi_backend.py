@@ -37,6 +37,8 @@ class TranslatedATSPIEvent:
 	isFocused: bool | None = None
 	stateName: str | None = None
 	stateEnabled: bool | None = None
+	mappedState: controlTypes.State | None = None
+	isMappedStateEnabled: bool | None = None
 	propertyName: str | None = None
 	propertyValue: Any = None
 	caretOffset: int | None = None
@@ -238,6 +240,8 @@ def translate_atspi_event(
 			states=frozenset(states),
 			stateName=stateName,
 			stateEnabled=stateEnabled,
+			mappedState=nvdaState if mappedState is not None else None,
+			isMappedStateEnabled=stateEnabled != isInverted if mappedState is not None else None,
 		)
 	if kind == "caret":
 		caretOffset = getattr(event, "detail1", None)

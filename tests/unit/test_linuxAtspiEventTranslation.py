@@ -296,6 +296,8 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual("stateChange", translated.kind)
 		self.assertEqual("checked", translated.stateName)
 		self.assertTrue(translated.stateEnabled)
+		self.assertEqual(controlTypes.State.CHECKED, translated.mappedState)
+		self.assertTrue(translated.isMappedStateEnabled)
 		self.assertIn(controlTypes.State.CHECKED, translated.states)
 
 	def test_state_change_event_applies_value_when_source_snapshot_is_stale(self):
@@ -739,6 +741,31 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			bridge.handleEvent(event)
 
 		self.assertEqual("stateChange", queueEvent.call_args_list[0].args[0])
+
+	def test_linux_event_bridge_accumulates_named_state_changes_from_stale_snapshots(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(role=10, states=(2, 3), name="Remember", path=(6, 11))
+
+		checkedEvent = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:checked",
+				detail1=1,
+				source=source,
+			),
+		)
+		selectedEvent = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:selected",
+				detail1=1,
+				source=source,
+			),
+		)
+
+		obj = bridge.getOrCreateObjectForEvent(checkedEvent)
+		bridge.getOrCreateObjectForEvent(selectedEvent)
+
+		self.assertIn(controlTypes.State.CHECKED, obj.states)
+		self.assertIn(controlTypes.State.SELECTED, obj.states)
 
 	def test_linux_event_bridge_applies_property_change_on_first_event(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
