@@ -34,6 +34,7 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Dispatches normalized observer/listener events after the NVDA command handoff so physical backends and diagnostics see the final pass-through decision.
   - Exposes keyboard capture mode as disabled, global, or local-only so callers can detect the restricted fallback used when global hooks are unavailable.
   - Makes keyboard capture lifecycle idempotent and falls back to local-only mode when a physical backend fails during startup.
+  - Keeps repeats and the matching key-up marked for pass-through after an unbound key-down, preserving complete desktop key sequences for physical backends.
 - Added `tests/unit/test_linuxInput.py`.
 - Added Linux input tests to `tests/linuxPortUnitRunner.py`.
 

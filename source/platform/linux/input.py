@@ -411,6 +411,7 @@ class LinuxInputAdapter:
 		self._keyboardInitialized = False
 		self._pressedNVDAModifierKeys: set[str] = set()
 		self._bypassedNVDAModifierKeys: set[str] = set()
+		self._pressedPassThroughKeys: set[str] = set()
 		self._lastNVDAModifierKey: str | None = None
 		self._lastNVDAModifierReleaseTime: float | None = None
 		self._clock = clock
@@ -511,6 +512,11 @@ class LinuxInputAdapter:
 	def feedRawKeyboardEvent(self, event: Any) -> LinuxKeyEvent:
 		translated = translateRawKeyEvent(event)
 		translated = self._applyPressedNVDAModifierKeys(event, translated)
+		rawKeyName = _canonicalizeLinuxKeyName(_getRawKeyName(event))
+		if rawKeyName in self._pressedPassThroughKeys:
+			translated = replace(translated, shouldPassThrough=True)
+			if not translated.isPressed:
+				self._pressedPassThroughKeys.discard(rawKeyName)
 		gesture = makeKeyboardGesture(translated)
 		if (
 			translated.isPressed
@@ -520,6 +526,8 @@ class LinuxInputAdapter:
 			and self._keyboardGestureExecutor(gesture) is False
 		):
 			translated = replace(translated, shouldPassThrough=True)
+			if rawKeyName:
+				self._pressedPassThroughKeys.add(rawKeyName)
 		for listener in tuple(self._keyboardListeners):
 			listener(translated)
 		observer = self._keyboardObserver
@@ -550,6 +558,7 @@ class LinuxInputAdapter:
 		self._keyboardInitialized = False
 		self._pressedNVDAModifierKeys.clear()
 		self._bypassedNVDAModifierKeys.clear()
+		self._pressedPassThroughKeys.clear()
 		self._lastNVDAModifierKey = None
 		self._lastNVDAModifierReleaseTime = None
 

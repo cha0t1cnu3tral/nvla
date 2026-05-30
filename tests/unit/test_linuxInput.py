@@ -303,6 +303,26 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual([event], received)
 		self.assertEqual([event], observerEvents)
 
+	def test_unhandled_key_repeat_and_release_remain_pass_through(self):
+		adapter = LinuxInputAdapter()
+		executed = []
+
+		def execute(gesture):
+			executed.append(gesture)
+			return False
+
+		adapter.setKeyboardGestureExecutor(execute)
+		pressedEvent = adapter.feedRawKeyboardEvent(SimpleNamespace(key="a", pressed=True))
+		repeatedEvent = adapter.feedRawKeyboardEvent(SimpleNamespace(key="a", pressed=True))
+		releasedEvent = adapter.feedRawKeyboardEvent(SimpleNamespace(key="a", pressed=False))
+		nextPressedEvent = adapter.feedRawKeyboardEvent(SimpleNamespace(key="a", pressed=True))
+
+		self.assertTrue(pressedEvent.shouldPassThrough)
+		self.assertTrue(repeatedEvent.shouldPassThrough)
+		self.assertTrue(releasedEvent.shouldPassThrough)
+		self.assertTrue(nextPressedEvent.shouldPassThrough)
+		self.assertEqual(2, len(executed))
+
 	def test_tracks_pressed_nvda_modifier_for_following_key_events(self):
 		adapter = LinuxInputAdapter()
 		executed = []
