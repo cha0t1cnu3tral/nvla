@@ -61,6 +61,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 - General AT-SPI object state changes are now translated and routed into NVDA `stateChange` events while focus transitions keep their specialized handling.
 - Named state-change events now apply their event value over stale source snapshots and coalesce per object and state name so distinct updates survive burst handling.
 - Cached Linux AT-SPI objects now accumulate named state deltas during bursts instead of allowing later stale source snapshots to overwrite earlier changes.
+- Unknown AT-SPI state names still refresh cached objects from their source snapshot, while mapped inverted states such as visibility apply explicit deltas.
 
 ## Validation
 

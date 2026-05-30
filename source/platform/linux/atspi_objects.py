@@ -653,7 +653,7 @@ class LinuxATSPIObject(NVDAObject):
 				role=event.role,
 				states=event.states,
 			),
-			updateStates=event.kind != "stateChange",
+			updateStates=event.kind != "stateChange" or event.mappedState is None,
 		)
 		if event.kind == "stateChange" and event.mappedState is not None:
 			if event.isMappedStateEnabled:

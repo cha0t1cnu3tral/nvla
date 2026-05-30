@@ -319,6 +319,25 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertIn(controlTypes.State.CHECKED, checked.states)
 		self.assertNotIn(controlTypes.State.CHECKED, unchecked.states)
 
+	def test_inverted_state_change_event_applies_value_when_source_snapshot_is_stale(self):
+		hidden = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:visible",
+				detail1=0,
+				source=_FakeSource(role=10, states=(2, 3), name="Button"),
+			),
+		)
+		visible = self._translate(
+			SimpleNamespace(
+				type="object:state-changed:visible",
+				detail1=1,
+				source=_FakeSource(role=10, states=(3,), name="Button"),
+			),
+		)
+
+		self.assertIn(controlTypes.State.INVISIBLE, hidden.states)
+		self.assertNotIn(controlTypes.State.INVISIBLE, visible.states)
+
 	def test_ignores_unsupported_event(self):
 		event = SimpleNamespace(type="object:children-changed:add", source=None)
 		self.assertIsNone(self._translate(event))
@@ -766,6 +785,32 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 
 		self.assertIn(controlTypes.State.CHECKED, obj.states)
 		self.assertIn(controlTypes.State.SELECTED, obj.states)
+
+	def test_linux_event_bridge_refreshes_snapshot_for_unknown_state_change(self):
+		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		source = _FakeSource(role=10, states=(2, 3), name="Remember", path=(6, 12))
+		obj = bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:custom",
+					detail1=1,
+					source=source,
+				),
+			),
+		)
+		source._state = _FakeStateSet((2,))
+
+		bridge.getOrCreateObjectForEvent(
+			self._translate(
+				SimpleNamespace(
+					type="object:state-changed:custom",
+					detail1=0,
+					source=source,
+				),
+			),
+		)
+
+		self.assertIn(controlTypes.State.OFFSCREEN, obj.states)
 
 	def test_linux_event_bridge_applies_property_change_on_first_event(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()

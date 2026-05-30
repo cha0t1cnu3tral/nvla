@@ -72,7 +72,7 @@ class LinuxATSPINVDAEventBridge:
 				role=event.role,
 				states=event.states,
 			),
-			updateStates=event.kind != "stateChange",
+			updateStates=event.kind != "stateChange" or event.mappedState is None,
 		)
 		if obj is None:
 			return None
