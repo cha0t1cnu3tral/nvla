@@ -69,6 +69,7 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Added discoverable `linuxSpeech` synth driver and Linux-specific automatic synth priority.
 - Preserved the existing Windows automatic synth priority.
 - Guarded early Windows-only helper/audio startup on Linux and made pending mouse/touch hooks non-fatal during Linux bring-up.
+- Added non-fatal Linux DPI/session fallbacks and a lifecycle-compatible Linux message-window placeholder.
 - Added dependency-light Linux speech transport and synth-driver tests.
 - Added Phase 4 status doc:
   - `documentation/nvda linux documentation/dev/phase-4-speech-foundation.md`

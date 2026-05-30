@@ -24,6 +24,8 @@ The first Linux-native speech path is in place for an early `0.1` milestone. It 
 - Removed early Linux boot dependencies on Windows-only helper/audio initialization.
   - Linux skips `NVDAHelper`, `nvwave`, tones, sound splitting, audio ducking, and comtypes logging.
   - Unfinished Linux mouse and touch hooks are treated as explicit non-fatal limitations during startup.
+  - Linux DPI setup and session pumping use non-fatal compositor/toolkit fallbacks.
+  - Linux uses a lifecycle-compatible placeholder instead of a Win32 message window.
 
 ## Validation
 
