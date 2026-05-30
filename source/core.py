@@ -558,7 +558,10 @@ def _handleNVDAModuleCleanupBeforeGUIExit():
 	"""
 	import brailleViewer
 	import globalPluginHandler
-	import watchdog
+	if sys.platform.startswith("win"):
+		import watchdog
+	else:
+		from platform.linux import watchdog
 	import _remoteClient
 
 	try:
@@ -868,7 +871,8 @@ def main():
 	log.debug("Initializing garbageHandler")
 	garbageHandler.initialize()
 
-	_initializeObjectCaches()
+	if sys.platform.startswith("win"):
+		_initializeObjectCaches()
 
 	if sys.platform.startswith("win"):
 		import JABHandler
@@ -903,7 +907,10 @@ def main():
 	import inputCore
 
 	inputCore.initialize()
-	import watchdog
+	if sys.platform.startswith("win"):
+		import watchdog
+	else:
+		from platform.linux import watchdog
 
 	log.debug("Initializing keyboard handler")
 	_pal.input.initialize_keyboard(watchdog.WatchdogObserver())

@@ -26,6 +26,8 @@ The first Linux-native speech path is in place for an early `0.1` milestone. It 
   - Unfinished Linux mouse and touch hooks are treated as explicit non-fatal limitations during startup.
   - Linux DPI setup and session pumping use non-fatal compositor/toolkit fallbacks.
   - Linux uses a lifecycle-compatible placeholder instead of a Win32 message window.
+  - Linux uses a lightweight watchdog compatibility module and skips the synthetic Win32 desktop object cache.
+  - Linux system reporting and basic window show-mode calls have non-fatal PAL defaults.
 
 ## Validation
 

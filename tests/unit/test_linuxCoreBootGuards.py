@@ -16,6 +16,7 @@ _WINDOWS_ONLY_BOOT_MODULES = {
 	"mouseHandler",
 	"tones",
 	"touchHandler",
+	"watchdog",
 }
 
 
