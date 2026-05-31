@@ -4,16 +4,21 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+import importlib
 from typing import Any, Callable
 
-import api
 import controlTypes
-import eventHandler
 
 from .atspi_backend import ATSPI2Backend
 from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent
 from .atspi_objects import LinuxATSPIObject
+
+
+def __getattr__(name: str) -> Any:
+	if name in {"api", "eventHandler"}:
+		return importlib.import_module(name)
+	raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class LinuxATSPINVDAEventBridge:
@@ -88,6 +93,9 @@ class LinuxATSPINVDAEventBridge:
 			self._objectsByKey.popitem(last=False)
 
 	def handleEvent(self, event: TranslatedATSPIEvent) -> None:
+		import api
+		import eventHandler
+
 		obj = self.getOrCreateObjectForEvent(event)
 		if obj is None:
 			return

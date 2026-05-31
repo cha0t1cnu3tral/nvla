@@ -13,12 +13,9 @@ import threading
 import warnings
 import logging
 import inspect
-import winsound
 import traceback
 from types import FunctionType, TracebackType
 import globalVars
-import winBindings.kernel32
-import winKernel
 import buildVersion
 from typing import (
 	Literal,
@@ -30,6 +27,15 @@ import exceptions
 import RPCConstants
 import NVDAState
 from NVDAState import WritePaths
+
+_IS_WINDOWS = sys.platform.startswith("win")
+if _IS_WINDOWS:
+	import winsound
+	import winBindings.kernel32
+	import winKernel
+else:
+	winsound = None
+	winKernel = None
 
 if TYPE_CHECKING:
 	import extensionPoints
@@ -298,7 +304,12 @@ class Logger(logging.Logger):
 		Normally, it will be logged at level "ERROR".
 		However, certain exceptions which aren't considered errors (or aren't errors that we can fix) are expected and will therefore be logged at a lower level.
 		"""
-		import comtypes
+		try:
+			import comtypes
+		except ImportError:
+			comErrorTypes = ()
+		else:
+			comErrorTypes = (comtypes.COMError,)
 
 		if exc_info is True:
 			exc_info = sys.exc_info()
@@ -309,8 +320,8 @@ class Logger(logging.Logger):
 
 		if (
 			(
-				isinstance(exc, WindowsError)
-				and exc.winerror
+				isinstance(exc, OSError)
+				and getattr(exc, "winerror", None)
 				in (
 					ERROR_INVALID_WINDOW_HANDLE,
 					ERROR_TIMEOUT,
@@ -321,7 +332,7 @@ class Logger(logging.Logger):
 				)
 			)
 			or (
-				isinstance(exc, comtypes.COMError)
+				isinstance(exc, comErrorTypes)
 				and (
 					exc.hresult
 					in (
@@ -388,6 +399,8 @@ class Logger(logging.Logger):
 
 class RemoteHandler(logging.Handler):
 	def __init__(self):
+		if not _IS_WINDOWS:
+			raise RuntimeError("Remote logging is only available on Windows")
 		import winBindings.kernel32
 
 		h = winBindings.kernel32.LoadLibraryEx(
@@ -411,7 +424,7 @@ class RemoteHandler(logging.Handler):
 
 class FileHandler(logging.FileHandler):
 	def handle(self, record):
-		if record.levelno >= logging.CRITICAL:
+		if winsound is not None and record.levelno >= logging.CRITICAL:
 			winsound.MessageBeep(winsound.MB_ICONHAND)
 		elif record.levelno >= logging.ERROR and shouldPlayErrorSound():
 			getOnErrorSoundRequested().notify()
@@ -441,6 +454,8 @@ class Formatter(logging.Formatter):
 		since it causes a crash under some versions of Universal CRT when Python locale
 		is set to a Unicode one (#12160, Python issue 36792)
 		"""
+		if not _IS_WINDOWS:
+			return super().formatTime(record, datefmt)
 		timeAsFileTime = winKernel.time_tToFileTime(record.created)
 		timeAsSystemTime = winBindings.kernel32.SYSTEMTIME()
 		winKernel.FileTimeToSystemTime(timeAsFileTime, timeAsSystemTime)

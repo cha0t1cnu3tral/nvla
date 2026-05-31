@@ -1,11 +1,14 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 
+import ast
 from io import StringIO
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 import argsParsing
+import languageHandler
 import NVDAState
 
 
@@ -48,6 +51,42 @@ class TestArgsParsingWithoutWindowsDialogs(unittest.TestCase):
 			parser.error("bad option")
 		self.assertEqual(2, exitContext.exception.code)
 		self.assertIn("bad option", stream.getvalue())
+
+
+class TestLinuxSharedBootstrapFallbacks(unittest.TestCase):
+	def testLogFormatterUsesStandardTimestampOutsideWindows(self):
+		logHandlerPath = Path(__file__).resolve().parents[2] / "source" / "logHandler.py"
+		source = logHandlerPath.read_text(encoding="utf-8")
+		self.assertIn("if not _IS_WINDOWS:", source)
+		self.assertIn("return super().formatTime(record, datefmt)", source)
+
+	def testLanguageHandlerUsesProcessLocaleOutsideWindows(self):
+		with (
+			patch.object(languageHandler, "_IS_WINDOWS", False),
+			patch.object(languageHandler.locale, "getlocale", return_value=("en_US", "UTF-8")),
+		):
+			self.assertEqual("en_US", languageHandler.getWindowsLanguage())
+			self.assertEqual(languageHandler.LCID_NONE, languageHandler.localeNameToWindowsLCID("en_US"))
+
+	def testQueueHandlerSelectsLinuxWatchdogOutsideWindows(self):
+		queueHandlerPath = Path(__file__).resolve().parents[2] / "source" / "queueHandler.py"
+		source = queueHandlerPath.read_text(encoding="utf-8")
+		self.assertIn("if sys.platform.startswith(\"win\"):", source)
+		self.assertIn("from platform.linux import watchdog", source)
+
+	def testLinuxAccessibilityDefersHeavyEventDispatchImports(self):
+		accessibilityPath = (
+			Path(__file__).resolve().parents[2] / "source" / "platform" / "linux" / "accessibility.py"
+		)
+		tree = ast.parse(accessibilityPath.read_text(encoding="utf-8"))
+		topLevelImports = {
+			alias.name
+			for node in tree.body
+			if isinstance(node, ast.Import)
+			for alias in node.names
+		}
+		self.assertNotIn("api", topLevelImports)
+		self.assertNotIn("eventHandler", topLevelImports)
 
 
 if __name__ == "__main__":

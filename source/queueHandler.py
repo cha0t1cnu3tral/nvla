@@ -5,9 +5,13 @@
 # See the file COPYING for more details.
 
 import types
+import sys
 from queue import SimpleQueue
 from logHandler import log
-import watchdog
+if sys.platform.startswith("win"):
+	import watchdog
+else:
+	from platform.linux import watchdog
 import core
 
 # A queue for calls that should be made on NVDA's main thread

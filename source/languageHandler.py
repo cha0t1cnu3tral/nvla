@@ -16,10 +16,16 @@ import weakref
 import locale
 import gettext
 import enum
+import sys
 import globalVars
 from logHandler import log
-import winBindings.kernel32
-import winKernel
+
+_IS_WINDOWS = sys.platform.startswith("win")
+if _IS_WINDOWS:
+	import winBindings.kernel32
+	import winKernel
+else:
+	winKernel = None
 
 # a few Windows locale constants
 LOCALE_USER_DEFAULT = 0x400
@@ -113,6 +119,8 @@ def localeNameToWindowsLCID(localeName: str) -> int:
 	or just language (2letterLanguage or 3letterLanguage)
 	@returns: a Windows LCID or L{LCID_NONE} if it could not be retrieved.
 	"""
+	if not _IS_WINDOWS:
+		return LCID_NONE
 	# Windows Vista (NT 6.0) and later is able to convert locale names to LCIDs.
 	# Because NVDA supports Windows 7 (NT 6.1) SP1 and later, just use it directly.
 	localeName = normalizeLocaleForWin32(localeName)
@@ -144,7 +152,7 @@ def windowsLCIDToLocaleName(lcid: int) -> str | None:
 	# Check a manual mapping before using Windows to look up the correct LCID locale name.
 	if not localeName:
 		localeName = LCIDS_TO_TRANSLATED_LOCALES.get(lcid)
-	if not localeName:
+	if not localeName and _IS_WINDOWS:
 		localeName = winKernel.LCIDToLocaleName(lcid)
 	if localeName:
 		return normalizeLanguage(localeName)
@@ -182,6 +190,8 @@ def getLanguageDescription(language: str) -> weakref.ReferenceType | None:
 def englishLanguageNameFromNVDALocale(localeName: str) -> str | None:
 	"""Returns either English name of the given language  using `GetLocaleInfoEx` or None
 	if the given locale is not known to Windows."""
+	if not _IS_WINDOWS:
+		return None
 	localeName = normalizeLocaleForWin32(localeName)
 	buffLength = winBindings.kernel32.GetLocaleInfoEx(localeName, LOCALE.SENGLISHLANGUAGENAME, None, 0)
 	if buffLength:
@@ -215,6 +225,8 @@ def englishLanguageNameFromNVDALocale(localeName: str) -> str | None:
 def englishCountryNameFromNVDALocale(localeName: str) -> str | None:
 	"""Returns either English name of the given country using GetLocaleInfoEx or None
 	if the given locale is not known to Windows."""
+	if not _IS_WINDOWS:
+		return None
 	localeName = normalizeLocaleForWin32(localeName)
 	buffLength = winBindings.kernel32.GetLocaleInfoEx(localeName, LOCALE.SENGLISHCOUNTRYNAME, None, 0)
 	if buffLength:
@@ -234,6 +246,8 @@ def englishCountryNameFromNVDALocale(localeName: str) -> str | None:
 def ansiCodePageFromNVDALocale(localeName: str) -> str | None:
 	"""Returns either ANSI code page for a given locale using GetLocaleInfoEx or None
 	if the given locale is not known to Windows."""
+	if not _IS_WINDOWS:
+		return None
 	localeName = normalizeLocaleForWin32(localeName)
 	# Windows 10 returns English code page (1252) for locales not known to Windows
 	# even though documentation states that in case of an unknown locale 0 is returned.
@@ -309,6 +323,9 @@ def getWindowsLanguage():
 	"""
 	Fetches the locale name of the user's configured language in Windows.
 	"""
+	if not _IS_WINDOWS:
+		localeName = locale.getlocale()[0] or "en"
+		return normalizeLanguage(localeName)
 	windowsLCID = winBindings.kernel32.GetUserDefaultUILanguage()
 	localeName = windowsLCIDToLocaleName(windowsLCID)
 	if localeName:
@@ -345,6 +362,7 @@ def setLanguage(lang: str) -> None:
 		localeName = getWindowsLanguage()
 	else:
 		localeName = lang
+	if _IS_WINDOWS and lang != "Windows":
 		# Set the windows locale for this thread (NVDA core) to this locale.
 		LCID = localeNameToWindowsLCID(lang)
 		if winBindings.kernel32.SetThreadLocale(LCID) == 0:
@@ -408,6 +426,12 @@ def setLocale(localeName: str) -> None:
 	results in locale being set to `('pl_PL', 'ISO8859-2')`
 	which is meaningless to Windows,
 	"""
+	if not _IS_WINDOWS:
+		try:
+			locale.setlocale(locale.LC_ALL, "")
+		except locale.Error:
+			log.debugWarning("couldn't set python locale to system default")
+		return
 	originalLocaleName = localeName
 	localeString = ""
 	try:
@@ -469,6 +493,8 @@ def useImperialMeasurements() -> bool:
 	"""
 	Whether or not measurements should be reported as imperial, rather than metric.
 	"""
+	if not _IS_WINDOWS:
+		return False
 	bufLength = 2
 	buf = ctypes.create_unicode_buffer(bufLength)
 	if not winBindings.kernel32.GetLocaleInfoEx(None, LOCALE.IMEASURE, buf, bufLength):

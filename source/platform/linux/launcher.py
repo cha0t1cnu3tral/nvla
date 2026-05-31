@@ -54,6 +54,9 @@ def _loadCoreMain(args: Sequence[str]) -> Callable[[], None]:
 	import NVDAState
 
 	NVDAState._initializeStartTime()
+	import languageHandler
+
+	languageHandler.setLanguage("en")
 	import core
 
 	return core.main
