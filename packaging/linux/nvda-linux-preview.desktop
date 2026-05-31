@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=NVDA Linux Preview
+Comment=Start the experimental NVDA Linux screen reader port
+Exec=nvda-linux-preview
+Terminal=true
+Categories=Accessibility;
+Keywords=screen reader;accessibility;

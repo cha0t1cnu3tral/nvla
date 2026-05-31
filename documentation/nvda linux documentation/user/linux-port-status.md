@@ -20,8 +20,10 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
 - Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
 - Linux automatic synth selection now prefers the Linux-native speech path without changing Windows synth selection.
+- Linux document navigation primitives cover line movement and quick navigation for headings, links, form fields, lists, tables, and landmarks.
 - Early Linux startup skips Windows-only helper/audio initialization so speech bring-up is no longer tied to `NVDAHelper`, WASAPI, tones, or sound splitting.
 - The early `0.1` Linux path also skips optional Windows-heavy braille, vision, display-model, remote, update, and hardware-detection subsystems until Linux implementations are added.
+- A user-level Linux preview launcher, desktop entry, and optional systemd service are available under `packaging/linux/`.
 
 ## What to expect right now
 

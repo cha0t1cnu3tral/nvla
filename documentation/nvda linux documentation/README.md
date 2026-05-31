@@ -36,7 +36,10 @@ The command checks the desktop session, AT-SPI2 Python bindings, wxPython, and L
 Run the early launcher with:
 
 ```bash
-python tools/runLinuxPort.py
+bash tools/runLinuxPort.sh
 ```
 
 The launcher runs preflight first and then attempts the Linux core handoff. During bring-up, it reports the first remaining missing import instead of loading the Windows-only `source/nvda.pyw` entry point.
+
+Preview packaging and user-level install instructions are available in
+`packaging/linux/README.md`.
