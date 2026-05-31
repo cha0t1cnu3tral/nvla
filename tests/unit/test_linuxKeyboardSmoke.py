@@ -24,6 +24,16 @@ class _SmokeKeyboardSource:
 		self.isStopped = True
 
 
+class _SmokeCommandGrabSource(_SmokeKeyboardSource):
+	supportsHandledGestureSuppression = True
+
+	def start(self, emit):
+		emit(SimpleNamespace(key="insert", pressed=True, nvdaModifierKeys=4))
+		emit(SimpleNamespace(key="t", pressed=True, nvdaModifierKeys=4))
+		emit(SimpleNamespace(key="t", pressed=False, nvdaModifierKeys=4))
+		emit(SimpleNamespace(key="insert", pressed=False, nvdaModifierKeys=4))
+
+
 class TestLinuxKeyboardSmoke(unittest.TestCase):
 	def test_observes_x11_keys_and_stops_source(self):
 		source = _SmokeKeyboardSource()
@@ -55,6 +65,24 @@ class TestLinuxKeyboardSmoke(unittest.TestCase):
 
 		self.assertEqual(1, result)
 		self.assertIn("Wayland", output[0])
+
+	def test_command_grab_mode_handles_smoke_chord(self):
+		source = _SmokeCommandGrabSource()
+		output = []
+
+		result = runKeyboardSmoke(
+			durationSeconds=0,
+			commandGrabs=True,
+			environ={"DISPLAY": ":1"},
+			source=source,
+			write=output.append,
+		)
+
+		self.assertEqual(0, result)
+		self.assertTrue(source.isStopped)
+		self.assertIn("Keyboard capture mode: globalCommands", output)
+		self.assertIn("handled: NVDA+T", output)
+		self.assertIn("down: NVDA+T", output)
 
 	def test_reports_x11_start_failure(self):
 		source = _SmokeKeyboardSource(fail=True)

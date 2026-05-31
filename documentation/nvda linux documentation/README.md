@@ -40,6 +40,12 @@ From an X11 desktop session, verify live keyboard observation with:
 python tools/runLinuxKeyboardSmoke.py --duration 30
 ```
 
+To exercise X11 NVDA-modifier command suppression and replay, run:
+
+```bash
+python tools/runLinuxKeyboardSmoke.py --command-grabs --duration 30
+```
+
 Verify live AT-SPI focus events and command-backed speech with:
 
 ```bash

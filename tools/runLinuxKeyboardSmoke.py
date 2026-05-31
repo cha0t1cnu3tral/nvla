@@ -18,8 +18,13 @@ from platform.linux.keyboard_smoke import runKeyboardSmoke  # noqa: E402
 def main() -> int:
 	parser = argparse.ArgumentParser(description="Observe NVDA Linux preview X11 keyboard gestures.")
 	parser.add_argument("--duration", type=float, default=15, help="Observation duration in seconds.")
+	parser.add_argument(
+		"--command-grabs",
+		action="store_true",
+		help="Exercise X11 NVDA-modifier grabs and suppress the smoke command NVDA+T.",
+	)
 	args = parser.parse_args()
-	return runKeyboardSmoke(durationSeconds=args.duration)
+	return runKeyboardSmoke(durationSeconds=args.duration, commandGrabs=args.command_grabs)
 
 
 if __name__ == "__main__":

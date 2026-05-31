@@ -26,7 +26,7 @@ still be treated as a bring-up tool.
   suppresses handled preview commands and replays unhandled events, but still
   requires desktop validation for exact pass-through parity.
 - An X11 keyboard smoke tool that reports live normalized gestures through the
-  same backend used by the preview.
+  RECORD observer and can exercise NVDA-modifier command suppression and replay.
 - An audible AT-SPI focus smoke tool that speaks live focused-object names,
   descriptions, and roles without requiring the incomplete core startup path.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.

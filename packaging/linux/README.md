@@ -53,6 +53,15 @@ python3 tools/runLinuxKeyboardSmoke.py --duration 30
 Press keys while another application has focus. The tool reports normalized
 key-down and key-up gestures from the same X11 backend used by the preview.
 
+To exercise the preview's X11 NVDA-modifier command grabs, run:
+
+```bash
+python3 tools/runLinuxKeyboardSmoke.py --command-grabs --duration 30
+```
+
+Press `NVDA+T` in another application. The tool logs it as handled so its
+suppression can be checked. Other NVDA chords exercise pass-through replay.
+
 ## Test AT-SPI focus speech
 
 Confirm that focus events and preview speech work together:
