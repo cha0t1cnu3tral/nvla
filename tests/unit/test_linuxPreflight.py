@@ -18,6 +18,7 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertTrue(isReadyForPreview(checks))
 		self.assertIn("[OK] desktopSession: X11", formatPreflightReport(checks))
 		self.assertIn("[PENDING] audio:", formatPreflightReport(checks))
+		self.assertIn("[PENDING] clipboard:", formatPreflightReport(checks))
 		self.assertIn("[PENDING] globalKeyboardCapture:", formatPreflightReport(checks))
 
 	def test_prefers_speech_dispatcher_before_espeak_ng(self):
@@ -30,8 +31,10 @@ class TestLinuxPreflight(unittest.TestCase):
 
 		speech = next(check for check in checks if check.name == "speech")
 		audio = next(check for check in checks if check.name == "audio")
+		clipboard = next(check for check in checks if check.name == "clipboard")
 		self.assertEqual("spd-say", speech.detail)
 		self.assertEqual("pw-play", audio.detail)
+		self.assertEqual("wl-clipboard", clipboard.detail)
 
 	def test_reports_missing_required_dependencies(self):
 		def missingModule(name):

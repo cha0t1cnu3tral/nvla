@@ -20,6 +20,7 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
 - Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
 - Initial Linux wave and tone output is available through `pw-play`, `paplay`, or `aplay`.
+- Initial Linux text clipboard access is available through `wl-clipboard`, `xclip`, or `xsel`.
 - Linux automatic synth selection now prefers the Linux-native speech path without changing Windows synth selection.
 - Linux document navigation primitives cover line movement and quick navigation for headings, links, form fields, lists, tables, and landmarks.
 - Focused AT-SPI documents now activate a preview browse controller for line arrows and supported single-letter quick navigation with spoken results.

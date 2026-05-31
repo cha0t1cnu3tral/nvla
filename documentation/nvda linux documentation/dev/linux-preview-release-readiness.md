@@ -23,6 +23,8 @@ still be treated as a bring-up tool.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
 - Command-backed Linux wave and generated-tone playback using `pw-play`,
   `paplay`, or `aplay`.
+- Command-backed text clipboard access using `wl-clipboard`, `xclip`, or
+  `xsel`.
 - Document navigation primitives for line movement and quick navigation by
   headings, links, controls, lists, tables, and landmarks.
 - A Linux preview document-navigation controller that activates for focused
@@ -36,7 +38,7 @@ still be treated as a bring-up tool.
 - Replace or separate shared event-dispatch imports that still assume the full
   Windows-oriented object, GUI, braille, and display stack.
 - Replace command-backed preview audio with a streaming Linux audio backend.
-- Add clipboard, process-focus, mouse, and touch implementations.
+- Add process-focus, mouse, and touch implementations.
 - Add brlapi integration and Linux device discovery.
 - Define a production package dependency strategy before adding Flatpak,
   `.deb`, or `.rpm` release manifests.

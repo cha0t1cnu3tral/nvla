@@ -22,6 +22,8 @@ sudo dnf install python3 python3-pyatspi python3-wxpython4 speech-dispatcher pip
 
 `espeak-ng` can replace Speech Dispatcher as the initial speech fallback.
 `paplay` or `aplay` can replace `pw-play` for preview wave and tone playback.
+Install `wl-clipboard`, `xclip`, or `xsel` to enable preview text clipboard
+integration.
 
 ## Install the preview launcher
 

@@ -45,6 +45,20 @@ def runPreflightChecks(
 		(command for command in ("pw-play", "paplay", "aplay") if which(command) is not None),
 		None,
 	)
+	clipboardCandidates = [
+		("xclip", ("xclip",)),
+		("xsel", ("xsel",)),
+	]
+	if environ.get("WAYLAND_DISPLAY"):
+		clipboardCandidates.insert(0, ("wl-clipboard", ("wl-copy", "wl-paste")))
+	clipboardCommand = next(
+		(
+			name
+			for name, commands in clipboardCandidates
+			if all(which(command) is not None for command in commands)
+		),
+		None,
+	)
 	return (
 		PreflightCheck("linux", isLinux, True, platform),
 		PreflightCheck(
@@ -66,6 +80,12 @@ def runPreflightChecks(
 			audioCommand is not None,
 			False,
 			audioCommand or "Install PipeWire, PulseAudio, or ALSA command-line tools for waves and tones",
+		),
+		PreflightCheck(
+			"clipboard",
+			clipboardCommand is not None,
+			False,
+			clipboardCommand or "Install wl-clipboard, xclip, or xsel for text clipboard support",
 		),
 		PreflightCheck(
 			"globalKeyboardCapture",
