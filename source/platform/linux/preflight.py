@@ -151,5 +151,5 @@ def _checkGlobalKeyboardCapture(
 		"globalKeyboardCapture",
 		True,
 		False,
-		"X11 RECORD observation available; handled keys still reach applications",
+		"X11 NVDA-modifier command grabs available; validate pass-through behavior on desktop",
 	)

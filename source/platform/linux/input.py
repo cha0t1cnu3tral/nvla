@@ -109,6 +109,7 @@ _LINUX_KEY_NAME_ALIASES = {
 class KeyboardCaptureMode(Enum):
 	DISABLED = "disabled"
 	GLOBAL = "global"
+	GLOBAL_COMMANDS = "globalCommands"
 	GLOBAL_OBSERVE_ONLY = "globalObserveOnly"
 	LOCAL_ONLY = "localOnly"
 
@@ -548,6 +549,163 @@ class X11KeyboardEventSource:
 		return modules.XK.keysym_to_string(keysym) or f"keycode_{keyCode}"
 
 
+class X11NVDAModifierKeyboardEventSource:
+	"""Capture X11 NVDA modifier chords through synchronous passive grabs."""
+
+	supportsPassThroughEnforcement = False
+	supportsHandledGestureSuppression = True
+
+	def __init__(
+		self,
+		*,
+		loadXlibModules: Callable[[], Any] | None = None,
+		nvdaModifierKeys: int | None = None,
+	) -> None:
+		self._loadXlibModules = loadXlibModules or _loadXlibModules
+		self._nvdaModifierKeys = (
+			_getConfiguredNVDAModifierKeys()
+			if nvdaModifierKeys is None
+			else nvdaModifierKeys
+		)
+		self._emit: Callable[[Any], LinuxKeyEvent] | None = None
+		self._modules: Any | None = None
+		self._display: Any | None = None
+		self._rootWindow: Any | None = None
+		self._grabbedKeyCodes: tuple[int, ...] = ()
+		self._stopEvent = threading.Event()
+		self._thread: threading.Thread | None = None
+
+	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None:
+		if self._thread is not None:
+			return
+		modules = self._loadXlibModules()
+		display = modules.display.Display()
+		rootWindow = display.screen().root
+		grabbedKeyCodes = self._getConfiguredModifierKeyCodes(modules, display)
+		try:
+			for keyCode in grabbedKeyCodes:
+				rootWindow.grab_key(
+					keyCode,
+					modules.X.AnyModifier,
+					False,
+					modules.X.GrabModeAsync,
+					modules.X.GrabModeSync,
+				)
+			display.sync()
+		except Exception:
+			for keyCode in grabbedKeyCodes:
+				try:
+					rootWindow.ungrab_key(keyCode, modules.X.AnyModifier)
+				except Exception:
+					pass
+			display.close()
+			raise
+		self._modules = modules
+		self._display = display
+		self._rootWindow = rootWindow
+		self._grabbedKeyCodes = grabbedKeyCodes
+		self._emit = emit
+		self._stopEvent.clear()
+		self._thread = threading.Thread(
+			target=self._run,
+			name="X11NVDAModifierKeyboardEventSource",
+			daemon=True,
+		)
+		self._thread.start()
+
+	def stop(self) -> None:
+		thread = self._thread
+		display = self._display
+		rootWindow = self._rootWindow
+		modules = self._modules
+		self._stopEvent.set()
+		if thread is not None:
+			thread.join(timeout=1)
+		if display is not None and rootWindow is not None and modules is not None:
+			for keyCode in self._grabbedKeyCodes:
+				try:
+					rootWindow.ungrab_key(keyCode, modules.X.AnyModifier)
+				except Exception:
+					pass
+			try:
+				display.flush()
+			except Exception:
+				pass
+			try:
+				display.close()
+			except Exception:
+				pass
+		self._emit = None
+		self._modules = None
+		self._display = None
+		self._rootWindow = None
+		self._grabbedKeyCodes = ()
+		self._thread = None
+
+	def _run(self) -> None:
+		display = self._display
+		if display is None:
+			return
+		while not self._stopEvent.wait(0.01):
+			while display.pending_events():
+				self._handleGrabbedEvent(display.next_event())
+
+	def _handleGrabbedEvent(self, event: Any) -> None:
+		modules = self._modules
+		display = self._display
+		emit = self._emit
+		if modules is None or display is None or emit is None:
+			return
+		if event.type not in (modules.X.KeyPress, modules.X.KeyRelease):
+			return
+		translated = emit(
+			SimpleNamespace(
+				key=self._getKeyName(event.detail),
+				pressed=event.type == modules.X.KeyPress,
+				modifiers=self._getModifiers(event.state),
+				nvdaModifierKeys=self._nvdaModifierKeys,
+				scanCode=event.detail,
+			),
+		)
+		display.allow_events(
+			modules.X.ReplayKeyboard if translated.shouldPassThrough else modules.X.SyncKeyboard,
+			getattr(event, "time", modules.X.CurrentTime),
+		)
+		display.flush()
+
+	def _getConfiguredModifierKeyCodes(self, modules: Any, display: Any) -> tuple[int, ...]:
+		keyNames = []
+		if self._nvdaModifierKeys & _NVDA_KEY_CAPS_LOCK:
+			keyNames.append("Caps_Lock")
+		if self._nvdaModifierKeys & _NVDA_KEY_NUMPAD_INSERT:
+			keyNames.extend(("KP_Insert", "KP_0"))
+		if self._nvdaModifierKeys & _NVDA_KEY_EXTENDED_INSERT:
+			keyNames.append("Insert")
+		return tuple(
+			sorted(
+				{
+					keyCode
+					for keyName in keyNames
+					if (keyCode := display.keysym_to_keycode(modules.XK.string_to_keysym(keyName)))
+				},
+			),
+		)
+
+	def _getKeyName(self, keyCode: int) -> str:
+		keysym = self._display.keycode_to_keysym(keyCode, 0)
+		return self._modules.XK.keysym_to_string(keysym) or f"keycode_{keyCode}"
+
+	def _getModifiers(self, state: int) -> set[str]:
+		modules = self._modules
+		modifierMasks = (
+			(modules.X.ControlMask, "control"),
+			(modules.X.Mod1Mask, "alt"),
+			(modules.X.ShiftMask, "shift"),
+			(modules.X.Mod4Mask, "super"),
+		)
+		return {name for mask, name in modifierMasks if state & mask}
+
+
 class WaylandKeyboardEventSource:
 	"""Wayland keyboard event source placeholder for portal/compositor-backed capture."""
 
@@ -574,7 +732,7 @@ def createKeyboardEventSource(environ: Any | None = None) -> LinuxKeyboardEventS
 	if environ.get("WAYLAND_DISPLAY"):
 		return WaylandKeyboardEventSource()
 	if environ.get("DISPLAY"):
-		return X11KeyboardEventSource()
+		return X11NVDAModifierKeyboardEventSource()
 	return None
 
 
@@ -636,6 +794,8 @@ class LinuxInputAdapter:
 				self._keyboardCaptureMode = (
 					KeyboardCaptureMode.GLOBAL
 					if getattr(self._keyboardEventSource, "supportsPassThroughEnforcement", False)
+					else KeyboardCaptureMode.GLOBAL_COMMANDS
+					if getattr(self._keyboardEventSource, "supportsHandledGestureSuppression", False)
 					else KeyboardCaptureMode.GLOBAL_OBSERVE_ONLY
 				)
 		else:
@@ -717,12 +877,15 @@ class LinuxInputAdapter:
 			and not translated.shouldPassThrough
 			and not gesture.isModifier
 			and not any(handler(gesture) for handler in tuple(self._keyboardGestureHandlers))
-			and self._keyboardGestureExecutor is not None
-			and self._keyboardGestureExecutor(gesture) is False
+			and (
+				self._keyboardGestureExecutor is None
+				or self._keyboardGestureExecutor(gesture) is False
+			)
 		):
 			translated = replace(translated, shouldPassThrough=True)
 			if rawKeyName:
 				self._pressedPassThroughKeys.add(rawKeyName)
+			self._pressedNVDAModifierKeys.clear()
 		for listener in tuple(self._keyboardListeners):
 			listener(translated)
 		observer = self._keyboardObserver

@@ -42,8 +42,8 @@ class TestLinuxKeyboardSmoke(unittest.TestCase):
 		self.assertEqual([2], waits)
 		self.assertTrue(source.isStopped)
 		self.assertIn("Keyboard capture mode: globalObserveOnly", output)
-		self.assertIn("down: A", output)
-		self.assertIn("up: A", output)
+		self.assertIn("down: A passThrough", output)
+		self.assertIn("up: A passThrough", output)
 
 	def test_rejects_wayland_session(self):
 		output = []

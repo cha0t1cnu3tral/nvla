@@ -32,7 +32,7 @@ On a Linux desktop, check the early preview dependencies with:
 python tools/runLinuxPortPreflight.py
 ```
 
-The command checks the desktop session, AT-SPI2 Python bindings, wxPython, Linux speech commands, and optional X11 global keyboard observation through `python-xlib`. Wayland global capture and X11 handled-key suppression remain pending.
+The command checks the desktop session, AT-SPI2 Python bindings, wxPython, Linux speech commands, and optional X11 NVDA-modifier command grabs through `python-xlib`. Wayland global capture and full X11 pass-through parity remain pending.
 
 From an X11 desktop session, verify live keyboard observation with:
 

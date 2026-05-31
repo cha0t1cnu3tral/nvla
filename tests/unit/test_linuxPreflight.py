@@ -19,7 +19,7 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertIn("[OK] desktopSession: X11", formatPreflightReport(checks))
 		self.assertIn("[PENDING] audio:", formatPreflightReport(checks))
 		self.assertIn("[PENDING] clipboard:", formatPreflightReport(checks))
-		self.assertIn("[OK] globalKeyboardCapture: X11 RECORD observation available", formatPreflightReport(checks))
+		self.assertIn("[OK] globalKeyboardCapture: X11 NVDA-modifier command grabs available", formatPreflightReport(checks))
 
 	def test_prefers_speech_dispatcher_before_espeak_ng(self):
 		checks = runPreflightChecks(

@@ -67,7 +67,7 @@ focused object's available name, description, and role.
 ## Current limitations
 
 This is not a usable release yet. The launcher runs dependency preflight and
-reports the first remaining bootstrap blocker. X11 can observe global keys
-through the RECORD extension, but handled keys still reach the focused
-application. Wayland global capture, full browse-mode wiring, streaming Linux
-audio, and real desktop validation remain incomplete.
+reports the first remaining bootstrap blocker. X11 can suppress handled
+NVDA-modifier commands through passive grabs, but exact pass-through behavior
+still needs desktop validation. Wayland global capture, full browse-mode
+wiring, streaming Linux audio, and real desktop validation remain incomplete.

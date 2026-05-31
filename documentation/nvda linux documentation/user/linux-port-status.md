@@ -18,7 +18,7 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux NVDA modifier handling covers configured modifier keys, held modifiers, and pass-through intent.
 - Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
 - Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
-- X11 startup can observe global keys through the RECORD extension when `python-xlib` is installed. Handled keys still reach the focused application.
+- X11 startup can suppress handled NVDA-modifier commands through passive grabs when `python-xlib` is installed. Exact pass-through behavior still needs desktop validation.
 - `tools/runLinuxKeyboardSmoke.py` can verify live X11 key observation before running the full preview.
 - `tools/runLinuxFocusSpeechSmoke.py` can speak live AT-SPI focus changes for early desktop testing.
 - Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
@@ -35,5 +35,5 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 
 - Linux support is not yet production-ready.
 - The current focus is physical keyboard capture, Linux boot-path cleanup, and real desktop AT-SPI-to-speech smoke testing.
-- X11 global keyboard observation is available but cannot suppress handled keys. Wayland global capture is not implemented yet.
+- X11 NVDA-modifier command suppression is available for desktop testing. Wayland global capture is not implemented yet.
 - The preview packaging is for bring-up only. User-facing Linux builds will come after core accessibility, input, audio, and production packaging work.

@@ -21,7 +21,10 @@ still be treated as a bring-up tool.
 - Keyboard gesture normalization that reuses the existing NVDA `kb:` command
   identifiers, including NVDA modifier behavior and pass-through intent.
 - X11 RECORD-based global keyboard observation through `python-xlib`. This
-  enables desktop-wide preview commands but cannot suppress handled keys.
+  supports live diagnostic output without suppressing handled keys.
+- X11 synchronous passive grabs for configured NVDA modifier keys. This
+  suppresses handled preview commands and replays unhandled events, but still
+  requires desktop validation for exact pass-through parity.
 - An X11 keyboard smoke tool that reports live normalized gestures through the
   same backend used by the preview.
 - An audible AT-SPI focus smoke tool that speaks live focused-object names,
@@ -51,8 +54,8 @@ still be treated as a bring-up tool.
 
 ## Work that requires Linux desktop execution
 
-- Validate X11 global keyboard observation and replace RECORD observation with
-  a strategy that can suppress handled keys.
+- Validate X11 NVDA-modifier command suppression and pass-through replay
+  against real desktop applications.
 - Define, implement, and validate the Wayland capture strategy.
 - Verify AT-SPI focus, caret, property, and document events against real apps
   and browsers.

@@ -12,6 +12,7 @@ from platform.linux.input import (
 	LinuxInputAdapter,
 	ManualKeyboardEventSource,
 	X11KeyboardEventSource,
+	X11NVDAModifierKeyboardEventSource,
 	WaylandKeyboardEventSource,
 	createKeyboardEventSource,
 	executeKeyboardGesture,
@@ -44,6 +45,9 @@ class _FakeX11Display:
 		self.hasRecordExtension = hasRecordExtension
 		self.disabledContexts = []
 		self.freedContexts = []
+		self.grabbedKeys = []
+		self.ungrabbedKeys = []
+		self.allowedEvents = []
 		self.isClosed = False
 
 	def has_extension(self, name):
@@ -66,7 +70,28 @@ class _FakeX11Display:
 	def keycode_to_keysym(self, keyCode, column):
 		return keyCode
 
+	def keysym_to_keycode(self, keysym):
+		return keysym
+
+	def screen(self):
+		return SimpleNamespace(root=self)
+
+	def grab_key(self, *args):
+		self.grabbedKeys.append(args)
+
+	def ungrab_key(self, *args):
+		self.ungrabbedKeys.append(args)
+
+	def allow_events(self, *args):
+		self.allowedEvents.append(args)
+
+	def pending_events(self):
+		return 0
+
 	def flush(self):
+		return None
+
+	def sync(self):
 		return None
 
 	def close(self):
@@ -89,8 +114,36 @@ def _makeFakeX11Modules(*, hasRecordExtension=True):
 			return data[0], data[1:]
 
 	modules = SimpleNamespace(
-		X=SimpleNamespace(KeyPress=2, KeyRelease=3),
-		XK=SimpleNamespace(keysym_to_string=lambda keysym: {50: "Shift_L", 38: "a"}[keysym]),
+		X=SimpleNamespace(
+			AnyModifier=32768,
+			ControlMask=4,
+			CurrentTime=0,
+			GrabModeAsync=1,
+			GrabModeSync=0,
+			KeyPress=2,
+			KeyRelease=3,
+			Mod1Mask=8,
+			Mod4Mask=64,
+			ReplayKeyboard=5,
+			ShiftMask=1,
+			SyncKeyboard=3,
+		),
+		XK=SimpleNamespace(
+			keysym_to_string=lambda keysym: {
+				38: "a",
+				50: "Shift_L",
+				57: "n",
+				90: "KP_Insert",
+				91: "KP_0",
+				118: "Insert",
+			}[keysym],
+			string_to_keysym=lambda name: {
+				"Caps_Lock": 66,
+				"Insert": 118,
+				"KP_0": 91,
+				"KP_Insert": 90,
+			}[name],
+		),
 		display=SimpleNamespace(Display=makeDisplay),
 		record=SimpleNamespace(AllClients="all", FromServer="server"),
 		rq=SimpleNamespace(EventField=EventField),
@@ -315,7 +368,7 @@ class TestLinuxInputAdapter(unittest.TestCase):
 			source.emit(SimpleNamespace(key="a"))
 
 	def test_selects_keyboard_event_source_from_session_environment(self):
-		self.assertIsInstance(createKeyboardEventSource({"DISPLAY": ":1"}), X11KeyboardEventSource)
+		self.assertIsInstance(createKeyboardEventSource({"DISPLAY": ":1"}), X11NVDAModifierKeyboardEventSource)
 		self.assertIsInstance(createKeyboardEventSource({"WAYLAND_DISPLAY": "wayland-0"}), WaylandKeyboardEventSource)
 		self.assertIsInstance(
 			createKeyboardEventSource({"DISPLAY": ":1", "WAYLAND_DISPLAY": "wayland-0"}),
@@ -372,6 +425,62 @@ class TestLinuxInputAdapter(unittest.TestCase):
 
 		self.assertEqual(KeyboardCaptureMode.GLOBAL_OBSERVE_ONLY, adapter.keyboardCaptureMode)
 		adapter.terminate_keyboard()
+
+	def test_x11_nvda_modifier_source_grabs_and_suppresses_handled_chord(self):
+		modules, displays = _makeFakeX11Modules()
+		source = X11NVDAModifierKeyboardEventSource(
+			loadXlibModules=lambda: modules,
+			nvdaModifierKeys=4,
+		)
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+		adapter.setKeyboardGestureExecutor(lambda gesture: True)
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=118, state=0, time=10))
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=57, state=0, time=11))
+		source._handleGrabbedEvent(SimpleNamespace(type=3, detail=57, state=0, time=12))
+		source._handleGrabbedEvent(SimpleNamespace(type=3, detail=118, state=0, time=13))
+		self.assertEqual(KeyboardCaptureMode.GLOBAL_COMMANDS, adapter.keyboardCaptureMode)
+		adapter.terminate_keyboard()
+
+		self.assertIn((118, modules.X.AnyModifier, False, modules.X.GrabModeAsync, modules.X.GrabModeSync), displays[0].grabbedKeys)
+		self.assertEqual(
+			[(modules.X.SyncKeyboard, time) for time in (10, 11, 12, 13)],
+			displays[0].allowedEvents,
+		)
+		self.assertIn((118, modules.X.AnyModifier), displays[0].ungrabbedKeys)
+
+	def test_x11_nvda_modifier_source_replays_unhandled_chord_event(self):
+		modules, displays = _makeFakeX11Modules()
+		source = X11NVDAModifierKeyboardEventSource(
+			loadXlibModules=lambda: modules,
+			nvdaModifierKeys=4,
+		)
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+		adapter.setKeyboardGestureExecutor(lambda gesture: False)
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=118, state=0, time=10))
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=57, state=0, time=11))
+		self.assertEqual(set(), adapter._pressedNVDAModifierKeys)
+		adapter.terminate_keyboard()
+
+		self.assertEqual((modules.X.ReplayKeyboard, 11), displays[0].allowedEvents[-1])
+
+	def test_x11_nvda_modifier_source_replays_chord_before_executor_is_attached(self):
+		modules, displays = _makeFakeX11Modules()
+		source = X11NVDAModifierKeyboardEventSource(
+			loadXlibModules=lambda: modules,
+			nvdaModifierKeys=4,
+		)
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=118, state=0, time=10))
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=57, state=0, time=11))
+		adapter.terminate_keyboard()
+
+		self.assertEqual((modules.X.ReplayKeyboard, 11), displays[0].allowedEvents[-1])
 
 	def test_keyboard_event_source_failure_uses_local_only_fallback(self):
 		source = _FailingKeyboardEventSource()

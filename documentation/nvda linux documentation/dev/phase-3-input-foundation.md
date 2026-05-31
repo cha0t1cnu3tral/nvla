@@ -4,8 +4,9 @@ Date: 2026-05-29
 
 ## Summary
 
-Initial Linux input scaffolding and X11 global keyboard observation are in
-place. Wayland global capture and handled-key suppression remain pending.
+Initial Linux input scaffolding, X11 global keyboard observation, and X11
+NVDA-modifier command suppression are in place. Wayland global capture and
+full pass-through parity remain pending.
 
 ## Implemented
 
@@ -30,6 +31,8 @@ place. Wayland global capture and handled-key suppression remain pending.
   - Added X11 RECORD observation through `python-xlib`, including global
     key-down/key-up delivery, modifier tracking, a background capture thread,
     and clean context shutdown.
+  - Added X11 synchronous passive grabs for configured NVDA modifier keys,
+    including handled-command suppression and unhandled-event replay.
   - Keeps the Wayland source as an explicit local-only fallback until a
     compositor-compatible strategy is implemented.
   - Added Linux NVDA modifier normalization for configured Caps Lock, numpad Insert, and extended Insert keys so they produce the same `NVDA+...` gesture names as Windows.
@@ -40,9 +43,9 @@ place. Wayland global capture and handled-key suppression remain pending.
   - Marks a configured NVDA modifier for normal pass-through when it is pressed twice within the configured multi-press timeout, matching the existing Windows interaction.
   - Marks key events for desktop pass-through when `inputCore` reports that no NVDA command handled the gesture.
   - Dispatches normalized observer/listener events after the NVDA command handoff so physical backends and diagnostics see the final pass-through decision.
-  - Exposes keyboard capture mode as disabled, global, global-observe-only, or
-    local-only so callers can distinguish X11 RECORD observation from a source
-    that can enforce suppression.
+  - Exposes keyboard capture mode as disabled, global, global-commands,
+    global-observe-only, or local-only so callers can distinguish complete
+    enforcement, X11 command grabs, RECORD observation, and restricted fallback.
   - Makes keyboard capture lifecycle idempotent and falls back to local-only mode when a physical backend fails during startup.
   - Keeps repeats and the matching key-up marked for pass-through after an unbound key-down, preserving complete desktop key sequences for physical backends.
 - Added `tests/unit/test_linuxInput.py`.
@@ -78,6 +81,7 @@ Done:
 - Keyboard event-source interface for X11/Wayland capture backends.
 - Manual event source for Windows-hosted tests.
 - X11 RECORD global observation with dependency-light fake-X11 tests.
+- X11 NVDA-modifier command grabs with handled suppression and unhandled replay.
 - NVDA modifier key normalization for Linux key names.
 - Windows-compatible Super, navigation, and keypad key-name aliases.
 - Held NVDA modifier tracking across physical key-down/key-up events.
@@ -85,13 +89,14 @@ Done:
 - NVDA modifier double-press pass-through intent is exposed to physical event sources.
 - Unbound gesture pass-through intent is exposed to physical event sources.
 - Restricted local-only fallback mode is explicit when no global keyboard source can start.
-- X11 RECORD observation mode is explicit because handled keys still reach the
-  focused application.
+- X11 RECORD observation mode remains explicit for diagnostics.
+- X11 command-grab mode is explicit because desktop pass-through parity still
+  needs validation.
 
 Remaining:
 
-- Replace X11 RECORD observation with an X11 strategy that can suppress
-  handled keys, likely using XInput2 plus explicit grabs where required.
+- Validate X11 command suppression and pass-through replay against real
+  applications, then deepen the backend where parity gaps remain.
 - Wayland-compatible implementation strategy, likely portal/compositor-specific support on top of the explicit restricted fallback mode.
 - Full NVDA modifier behavior on Linux, including system Sticky Keys latch/lock support and physical backend pass-through enforcement.
 - Secure handling of global hotkeys and pass-through behavior.
