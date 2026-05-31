@@ -3,10 +3,15 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any, Callable, NamedTuple
 
 import controlTypes
-from NVDAObjects import NVDAObject, NVDAObjectTextInfo
+if sys.platform.startswith("linux"):
+	from .object_base import LinuxNVDAObject as NVDAObject
+	from .object_base import LinuxNVDAObjectTextInfo as NVDAObjectTextInfo
+else:
+	from NVDAObjects import NVDAObject, NVDAObjectTextInfo
 
 from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent

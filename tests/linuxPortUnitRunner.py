@@ -30,6 +30,7 @@ DEFAULT_TESTS = (
 	ROOT_DIR / "tests" / "unit" / "test_linuxDocumentNavigation.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxInput.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxLauncher.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxObjectBase.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxPackaging.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxPalFallbacks.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxPreflight.py",
