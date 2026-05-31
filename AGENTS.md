@@ -73,6 +73,7 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Added a Linux watchdog compatibility module, non-fatal Linux system/windowing defaults, and skipped Win32 desktop cache initialization on Linux.
 - Skipped optional Windows-heavy app-module, hardware I/O, braille, vision, display-model, remote, and update initialization during early Linux `0.1` bring-up.
 - Added `tools/runLinuxPortPreflight.py` to report Linux desktop, AT-SPI2, wxPython, speech-command, and pending global-keyboard-capture status.
+- Added `tools/runLinuxPort.py`, an early Linux launcher that runs preflight, avoids `source/nvda.pyw`, and reports the first remaining core import blocker.
 - Added dependency-light Linux speech transport and synth-driver tests.
 - Added Phase 4 status doc:
   - `documentation/nvda linux documentation/dev/phase-4-speech-foundation.md`

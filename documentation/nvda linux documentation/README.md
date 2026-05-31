@@ -32,3 +32,11 @@ python tools/runLinuxPortPreflight.py
 ```
 
 The command checks the desktop session, AT-SPI2 Python bindings, wxPython, and Linux speech commands. Global keyboard capture is reported as pending until the X11 and Wayland backends are implemented.
+
+Run the early launcher with:
+
+```bash
+python tools/runLinuxPort.py
+```
+
+The launcher runs preflight first and then attempts the Linux core handoff. During bring-up, it reports the first remaining missing import instead of loading the Windows-only `source/nvda.pyw` entry point.

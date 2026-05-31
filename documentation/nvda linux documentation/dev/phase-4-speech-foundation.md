@@ -46,6 +46,14 @@ Run Linux preview dependency checks on a Linux desktop with:
 python tools/runLinuxPortPreflight.py
 ```
 
+Attempt the early Linux core handoff with:
+
+```bash
+python tools/runLinuxPort.py
+```
+
+This launcher avoids the Windows-only `source/nvda.pyw` entry point, runs preflight first, and reports the first remaining import blocker during bring-up.
+
 ## Scope
 
 This is an early speech path, not the final Linux audio architecture. It is enough to connect NVDA announcements to system speech tools during `0.1` bring-up.
@@ -64,6 +72,7 @@ The first usable screen-reader preview still needs:
 - Real X11 keyboard capture with pass-through enforcement.
 - A documented restricted Wayland fallback until compositor-specific global capture is available.
 - Continue Linux startup cleanup for remaining Windows-only imports beyond the early helper/audio path.
+- Make shared logging, configuration, and add-on bootstrap imports Linux-capable so the early launcher can enter `core.main()`.
 - Reintroduce optional subsystems behind real Linux implementations, starting with brlapi-backed braille.
 - Real desktop smoke tests: focus an application, receive AT-SPI focus events, speak the focused control, and execute commands such as `NVDA+t`.
 - A simple launch script and package dependency list for Speech Dispatcher, eSpeak NG, AT-SPI2, Python, and wxPython.
