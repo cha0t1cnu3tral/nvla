@@ -13,7 +13,7 @@ from .atspi_backend import ATSPI2Backend
 from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent
 from .atspi_objects import LinuxATSPIObject
-from .document_navigation import LinuxDocumentNavigator
+from .document_navigation import LinuxDocumentNavigationController, LinuxDocumentNavigator
 
 
 def __getattr__(name: str) -> Any:
@@ -25,8 +25,13 @@ def __getattr__(name: str) -> Any:
 class LinuxATSPINVDAEventBridge:
 	_MAX_CACHED_OBJECTS = 512
 
-	def __init__(self, backend: ATSPI2Backend | None = None) -> None:
+	def __init__(
+		self,
+		backend: ATSPI2Backend | None = None,
+		onFocusObject: Callable[[LinuxATSPIObject], None] | None = None,
+	) -> None:
 		self._backend = backend
+		self._onFocusObject = onFocusObject
 		self._objectsByKey: OrderedDict[str, LinuxATSPIObject] = OrderedDict()
 
 	def _getCacheKeyFromTranslatedSource(self, source: TranslatedATSPISource) -> str:
@@ -104,6 +109,8 @@ class LinuxATSPINVDAEventBridge:
 			if event.isFocused:
 				api.setFocusObject(obj)
 				eventHandler.queueEvent("gainFocus", obj)
+				if self._onFocusObject is not None:
+					self._onFocusObject(obj)
 			else:
 				eventHandler.queueEvent("stateChange", obj)
 			return
@@ -128,9 +135,10 @@ class LinuxATSPINVDAEventBridge:
 
 
 class LinuxAccessibilityAdapter:
-	def __init__(self) -> None:
+	def __init__(self, announce: Callable[[str], None] | None = None) -> None:
 		self._backend = ATSPI2Backend()
-		self._eventBridge = LinuxATSPINVDAEventBridge(self._backend)
+		self._documentNavigation = LinuxDocumentNavigationController(announce or self._announce)
+		self._eventBridge = LinuxATSPINVDAEventBridge(self._backend, self._setDocumentNavigationFocus)
 		self._initialized = False
 
 	def initialize(self) -> None:
@@ -150,6 +158,20 @@ class LinuxAccessibilityAdapter:
 
 	def createDocumentNavigator(self, root: LinuxATSPIObject) -> LinuxDocumentNavigator:
 		return LinuxDocumentNavigator(root)
+
+	def handleKeyboardGesture(self, gesture: Any) -> bool:
+		return self._documentNavigation.handleGesture(gesture)
+
+	def _announce(self, text: str) -> None:
+		import speech
+
+		speech.speakText(text)
+
+	def _setDocumentNavigationFocus(self, obj: LinuxATSPIObject) -> None:
+		root: LinuxATSPIObject | None = obj
+		while root is not None and root.role is not controlTypes.Role.DOCUMENT:
+			root = root.parent
+		self._documentNavigation.setRoot(root)
 
 	def terminate(self) -> None:
 		self.terminate_iaccessible()

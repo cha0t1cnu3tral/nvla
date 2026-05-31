@@ -25,12 +25,14 @@ still be treated as a bring-up tool.
   `paplay`, or `aplay`.
 - Document navigation primitives for line movement and quick navigation by
   headings, links, controls, lists, tables, and landmarks.
+- A Linux preview document-navigation controller that activates for focused
+  AT-SPI documents, consumes line and supported single-letter browse keys,
+  and announces the resulting text.
 - A preview shell launcher, installer, desktop entry, and optional systemd
   user service.
 
 ## Remaining non-desktop implementation work
 
-- Wire Linux document navigation into keyboard scripts and spoken output.
 - Replace or separate shared event-dispatch imports that still assume the full
   Windows-oriented object, GUI, braille, and display stack.
 - Replace command-backed preview audio with a streaming Linux audio backend.

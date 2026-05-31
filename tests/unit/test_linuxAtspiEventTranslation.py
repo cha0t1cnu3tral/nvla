@@ -738,7 +738,8 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertIsNone(obj.location)
 
 	def test_linux_event_bridge_routes_focus_and_property_events(self):
-		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		focusedObjects = []
+		bridge = accessibility.LinuxATSPINVDAEventBridge(onFocusObject=focusedObjects.append)
 		focusEvent = self._translate(
 			SimpleNamespace(
 				type="object:state-changed:focused",
@@ -760,6 +761,7 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 				bridge.handleEvent(nameEvent)
 
 		self.assertEqual(1, setFocusObject.call_count)
+		self.assertEqual([setFocusObject.call_args.args[0]], focusedObjects)
 		self.assertEqual("gainFocus", queueEvent.call_args_list[0].args[0])
 		self.assertEqual("nameChange", queueEvent.call_args_list[1].args[0])
 

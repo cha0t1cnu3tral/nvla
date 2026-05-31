@@ -450,6 +450,7 @@ class LinuxInputAdapter:
 		self._keyboardObserver: Any | None = None
 		self._keyboardListeners: list[Callable[[LinuxKeyEvent], None]] = []
 		self._keyboardGestureExecutor: Callable[[LinuxKeyboardGesture], bool | None] | None = None
+		self._keyboardGestureHandlers: list[Callable[[LinuxKeyboardGesture], bool]] = []
 		self._keyboardEventSource = keyboardEventSource
 		self._keyboardEventSourceStarted = False
 		self._keyboardEventSourceStartError: Exception | None = None
@@ -514,6 +515,10 @@ class LinuxInputAdapter:
 	) -> None:
 		self._keyboardGestureExecutor = executor
 
+	def registerKeyboardGestureHandler(self, handler: Callable[[LinuxKeyboardGesture], bool]) -> None:
+		if handler not in self._keyboardGestureHandlers:
+			self._keyboardGestureHandlers.append(handler)
+
 	def enableInputCoreGestureExecution(self, manager: Any | None = None) -> None:
 		registerKeyboardGestureSource()
 		self.setKeyboardGestureExecutor(lambda gesture: executeKeyboardGesture(gesture, manager=manager))
@@ -569,6 +574,7 @@ class LinuxInputAdapter:
 			translated.isPressed
 			and not translated.shouldPassThrough
 			and not gesture.isModifier
+			and not any(handler(gesture) for handler in tuple(self._keyboardGestureHandlers))
 			and self._keyboardGestureExecutor is not None
 			and self._keyboardGestureExecutor(gesture) is False
 		):

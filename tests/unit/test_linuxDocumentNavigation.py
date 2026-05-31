@@ -2,10 +2,11 @@
 # This file is covered by the GNU General Public License.
 
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 import unittest
 
 import controlTypes
-from platform.linux.document_navigation import LinuxDocumentNavigator
+from platform.linux.document_navigation import LinuxDocumentNavigationController, LinuxDocumentNavigator
 
 
 @dataclass
@@ -63,6 +64,40 @@ class TestLinuxDocumentNavigator(unittest.TestCase):
 	def testRejectsUnknownQuickNavigationCategory(self):
 		with self.assertRaisesRegex(ValueError, "Unsupported quick navigation"):
 			self.navigator.moveQuickNav("graphic")
+
+
+class TestLinuxDocumentNavigationController(unittest.TestCase):
+	def setUp(self):
+		self.announcements = []
+		self.controller = LinuxDocumentNavigationController(self.announcements.append)
+		self.controller.setRoot(
+			_Object(
+				controlTypes.Role.DOCUMENT,
+				basicText="First line\nSecond line",
+				children=[
+					_Object(controlTypes.Role.HEADING, name="Account"),
+					_Object(controlTypes.Role.LINK, name="Profile"),
+				],
+			),
+		)
+
+	def _gesture(self, name):
+		return SimpleNamespace(event=SimpleNamespace(gestureName=name))
+
+	def testAnnouncesLineNavigation(self):
+		self.assertTrue(self.controller.handleGesture(self._gesture("downArrow")))
+		self.assertEqual(["First line"], self.announcements)
+
+	def testAnnouncesQuickNavigation(self):
+		self.assertTrue(self.controller.handleGesture(self._gesture("H")))
+		self.assertEqual(["Account"], self.announcements)
+
+	def testLeavesUnsupportedGestureUnhandled(self):
+		self.assertFalse(self.controller.handleGesture(self._gesture("NVDA+T")))
+
+	def testLeavesGestureUnhandledWithoutDocument(self):
+		self.controller.setRoot(None)
+		self.assertFalse(self.controller.handleGesture(self._gesture("downArrow")))
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 
 _QUICK_NAV_ROLE_NAMES: dict[str, frozenset[str]] = {
@@ -27,6 +27,17 @@ _QUICK_NAV_ROLE_NAMES: dict[str, frozenset[str]] = {
 	"listItem": frozenset({"LISTITEM"}),
 	"table": frozenset({"TABLE"}),
 	"landmark": frozenset({"LANDMARK", "SECTION"}),
+}
+_QUICK_NAV_GESTURES = {
+	"h": "heading",
+	"k": "link",
+	"b": "button",
+	"e": "edit",
+	"f": "formField",
+	"l": "list",
+	"i": "listItem",
+	"t": "table",
+	"d": "landmark",
 }
 
 
@@ -123,3 +134,35 @@ class LinuxDocumentNavigator:
 				self._lineIndex = lineIndex
 				return position
 		return DocumentPosition(obj=obj, lineIndex=0, text=_getText(obj) or _roleName(obj).lower())
+
+
+class LinuxDocumentNavigationController:
+	"""Handle a small browse-navigation key set until shared browse mode is portable."""
+
+	def __init__(self, announce: Callable[[str], None]) -> None:
+		self._announce = announce
+		self._navigator: LinuxDocumentNavigator | None = None
+
+	def setRoot(self, root: Any | None) -> None:
+		self._navigator = LinuxDocumentNavigator(root) if root is not None else None
+
+	def handleGesture(self, gesture: Any) -> bool:
+		navigator = self._navigator
+		if navigator is None:
+			return False
+		gestureName = gesture.event.gestureName.lower()
+		if gestureName == "downarrow":
+			position = navigator.moveLine(1)
+		elif gestureName == "uparrow":
+			position = navigator.moveLine(-1)
+		else:
+			isPrevious = gestureName.startswith("shift+")
+			key = gestureName.removeprefix("shift+")
+			kind = _QUICK_NAV_GESTURES.get(key)
+			if kind is None:
+				return False
+			position = navigator.moveQuickNav(kind, direction=-1 if isPrevious else 1)
+		if position is None:
+			return True
+		self._announce(position.text)
+		return True

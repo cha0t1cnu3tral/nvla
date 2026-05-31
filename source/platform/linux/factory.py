@@ -16,9 +16,12 @@ from .windowing import LinuxWindowingAdapter
 
 
 def create_platform_services() -> PlatformServices:
+	accessibility = LinuxAccessibilityAdapter()
+	input = LinuxInputAdapter()
+	input.registerKeyboardGestureHandler(accessibility.handleKeyboardGesture)
 	return PlatformServices(
-		accessibility=LinuxAccessibilityAdapter(),
-		input=LinuxInputAdapter(),
+		accessibility=accessibility,
+		input=input,
 		audio=LinuxAudioAdapter(),
 		clipboard=LinuxClipboardAdapter(),
 		system=LinuxSystemAdapter(),
@@ -28,4 +31,3 @@ def create_platform_services() -> PlatformServices:
 		display=LinuxDisplayAdapter(),
 		session=LinuxSessionAdapter(),
 	)
-
