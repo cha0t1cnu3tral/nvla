@@ -41,6 +41,10 @@ def runPreflightChecks(
 		(command for command in ("spd-say", "espeak-ng") if which(command) is not None),
 		None,
 	)
+	audioCommand = next(
+		(command for command in ("pw-play", "paplay", "aplay") if which(command) is not None),
+		None,
+	)
 	return (
 		PreflightCheck("linux", isLinux, True, platform),
 		PreflightCheck(
@@ -56,6 +60,12 @@ def runPreflightChecks(
 			speechCommand is not None,
 			True,
 			speechCommand or "Install speech-dispatcher or espeak-ng",
+		),
+		PreflightCheck(
+			"audio",
+			audioCommand is not None,
+			False,
+			audioCommand or "Install PipeWire, PulseAudio, or ALSA command-line tools for waves and tones",
 		),
 		PreflightCheck(
 			"globalKeyboardCapture",

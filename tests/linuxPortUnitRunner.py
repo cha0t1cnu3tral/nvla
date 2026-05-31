@@ -25,6 +25,7 @@ SOURCE_DIR = ROOT_DIR / "source"
 DEFAULT_TESTS = (
 	ROOT_DIR / "tests" / "unit" / "test_linuxAtspiMappings.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxAtspiEventTranslation.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxAudio.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxBootstrapFallbacks.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxCoreBootGuards.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxDocumentNavigation.py",

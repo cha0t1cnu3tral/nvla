@@ -19,6 +19,7 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
 - Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
 - Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
+- Initial Linux wave and tone output is available through `pw-play`, `paplay`, or `aplay`.
 - Linux automatic synth selection now prefers the Linux-native speech path without changing Windows synth selection.
 - Linux document navigation primitives cover line movement and quick navigation for headings, links, form fields, lists, tables, and landmarks.
 - Early Linux startup skips Windows-only helper/audio initialization so speech bring-up is no longer tied to `NVDAHelper`, WASAPI, tones, or sound splitting.

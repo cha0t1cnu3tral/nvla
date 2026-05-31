@@ -21,6 +21,8 @@ still be treated as a bring-up tool.
 - Keyboard gesture normalization that reuses the existing NVDA `kb:` command
   identifiers, including NVDA modifier behavior and pass-through intent.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
+- Command-backed Linux wave and generated-tone playback using `pw-play`,
+  `paplay`, or `aplay`.
 - Document navigation primitives for line movement and quick navigation by
   headings, links, controls, lists, tables, and landmarks.
 - A preview shell launcher, installer, desktop entry, and optional systemd
@@ -31,7 +33,7 @@ still be treated as a bring-up tool.
 - Wire Linux document navigation into keyboard scripts and spoken output.
 - Replace or separate shared event-dispatch imports that still assume the full
   Windows-oriented object, GUI, braille, and display stack.
-- Add Linux-native audio playback for tones and wave output.
+- Replace command-backed preview audio with a streaming Linux audio backend.
 - Add clipboard, process-focus, mouse, and touch implementations.
 - Add brlapi integration and Linux device discovery.
 - Define a production package dependency strategy before adding Flatpak,

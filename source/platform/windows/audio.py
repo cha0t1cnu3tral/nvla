@@ -13,7 +13,7 @@ class WindowsAudioAdapter:
 
 		nvwave.playWaveFile(path, asynchronous=asynchronous)
 
-	def beep(self, hz: int, length: int, left: int = 50, right: int = 50) -> None:
+	def beep(self, hz: float, length: int, left: int = 50, right: int = 50) -> None:
 		import tones
 
 		tones.beep(hz=hz, length=length, left=left, right=right)

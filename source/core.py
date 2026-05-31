@@ -743,6 +743,14 @@ def main():
 				nvwave.playWaveFile(os.path.join(globalVars.appDir, "waves", "start.wav"))
 			except Exception:
 				pass
+	else:
+		log.debug("initializing Linux preview audio")
+		_pal.audio.initialize()
+		if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
+			try:
+				_pal.audio.play_wave_file(os.path.join(globalVars.appDir, "waves", "start.wav"))
+			except Exception:
+				pass
 	logHandler.setLogLevelFromConfig()
 	log.info(f"Operating system: {_pal.system.get_os_version_string()}")
 	log.info("Using Python version %s" % sys.version)
@@ -1185,6 +1193,16 @@ def main():
 		# We cannot terminate nvwave until after we perform nvwave.playWaveFile
 		_terminate(nvwave)
 		_terminate(NVDAHelper)
+	else:
+		if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
+			try:
+				_pal.audio.play_wave_file(
+					os.path.join(globalVars.appDir, "waves", "exit.wav"),
+					asynchronous=False,
+				)
+			except Exception:
+				pass
+		_pal.audio.terminate()
 	# Log and join any remaining non-daemon threads here,
 	# before releasing our mutex and exiting.
 	# In a perfect world there should be none.
