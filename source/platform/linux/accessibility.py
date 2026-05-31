@@ -13,6 +13,7 @@ from .atspi_backend import ATSPI2Backend
 from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent
 from .atspi_objects import LinuxATSPIObject
+from .document_navigation import LinuxDocumentNavigator
 
 
 def __getattr__(name: str) -> Any:
@@ -146,6 +147,9 @@ class LinuxAccessibilityAdapter:
 
 	def getNVDAObjectFromAccessible(self, accessible: Any) -> LinuxATSPIObject | None:
 		return self._eventBridge.getOrCreateObjectForSource(accessible)
+
+	def createDocumentNavigator(self, root: LinuxATSPIObject) -> LinuxDocumentNavigator:
+		return LinuxDocumentNavigator(root)
 
 	def terminate(self) -> None:
 		self.terminate_iaccessible()
