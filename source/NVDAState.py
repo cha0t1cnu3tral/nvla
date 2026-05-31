@@ -9,7 +9,10 @@ import platform
 import sys
 import sysconfig
 import time
-import winreg
+try:
+	import winreg
+except ImportError:
+	winreg = None
 
 import buildVersion
 import globalVars
@@ -106,6 +109,8 @@ class _WritePaths:
 	@lru_cache(maxsize=1)
 	def startMenuFolder(self) -> str | None:
 		"""Name of a specific folder in the start menu, not a full path"""
+		if winreg is None:
+			return None
 		from config.registry import RegistryKey
 
 		try:
@@ -118,6 +123,8 @@ class _WritePaths:
 	@lru_cache(maxsize=1)
 	def _startMenuFolderX86(self) -> str | None:
 		"""Name of a specific folder in the start menu, not a full path"""
+		if winreg is None:
+			return None
 		from config.registry import RegistryKey
 
 		try:
@@ -133,6 +140,7 @@ class _WritePaths:
 	@property
 	@lru_cache(maxsize=1)
 	def defaultInstallDir(self) -> str:
+		_requireWindowsRegistry()
 		from config.registry import RegistryKey
 
 		with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, RegistryKey.CURRENT_VERSION.value) as k:
@@ -142,6 +150,7 @@ class _WritePaths:
 	@property
 	@lru_cache(maxsize=1)
 	def _defaultInstallDirX86(self) -> str:
+		_requireWindowsRegistry()
 		from config.registry import RegistryKey, _RegistryKeyX86
 
 		if platform.architecture()[0].startswith("64"):
@@ -162,6 +171,8 @@ class _WritePaths:
 	@property
 	@lru_cache(maxsize=1)
 	def installDir(self) -> str | None:
+		if winreg is None:
+			return None
 		from config.registry import RegistryKey
 
 		try:
@@ -176,6 +187,8 @@ class _WritePaths:
 	@property
 	@lru_cache(maxsize=1)
 	def _installDirX86(self) -> str | None:
+		if winreg is None:
+			return None
 		from config.registry import RegistryKey
 
 		try:
@@ -349,7 +362,14 @@ class _TrackNVDAInitialization:
 		return _TrackNVDAInitialization._isNVDAInitialized
 
 
+def _requireWindowsRegistry() -> None:
+	if winreg is None:
+		raise RuntimeError("The Windows registry is not available on this platform")
+
+
 def _forceSecureModeEnabled() -> bool:
+	if winreg is None:
+		return False
 	# Avoid circular import
 	from config.registry import RegistryKey
 
@@ -362,6 +382,8 @@ def _forceSecureModeEnabled() -> bool:
 
 
 def _serviceDebugEnabled() -> bool:
+	if winreg is None:
+		return False
 	# Avoid circular import
 	from config.registry import RegistryKey
 
@@ -374,6 +396,8 @@ def _serviceDebugEnabled() -> bool:
 
 
 def _configInLocalAppDataEnabled() -> bool:
+	if winreg is None:
+		return False
 	# Avoid circular imports
 	from config.registry import RegistryKey
 	from logHandler import log

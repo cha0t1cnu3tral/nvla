@@ -6,7 +6,10 @@
 
 import argparse
 import sys
-import winUser
+try:
+	import winUser
+except ImportError:
+	winUser = None
 
 from typing import IO
 
@@ -32,10 +35,14 @@ class NoConsoleOptionParser(argparse.ArgumentParser):
 
 	def print_help(self, file: IO[str] | None = None):
 		"""Shows help in a standard Windows message dialog"""
+		if winUser is None:
+			return super().print_help(file)
 		winUser.MessageBox(0, self.format_help(), "Help", 0)
 
 	def error(self, message: str):
 		"""Shows an error in a standard Windows message dialog, and then exits NVDA"""
+		if winUser is None:
+			return super().error(message)
 		out = ""
 		out = self.format_usage()
 		out += f"\nerror: {message}"
