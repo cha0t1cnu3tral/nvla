@@ -34,6 +34,12 @@ python tools/runLinuxPortPreflight.py
 
 The command checks the desktop session, AT-SPI2 Python bindings, wxPython, Linux speech commands, and optional X11 global keyboard observation through `python-xlib`. Wayland global capture and X11 handled-key suppression remain pending.
 
+From an X11 desktop session, verify live keyboard observation with:
+
+```bash
+python tools/runLinuxKeyboardSmoke.py --duration 30
+```
+
 Run the early launcher with:
 
 ```bash

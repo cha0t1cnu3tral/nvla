@@ -19,6 +19,7 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
 - Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
 - X11 startup can observe global keys through the RECORD extension when `python-xlib` is installed. Handled keys still reach the focused application.
+- `tools/runLinuxKeyboardSmoke.py` can verify live X11 key observation before running the full preview.
 - Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
 - Initial Linux wave and tone output is available through `pw-play`, `paplay`, or `aplay`.
 - Initial Linux text clipboard access is available through `wl-clipboard`, `xclip`, or `xsel`.

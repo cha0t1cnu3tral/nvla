@@ -22,6 +22,8 @@ still be treated as a bring-up tool.
   identifiers, including NVDA modifier behavior and pass-through intent.
 - X11 RECORD-based global keyboard observation through `python-xlib`. This
   enables desktop-wide preview commands but cannot suppress handled keys.
+- An X11 keyboard smoke tool that reports live normalized gestures through the
+  same backend used by the preview.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
 - Command-backed Linux wave and generated-tone playback using `pw-play`,
   `paplay`, or `aplay`.

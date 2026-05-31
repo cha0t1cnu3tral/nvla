@@ -41,6 +41,18 @@ after manual startup succeeds:
 systemctl --user enable --now nvda-linux-preview.service
 ```
 
+## Test X11 keyboard observation
+
+From an X11 desktop session, confirm that global key events are visible before
+running the full preview:
+
+```bash
+python3 tools/runLinuxKeyboardSmoke.py --duration 30
+```
+
+Press keys while another application has focus. The tool reports normalized
+key-down and key-up gestures from the same X11 backend used by the preview.
+
 ## Current limitations
 
 This is not a usable release yet. The launcher runs dependency preflight and
