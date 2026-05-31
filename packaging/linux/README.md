@@ -53,6 +53,17 @@ python3 tools/runLinuxKeyboardSmoke.py --duration 30
 Press keys while another application has focus. The tool reports normalized
 key-down and key-up gestures from the same X11 backend used by the preview.
 
+## Test AT-SPI focus speech
+
+Confirm that focus events and preview speech work together:
+
+```bash
+python3 tools/runLinuxFocusSpeechSmoke.py --duration 30
+```
+
+Move focus between applications and controls. The tool prints and speaks each
+focused object's available name, description, and role.
+
 ## Current limitations
 
 This is not a usable release yet. The launcher runs dependency preflight and

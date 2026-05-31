@@ -40,6 +40,12 @@ From an X11 desktop session, verify live keyboard observation with:
 python tools/runLinuxKeyboardSmoke.py --duration 30
 ```
 
+Verify live AT-SPI focus events and command-backed speech with:
+
+```bash
+python tools/runLinuxFocusSpeechSmoke.py --duration 30
+```
+
 Run the early launcher with:
 
 ```bash

@@ -24,6 +24,8 @@ still be treated as a bring-up tool.
   enables desktop-wide preview commands but cannot suppress handled keys.
 - An X11 keyboard smoke tool that reports live normalized gestures through the
   same backend used by the preview.
+- An audible AT-SPI focus smoke tool that speaks live focused-object names,
+  descriptions, and roles without requiring the incomplete core startup path.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
 - Command-backed Linux wave and generated-tone playback using `pw-play`,
   `paplay`, or `aplay`.
