@@ -30,4 +30,4 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux support is not yet production-ready.
 - The current focus is physical keyboard capture, Linux boot-path cleanup, and real desktop AT-SPI-to-speech smoke testing.
 - Global X11 and Wayland keyboard capture are not implemented yet.
-- User-facing Linux builds will come after core accessibility, input, audio, and packaging work.
+- The preview packaging is for bring-up only. User-facing Linux builds will come after core accessibility, input, audio, and production packaging work.

@@ -78,6 +78,23 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Added Phase 4 status doc:
   - `documentation/nvda linux documentation/dev/phase-4-speech-foundation.md`
 
+### Linux Preview Bring-Up
+
+- Added Linux-native launcher and dependency preflight:
+  - `tools/runLinuxPort.py`
+  - `tools/runLinuxPort.sh`
+  - `tools/runLinuxPortPreflight.py`
+- Added user-level preview packaging:
+  - `packaging/linux/*`
+- Added Linux shared-bootstrap fallbacks for logging, localization, registry,
+  config, add-on decoding, and queue watchdog selection.
+- Added Linux-local AT-SPI object base to avoid loading the shared Windows-heavy
+  object stack during native backend construction.
+- Added dependency-light document navigation primitives for line movement and
+  quick navigation categories.
+- Added release-readiness audit:
+  - `documentation/nvda linux documentation/dev/linux-preview-release-readiness.md`
+
 ## Next Phase Work (Immediate)
 
 ### Phase 3: Input and Focus Infrastructure
@@ -92,6 +109,15 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 1. Deepen AT-SPI object creation integration with existing NVDA object flows.
 2. Extend TextInfo formatting and embedded-object handling.
 3. Validate review and browse-mode parity on a real Linux desktop.
+
+### Linux Preview Follow-Up
+
+1. Wire Linux document navigation into keyboard scripts and spoken output.
+2. Separate remaining shared event-dispatch imports from Windows GUI, braille,
+   and display dependencies.
+3. Add Linux-native audio playback for tones and wave output.
+4. Add production Flatpak, `.deb`, and `.rpm` packaging only after runtime
+   dependency strategy is settled.
 
 ## Full Phase Plan (Reference)
 

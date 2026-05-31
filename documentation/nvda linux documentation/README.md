@@ -12,6 +12,7 @@ Current dev milestones documented:
 - Phase 2 AT-SPI2 mapping, event translation, object-wrapper, and baseline TextInfo work
 - Phase 3 input foundation and Linux keyboard event normalization
 - Phase 4 Linux speech transport and initial NVDA synth driver
+- Linux preview release-readiness audit
 
 ## Focused validation on Windows
 
@@ -43,3 +44,6 @@ The launcher runs preflight first and then attempts the Linux core handoff. Duri
 
 Preview packaging and user-level install instructions are available in
 `packaging/linux/README.md`.
+
+The current release-readiness audit is available in
+`dev/linux-preview-release-readiness.md`.
