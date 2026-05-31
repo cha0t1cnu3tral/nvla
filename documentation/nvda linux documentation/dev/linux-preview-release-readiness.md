@@ -20,6 +20,8 @@ still be treated as a bring-up tool.
   shared `NVDAObjects` package during native backend construction.
 - Keyboard gesture normalization that reuses the existing NVDA `kb:` command
   identifiers, including NVDA modifier behavior and pass-through intent.
+- X11 RECORD-based global keyboard observation through `python-xlib`. This
+  enables desktop-wide preview commands but cannot suppress handled keys.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
 - Command-backed Linux wave and generated-tone playback using `pw-play`,
   `paplay`, or `aplay`.
@@ -45,7 +47,8 @@ still be treated as a bring-up tool.
 
 ## Work that requires Linux desktop execution
 
-- Implement and validate global X11 keyboard capture.
+- Validate X11 global keyboard observation and replace RECORD observation with
+  a strategy that can suppress handled keys.
 - Define, implement, and validate the Wayland capture strategy.
 - Verify AT-SPI focus, caret, property, and document events against real apps
   and browsers.

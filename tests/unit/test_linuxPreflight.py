@@ -19,7 +19,7 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertIn("[OK] desktopSession: X11", formatPreflightReport(checks))
 		self.assertIn("[PENDING] audio:", formatPreflightReport(checks))
 		self.assertIn("[PENDING] clipboard:", formatPreflightReport(checks))
-		self.assertIn("[PENDING] globalKeyboardCapture:", formatPreflightReport(checks))
+		self.assertIn("[OK] globalKeyboardCapture: X11 RECORD observation available", formatPreflightReport(checks))
 
 	def test_prefers_speech_dispatcher_before_espeak_ng(self):
 		checks = runPreflightChecks(
@@ -35,6 +35,9 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertEqual("spd-say", speech.detail)
 		self.assertEqual("pw-play", audio.detail)
 		self.assertEqual("wl-clipboard", clipboard.detail)
+		globalKeyboardCapture = next(check for check in checks if check.name == "globalKeyboardCapture")
+		self.assertFalse(globalKeyboardCapture.available)
+		self.assertIn("Wayland", globalKeyboardCapture.detail)
 
 	def test_reports_missing_required_dependencies(self):
 		def missingModule(name):
@@ -54,6 +57,24 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertIn("[MISSING] pyatspi:", report)
 		self.assertIn("[MISSING] wx:", report)
 		self.assertIn("[MISSING] speech:", report)
+
+	def test_reports_missing_optional_python_xlib_for_x11_capture(self):
+		def importModule(name):
+			if name == "Xlib":
+				raise ImportError(name)
+			return object()
+
+		checks = runPreflightChecks(
+			platform="linux",
+			environ={"DISPLAY": ":1"},
+			which=lambda command: "/usr/bin/spd-say" if command == "spd-say" else None,
+			importModule=importModule,
+		)
+
+		globalKeyboardCapture = next(check for check in checks if check.name == "globalKeyboardCapture")
+		self.assertFalse(globalKeyboardCapture.available)
+		self.assertFalse(globalKeyboardCapture.required)
+		self.assertIn("python3-xlib", globalKeyboardCapture.detail)
 
 
 if __name__ == "__main__":

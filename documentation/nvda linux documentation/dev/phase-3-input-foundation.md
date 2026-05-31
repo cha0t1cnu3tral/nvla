@@ -4,7 +4,8 @@ Date: 2026-05-29
 
 ## Summary
 
-Initial Linux input scaffolding is in place, focused on a stable, testable keyboard event model before committing to X11 or Wayland capture backends.
+Initial Linux input scaffolding and X11 global keyboard observation are in
+place. Wayland global capture and handled-key suppression remain pending.
 
 ## Implemented
 
@@ -15,7 +16,7 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Adds a deterministic `gestureName` representation such as `control+shift+A`.
   - Allows dependency-light event injection through `feedRawKeyboardEvent`.
   - Allows listeners and an observer to receive normalized key events.
-  - Makes keyboard initialize/terminate non-fatal while real global hooks are still pending.
+  - Makes keyboard initialize/terminate non-fatal when a global source is unavailable.
   - Added `LinuxKeyboardGesture`, a gesture-shaped wrapper that exposes the same user-facing `kb(desktop):...`, `kb(laptop):...`, and `kb:...` identifiers used by existing NVDA keyboard gesture bindings.
   - Avoids a separate Linux gesture namespace so Windows NVDA gestures can be reused on Linux wherever the physical/user-facing keystroke is the same.
   - Made `LinuxKeyboardGesture` compatible with NVDA's `inputCore.InputGesture` contract when `inputCore` is available.
@@ -25,7 +26,12 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Added key-down-only gesture executor dispatch for the `inputCore` handoff.
   - Added a keyboard event-source boundary for physical capture backends.
   - Added a manual event source for dependency-light tests and early smoke tools.
-  - Added X11 and Wayland event-source placeholders selected from session environment, with startup kept non-fatal until real capture is implemented.
+  - Added session-based X11 and Wayland event-source selection.
+  - Added X11 RECORD observation through `python-xlib`, including global
+    key-down/key-up delivery, modifier tracking, a background capture thread,
+    and clean context shutdown.
+  - Keeps the Wayland source as an explicit local-only fallback until a
+    compositor-compatible strategy is implemented.
   - Added Linux NVDA modifier normalization for configured Caps Lock, numpad Insert, and extended Insert keys so they produce the same `NVDA+...` gesture names as Windows.
   - Maps Linux Super key names to NVDA's existing `windows` modifier identifier so commands using that modifier remain compatible with the shared gesture maps.
   - Maps common Linux navigation and keypad names such as `Page_Up`, `Left`, and `KP_Enter` to the existing NVDA key identifiers such as `pageUp`, `leftArrow`, and `numpadEnter`.
@@ -34,7 +40,9 @@ Initial Linux input scaffolding is in place, focused on a stable, testable keybo
   - Marks a configured NVDA modifier for normal pass-through when it is pressed twice within the configured multi-press timeout, matching the existing Windows interaction.
   - Marks key events for desktop pass-through when `inputCore` reports that no NVDA command handled the gesture.
   - Dispatches normalized observer/listener events after the NVDA command handoff so physical backends and diagnostics see the final pass-through decision.
-  - Exposes keyboard capture mode as disabled, global, or local-only so callers can detect the restricted fallback used when global hooks are unavailable.
+  - Exposes keyboard capture mode as disabled, global, global-observe-only, or
+    local-only so callers can distinguish X11 RECORD observation from a source
+    that can enforce suppression.
   - Makes keyboard capture lifecycle idempotent and falls back to local-only mode when a physical backend fails during startup.
   - Keeps repeats and the matching key-up marked for pass-through after an unbound key-down, preserving complete desktop key sequences for physical backends.
 - Added `tests/unit/test_linuxInput.py`.
@@ -69,6 +77,7 @@ Done:
 - Windows-testable injected event path.
 - Keyboard event-source interface for X11/Wayland capture backends.
 - Manual event source for Windows-hosted tests.
+- X11 RECORD global observation with dependency-light fake-X11 tests.
 - NVDA modifier key normalization for Linux key names.
 - Windows-compatible Super, navigation, and keypad key-name aliases.
 - Held NVDA modifier tracking across physical key-down/key-up events.
@@ -76,10 +85,13 @@ Done:
 - NVDA modifier double-press pass-through intent is exposed to physical event sources.
 - Unbound gesture pass-through intent is exposed to physical event sources.
 - Restricted local-only fallback mode is explicit when no global keyboard source can start.
+- X11 RECORD observation mode is explicit because handled keys still reach the
+  focused application.
 
 Remaining:
 
-- X11 backend capture implementation, likely XInput2.
+- Replace X11 RECORD observation with an X11 strategy that can suppress
+  handled keys, likely using XInput2 plus explicit grabs where required.
 - Wayland-compatible implementation strategy, likely portal/compositor-specific support on top of the explicit restricted fallback mode.
 - Full NVDA modifier behavior on Linux, including system Sticky Keys latch/lock support and physical backend pass-through enforcement.
 - Secure handling of global hotkeys and pass-through behavior.

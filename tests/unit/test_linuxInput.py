@@ -38,6 +38,66 @@ class _FailingKeyboardEventSource(_CountingKeyboardEventSource):
 		raise RuntimeError("Capture unavailable")
 
 
+class _FakeX11Display:
+	def __init__(self, *, hasRecordExtension=True):
+		self.display = self
+		self.hasRecordExtension = hasRecordExtension
+		self.disabledContexts = []
+		self.freedContexts = []
+		self.isClosed = False
+
+	def has_extension(self, name):
+		return name == "RECORD" and self.hasRecordExtension
+
+	def record_create_context(self, *args):
+		self.createdContextArgs = args
+		return 42
+
+	def record_enable_context(self, context, callback):
+		self.enabledContext = context
+		self.callback = callback
+
+	def record_disable_context(self, context):
+		self.disabledContexts.append(context)
+
+	def record_free_context(self, context):
+		self.freedContexts.append(context)
+
+	def keycode_to_keysym(self, keyCode, column):
+		return keyCode
+
+	def flush(self):
+		return None
+
+	def close(self):
+		self.isClosed = True
+
+
+def _makeFakeX11Modules(*, hasRecordExtension=True):
+	displays = []
+
+	def makeDisplay():
+		display = _FakeX11Display(hasRecordExtension=hasRecordExtension)
+		displays.append(display)
+		return display
+
+	class EventField:
+		def __init__(self, *args):
+			pass
+
+		def parse_binary_value(self, data, *args):
+			return data[0], data[1:]
+
+	modules = SimpleNamespace(
+		X=SimpleNamespace(KeyPress=2, KeyRelease=3),
+		XK=SimpleNamespace(keysym_to_string=lambda keysym: {50: "Shift_L", 38: "a"}[keysym]),
+		display=SimpleNamespace(Display=makeDisplay),
+		record=SimpleNamespace(AllClients="all", FromServer="server"),
+		rq=SimpleNamespace(EventField=EventField),
+	)
+	return modules, displays
+
+
 def _normalizeIdentifier(identifier):
 	prefix, chord = identifier.lower().split(":", 1)
 	return f"{prefix}:{'+'.join(sorted(chord.split('+')))}"
@@ -264,12 +324,54 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertIsNone(createKeyboardEventSource({}))
 
 	def test_unsupported_keyboard_event_source_does_not_abort_initialization(self):
-		adapter = LinuxInputAdapter(keyboardEventSource=X11KeyboardEventSource())
+		modules, _displays = _makeFakeX11Modules(hasRecordExtension=False)
+		adapter = LinuxInputAdapter(
+			keyboardEventSource=X11KeyboardEventSource(loadXlibModules=lambda: modules),
+		)
 
 		adapter.initialize_keyboard(SimpleNamespace())
 
 		self.assertIsNotNone(adapter.keyboardEventSourceStartError)
 		self.assertEqual(KeyboardCaptureMode.LOCAL_ONLY, adapter.keyboardCaptureMode)
+
+	def test_x11_record_source_observes_global_key_events(self):
+		modules, displays = _makeFakeX11Modules()
+		source = X11KeyboardEventSource(loadXlibModules=lambda: modules)
+		received = []
+		source.start(received.append)
+
+		source._handleRecordReply(
+			SimpleNamespace(
+				category="server",
+				client_swapped=False,
+				data=[
+					SimpleNamespace(type=2, detail=50),
+					SimpleNamespace(type=2, detail=38),
+					SimpleNamespace(type=3, detail=38),
+					SimpleNamespace(type=3, detail=50),
+				],
+			),
+		)
+		source.stop()
+
+		self.assertEqual(["Shift_L", "a", "a", "Shift_L"], [event.key for event in received])
+		self.assertEqual([True, True, False, False], [event.pressed for event in received])
+		self.assertEqual({"Shift_L"}, received[1].modifiers)
+		self.assertEqual(42, displays[1].enabledContext)
+		self.assertEqual([42], displays[0].disabledContexts)
+		self.assertEqual([42], displays[0].freedContexts)
+		self.assertTrue(all(display.isClosed for display in displays))
+
+	def test_x11_record_source_uses_observe_only_capture_mode(self):
+		modules, _displays = _makeFakeX11Modules()
+		adapter = LinuxInputAdapter(
+			keyboardEventSource=X11KeyboardEventSource(loadXlibModules=lambda: modules),
+		)
+
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		self.assertEqual(KeyboardCaptureMode.GLOBAL_OBSERVE_ONLY, adapter.keyboardCaptureMode)
+		adapter.terminate_keyboard()
 
 	def test_keyboard_event_source_failure_uses_local_only_fallback(self):
 		source = _FailingKeyboardEventSource()

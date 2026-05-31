@@ -59,6 +59,10 @@ def runPreflightChecks(
 		),
 		None,
 	)
+	globalKeyboardCapture = _checkGlobalKeyboardCapture(
+		environ=environ,
+		importModule=importModule,
+	)
 	return (
 		PreflightCheck("linux", isLinux, True, platform),
 		PreflightCheck(
@@ -87,12 +91,7 @@ def runPreflightChecks(
 			False,
 			clipboardCommand or "Install wl-clipboard, xclip, or xsel for text clipboard support",
 		),
-		PreflightCheck(
-			"globalKeyboardCapture",
-			False,
-			False,
-			"Not implemented yet; Linux preview remains local-only",
-		),
+		globalKeyboardCapture,
 	)
 
 
@@ -118,3 +117,39 @@ def _checkImport(
 	except ImportError:
 		return PreflightCheck(name, False, True, f"Install {detail}")
 	return PreflightCheck(name, True, True, detail)
+
+
+def _checkGlobalKeyboardCapture(
+	*,
+	environ: Mapping[str, str],
+	importModule: Callable[[str], object],
+) -> PreflightCheck:
+	if environ.get("WAYLAND_DISPLAY"):
+		return PreflightCheck(
+			"globalKeyboardCapture",
+			False,
+			False,
+			"Wayland global capture is not implemented yet; preview remains local-only",
+		)
+	if not environ.get("DISPLAY"):
+		return PreflightCheck(
+			"globalKeyboardCapture",
+			False,
+			False,
+			"Set DISPLAY for X11 global observation",
+		)
+	try:
+		importModule("Xlib")
+	except ImportError:
+		return PreflightCheck(
+			"globalKeyboardCapture",
+			False,
+			False,
+			"Install python3-xlib for X11 global observation",
+		)
+	return PreflightCheck(
+		"globalKeyboardCapture",
+		True,
+		False,
+		"X11 RECORD observation available; handled keys still reach applications",
+	)

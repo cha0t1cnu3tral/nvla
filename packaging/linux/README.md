@@ -11,13 +11,13 @@ command, and a command-line audio player. Package names differ by distribution.
 Ubuntu:
 
 ```bash
-sudo apt install python3 python3-pyatspi python3-wxgtk4.0 speech-dispatcher pipewire-bin
+sudo apt install python3 python3-pyatspi python3-wxgtk4.0 python3-xlib speech-dispatcher pipewire-bin
 ```
 
 Fedora:
 
 ```bash
-sudo dnf install python3 python3-pyatspi python3-wxpython4 speech-dispatcher pipewire-utils
+sudo dnf install python3 python3-pyatspi python3-wxpython4 python3-xlib speech-dispatcher pipewire-utils
 ```
 
 `espeak-ng` can replace Speech Dispatcher as the initial speech fallback.
@@ -44,6 +44,7 @@ systemctl --user enable --now nvda-linux-preview.service
 ## Current limitations
 
 This is not a usable release yet. The launcher runs dependency preflight and
-reports the first remaining bootstrap blocker. Global X11 and Wayland keyboard
-capture, full browse-mode wiring, streaming Linux audio, and real desktop
-validation remain incomplete.
+reports the first remaining bootstrap blocker. X11 can observe global keys
+through the RECORD extension, but handled keys still reach the focused
+application. Wayland global capture, full browse-mode wiring, streaming Linux
+audio, and real desktop validation remain incomplete.

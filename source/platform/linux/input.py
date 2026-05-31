@@ -5,8 +5,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from enum import Enum
+import importlib
 import re
+import threading
 import time
+from types import SimpleNamespace
 from typing import Any, Callable, Protocol
 
 from platform.common.errors import NotSupportedYetError
@@ -106,6 +109,7 @@ _LINUX_KEY_NAME_ALIASES = {
 class KeyboardCaptureMode(Enum):
 	DISABLED = "disabled"
 	GLOBAL = "global"
+	GLOBAL_OBSERVE_ONLY = "globalObserveOnly"
 	LOCAL_ONLY = "localOnly"
 
 
@@ -376,6 +380,8 @@ def translateRawKeyEvent(event: Any) -> LinuxKeyEvent:
 class LinuxKeyboardEventSource(Protocol):
 	"""Source of raw Linux keyboard events, such as X11 or Wayland backends."""
 
+	supportsPassThroughEnforcement: bool
+
 	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None: ...
 
 	def stop(self) -> None: ...
@@ -383,6 +389,8 @@ class LinuxKeyboardEventSource(Protocol):
 
 class ManualKeyboardEventSource:
 	"""Dependency-light keyboard event source used by tests and early smoke tools."""
+
+	supportsPassThroughEnforcement = True
 
 	def __init__(self) -> None:
 		self._emit: Callable[[Any], LinuxKeyEvent] | None = None
@@ -403,17 +411,147 @@ class ManualKeyboardEventSource:
 
 
 class X11KeyboardEventSource:
-	"""X11 keyboard event source placeholder for the upcoming XInput2 implementation."""
+	"""Observe global X11 key events through the X RECORD extension."""
+
+	supportsPassThroughEnforcement = False
+
+	def __init__(
+		self,
+		*,
+		loadXlibModules: Callable[[], Any] | None = None,
+	) -> None:
+		self._loadXlibModules = loadXlibModules or _loadXlibModules
+		self._emit: Callable[[Any], LinuxKeyEvent] | None = None
+		self._modules: Any | None = None
+		self._controlDisplay: Any | None = None
+		self._recordDisplay: Any | None = None
+		self._context: Any | None = None
+		self._thread: threading.Thread | None = None
+		self._pressedModifiers: set[str] = set()
 
 	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None:
-		raise NotSupportedYetError("X11 keyboard event capture")
+		if self._thread is not None:
+			return
+		modules = self._loadXlibModules()
+		controlDisplay = modules.display.Display()
+		recordDisplay = modules.display.Display()
+		try:
+			if not controlDisplay.has_extension("RECORD"):
+				raise NotSupportedYetError("X11 RECORD extension")
+			context = recordDisplay.record_create_context(
+				0,
+				[modules.record.AllClients],
+				[
+					{
+						"core_requests": (0, 0),
+						"core_replies": (0, 0),
+						"ext_requests": (0, 0, 0, 0),
+						"ext_replies": (0, 0, 0, 0),
+						"delivered_events": (0, 0),
+						"device_events": (modules.X.KeyPress, modules.X.KeyRelease),
+						"errors": (0, 0),
+						"client_started": False,
+						"client_died": False,
+					},
+				],
+			)
+		except Exception:
+			controlDisplay.close()
+			recordDisplay.close()
+			raise
+		self._modules = modules
+		self._emit = emit
+		self._controlDisplay = controlDisplay
+		self._recordDisplay = recordDisplay
+		self._context = context
+		self._thread = threading.Thread(
+			target=recordDisplay.record_enable_context,
+			args=(context, self._handleRecordReply),
+			name="X11KeyboardEventSource",
+			daemon=True,
+		)
+		self._thread.start()
 
 	def stop(self) -> None:
-		return None
+		thread = self._thread
+		controlDisplay = self._controlDisplay
+		context = self._context
+		if controlDisplay is not None and context is not None:
+			try:
+				controlDisplay.record_disable_context(context)
+				controlDisplay.flush()
+			except Exception:
+				pass
+		if thread is not None:
+			thread.join(timeout=1)
+		if controlDisplay is not None and context is not None:
+			try:
+				controlDisplay.record_free_context(context)
+			except Exception:
+				pass
+		for display in (self._recordDisplay, controlDisplay):
+			if display is not None:
+				try:
+					display.close()
+				except Exception:
+					pass
+		self._emit = None
+		self._modules = None
+		self._controlDisplay = None
+		self._recordDisplay = None
+		self._context = None
+		self._thread = None
+		self._pressedModifiers.clear()
+
+	def _handleRecordReply(self, reply: Any) -> None:
+		modules = self._modules
+		emit = self._emit
+		if (
+			modules is None
+			or emit is None
+			or reply.category != modules.record.FromServer
+			or reply.client_swapped
+			or not reply.data
+		):
+			return
+		data = reply.data
+		while data:
+			event, data = modules.rq.EventField(None).parse_binary_value(
+				data,
+				self._recordDisplay.display,
+				None,
+				None,
+			)
+			if event.type not in (modules.X.KeyPress, modules.X.KeyRelease):
+				continue
+			keyName = self._getKeyName(event.detail)
+			isPressed = event.type == modules.X.KeyPress
+			modifierName = _MODIFIER_NAMES.get(_canonicalizeLinuxKeyName(keyName))
+			modifiers = set(self._pressedModifiers)
+			if modifierName is not None:
+				if isPressed:
+					self._pressedModifiers.add(keyName)
+				else:
+					self._pressedModifiers.discard(keyName)
+			emit(
+				SimpleNamespace(
+					key=keyName,
+					pressed=isPressed,
+					modifiers=modifiers,
+					scanCode=event.detail,
+				),
+			)
+
+	def _getKeyName(self, keyCode: int) -> str:
+		modules = self._modules
+		keysym = self._recordDisplay.keycode_to_keysym(keyCode, 0)
+		return modules.XK.keysym_to_string(keysym) or f"keycode_{keyCode}"
 
 
 class WaylandKeyboardEventSource:
 	"""Wayland keyboard event source placeholder for portal/compositor-backed capture."""
+
+	supportsPassThroughEnforcement = False
 
 	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None:
 		raise NotSupportedYetError("Wayland keyboard event capture")
@@ -495,7 +633,11 @@ class LinuxInputAdapter:
 				self._keyboardCaptureMode = KeyboardCaptureMode.LOCAL_ONLY
 			else:
 				self._keyboardEventSourceStarted = True
-				self._keyboardCaptureMode = KeyboardCaptureMode.GLOBAL
+				self._keyboardCaptureMode = (
+					KeyboardCaptureMode.GLOBAL
+					if getattr(self._keyboardEventSource, "supportsPassThroughEnforcement", False)
+					else KeyboardCaptureMode.GLOBAL_OBSERVE_ONLY
+				)
 		else:
 			self._keyboardCaptureMode = KeyboardCaptureMode.LOCAL_ONLY
 
@@ -621,3 +763,16 @@ class LinuxInputAdapter:
 
 	def terminate_touch(self) -> None:
 		raise NotSupportedYetError("Touch hook termination")
+
+
+def _loadXlibModules() -> Any:
+	try:
+		return SimpleNamespace(
+			X=importlib.import_module("Xlib.X"),
+			XK=importlib.import_module("Xlib.XK"),
+			display=importlib.import_module("Xlib.display"),
+			record=importlib.import_module("Xlib.ext.record"),
+			rq=importlib.import_module("Xlib.protocol.rq"),
+		)
+	except ImportError as error:
+		raise NotSupportedYetError("python-xlib for X11 global keyboard capture") from error
