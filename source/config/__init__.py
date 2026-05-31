@@ -13,7 +13,6 @@ For the latter two actions, one can perform actions prior to and/or after they t
 from collections.abc import Collection
 from enum import Enum
 import globalVars
-import winreg
 import os
 import sys
 import errno
@@ -27,12 +26,19 @@ from logHandler import log
 import logging
 from logging import DEBUG
 from utils.caseInsensitiveCollections import CaseInsensitiveSet
-import winBindings.shell32
-from shlobj import FolderId, SHGetKnownFolderPath
 import baseObject
-import easeOfAccess
 from fileUtils import FaultTolerantFile
 import extensionPoints
+
+_IS_WINDOWS = sys.platform.startswith("win")
+if _IS_WINDOWS:
+	import winreg
+	import winBindings.shell32
+	from shlobj import FolderId, SHGetKnownFolderPath
+	import easeOfAccess
+else:
+	winreg = None
+	easeOfAccess = None
 
 from . import profileUpgrader
 from . import aggregatedSection
@@ -126,6 +132,8 @@ def saveOnExit():
 
 def isInstalledCopy() -> bool:
 	"""Checks to see if this running copy of NVDA is installed on the system"""
+	if winreg is None:
+		return False
 	try:
 		k = winreg.OpenKey(
 			winreg.HKEY_LOCAL_MACHINE,
@@ -169,6 +177,8 @@ def isInstalledCopy() -> bool:
 
 
 def getInstalledUserConfigPath() -> Optional[str]:
+	if winreg is None:
+		return os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "nvda")
 	try:
 		winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _RegistryKey.NVDA.value)
 	except FileNotFoundError:
@@ -273,6 +283,8 @@ def getStartAfterLogon() -> bool:
 	Checks if NVDA is set to start after a logon.
 	Checks related easeOfAccess current user registry keys.
 	"""
+	if easeOfAccess is None:
+		return False
 	return easeOfAccess.willAutoStart(easeOfAccess.AutoStartContext.AFTER_LOGON)
 
 
@@ -282,6 +294,8 @@ def setStartAfterLogon(enable: bool) -> None:
 	Toggle if NVDA automatically starts after a logon.
 	Sets easeOfAccess related registry keys.
 	"""
+	if easeOfAccess is None:
+		raise RuntimeError("Linux autostart is managed by the user service")
 	if getStartAfterLogon() == enable:
 		return
 	easeOfAccess.setAutoStart(easeOfAccess.AutoStartContext.AFTER_LOGON, enable)
@@ -297,10 +311,14 @@ def getStartOnLogonScreen() -> bool:
 
 	Checks related easeOfAccess local machine registry keys.
 	"""
+	if easeOfAccess is None:
+		return False
 	return easeOfAccess.willAutoStart(easeOfAccess.AutoStartContext.ON_LOGON_SCREEN)
 
 
 def _setStartOnLogonScreen(enable: bool) -> None:
+	if easeOfAccess is None:
+		raise RuntimeError("Logon-screen startup is not available on Linux")
 	easeOfAccess.setAutoStart(easeOfAccess.AutoStartContext.ON_LOGON_SCREEN, enable)
 
 
@@ -316,6 +334,8 @@ def setSystemConfigToCurrentConfig(*, addonsToCopy: Collection[str] = ()):
 	:raises installer.RetriableFailure: If copying the user to the system config fails.
 	:raises RuntimeError: If calling ``nvda_slave`` fails for some other reason.
 	"""
+	if not _IS_WINDOWS:
+		raise RuntimeError("System configuration copying is not available on Linux")
 	fromPath = WritePaths.configDir
 	if winBindings.shell32.IsUserAnAdmin():
 		_setSystemConfig(fromPath, addonsToCopy=addonsToCopy)

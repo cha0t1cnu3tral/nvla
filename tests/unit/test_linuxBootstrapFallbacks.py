@@ -88,6 +88,19 @@ class TestLinuxSharedBootstrapFallbacks(unittest.TestCase):
 		self.assertNotIn("api", topLevelImports)
 		self.assertNotIn("eventHandler", topLevelImports)
 
+	def testConfigGuardsWindowsOnlyImports(self):
+		configPath = Path(__file__).resolve().parents[2] / "source" / "config" / "__init__.py"
+		source = configPath.read_text(encoding="utf-8")
+		self.assertIn('if _IS_WINDOWS:', source)
+		self.assertIn('os.environ.get("XDG_CONFIG_HOME"', source)
+		self.assertIn('raise RuntimeError("Linux autostart is managed by the user service")', source)
+
+	def testAddonHandlerGuardsWindowsCodePageLookup(self):
+		addonHandlerPath = Path(__file__).resolve().parents[2] / "source" / "addonHandler" / "__init__.py"
+		source = addonHandlerPath.read_text(encoding="utf-8")
+		self.assertIn('if sys.platform.startswith("win"):', source)
+		self.assertIn("locale.getpreferredencoding(False)", source)
+
 
 if __name__ == "__main__":
 	unittest.main()

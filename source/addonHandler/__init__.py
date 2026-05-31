@@ -13,6 +13,7 @@ import os.path
 import gettext
 import inspect
 import itertools
+import locale
 import collections
 import shutil
 from io import StringIO
@@ -29,7 +30,8 @@ import config
 from config.registry import ADDON_BUNDLE_EXTENSION
 import languageHandler
 from logHandler import log
-import winBindings.kernel32
+if sys.platform.startswith("win"):
+	import winBindings.kernel32
 import addonAPIVersion
 import importlib
 import NVDAState
@@ -986,8 +988,11 @@ class AddonBundle(AddonBase):
 					# #2505: Handle non-Unicode file names.
 					# Most archivers seem to use the local OEM code page, even though the spec says only cp437.
 					# HACK: Overriding info.filename is a bit ugly, but it avoids a lot of code duplication.
-					oemcp = winBindings.kernel32.GetOEMCP()
-					info.filename = info.filename.decode(f"cp{oemcp}")
+					if sys.platform.startswith("win"):
+						encoding = f"cp{winBindings.kernel32.GetOEMCP()}"
+					else:
+						encoding = locale.getpreferredencoding(False)
+					info.filename = info.filename.decode(encoding)
 				z.extract(info, addonPath)
 
 	@property
