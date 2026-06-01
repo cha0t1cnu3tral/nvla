@@ -34,6 +34,8 @@ Current working areas
 3. Focus mode and browse mode
 
 - Focused AT-SPI documents activate a Linux preview document navigator.
+- Firefox-style AT-SPI web, text, email, and frame document roles activate the
+  document navigator.
 - Browse mode supports Up Arrow, Down Arrow, and single-letter quick navigation
   for headings, links, buttons, edit fields, form fields, lists, list items,
   tables, and landmarks.
@@ -96,7 +98,7 @@ Useful commands
 - Run preflight:
   python tools/runLinuxPortPreflight.py
 - Run the native preview:
-  python tools/runLinuxPort.py --native-preview
+  python tools/runLinuxPort.py
 - Audit shortcut parity:
   python tools/runLinuxShortcutParityAudit.py
 - Run bounded release smoke:

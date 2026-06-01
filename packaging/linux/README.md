@@ -57,7 +57,14 @@ help, `NVDA+C` for clipboard text, `NVDA+F2` to pass the next physical key
 sequence through, `NVDA+F12` for the time or date, `NVDA+T` for the active
 window title, `NVDA+Shift+B` for battery status, `NVDA+Tab` for the focused
 object, and `NVDA+B` to read through the active accessible object tree. Press
-`NVDA+H` for native preview command help and `NVDA+Q` to exit cleanly.
+`NVDA+Space` to toggle focus mode and browse mode inside a document,
+`NVDA+Shift+Space` to toggle single-letter navigation, `NVDA+H` for native
+preview command help, and `NVDA+Q` to exit cleanly.
+
+For initial website navigation validation on X11, test Firefox first. After
+focus enters a page, use `Up Arrow`, `Down Arrow`, `H`, `K`, `B`, `E`, `F`,
+`L`, `I`, `T`, and `D`. Chromium-based browsers may require launching with
+`--force-renderer-accessibility`.
 
 For a time-bounded full preview smoke run:
 
@@ -130,6 +137,6 @@ starts the native preview runtime without loading the incomplete shared core.
 X11 can suppress handled NVDA-modifier commands through passive grabs, but
 exact pass-through behavior still needs desktop validation. Wayland keyboard
 capture requires `python3-evdev`, read access to keyboard devices under
-`/dev/input`, and write access to `/dev/uinput`. Wayland pointer capture, full
-browse-mode wiring, streaming Linux audio, and real desktop validation remain
-incomplete.
+`/dev/input`, and write access to `/dev/uinput`. Wayland pointer capture,
+full NVDA virtual-buffer parity, streaming Linux audio, and real desktop
+validation remain incomplete.

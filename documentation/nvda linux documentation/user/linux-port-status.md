@@ -34,6 +34,8 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux document navigation primitives cover line movement and quick navigation for headings, links, form fields, lists, tables, and landmarks.
 - Focused AT-SPI documents now activate a preview browse controller for line
   arrows and supported single-letter quick navigation with spoken results.
+- AT-SPI web, text, email, and frame document roles are recognized so
+  Firefox-style browser page trees can activate the preview browse controller.
 - Editable document controls automatically enter focus mode so application
   input is preserved, and `NVDA+Space` toggles focus mode and browse mode
   manually. `NVDA+Shift+Space` toggles single-letter navigation.

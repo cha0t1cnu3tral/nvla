@@ -66,8 +66,16 @@ def _roleName(obj: Any) -> str:
 	return getattr(role, "name", str(role)).upper()
 
 
+def _hasState(obj: Any, stateName: str) -> bool:
+	states = getattr(obj, "states", ())
+	return any(getattr(state, "name", str(state)).upper() == stateName for state in states)
+
+
 def _iterChildren(obj: Any) -> Iterable[Any]:
-	children = getattr(obj, "children", None)
+	try:
+		children = object.__getattribute__(obj, "children")
+	except AttributeError:
+		children = None
 	if children is not None:
 		try:
 			return tuple(children)
@@ -198,7 +206,7 @@ class LinuxDocumentNavigationController:
 			and obj is not None
 			and (
 				_roleName(obj) in _FOCUS_MODE_ROLE_NAMES
-				or bool(getattr(obj, "isEditable", False))
+				or _hasState(obj, "EDITABLE")
 			)
 		)
 

@@ -570,6 +570,47 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertEqual(controlTypes.Role.BUTTON, firstObj.role)
 		self.assertIn(controlTypes.State.FOCUSED, firstObj.states)
 
+	def test_linux_accessibility_adapter_navigates_browser_document_tree(self):
+		announcements = []
+		adapter = accessibility.LinuxAccessibilityAdapter(announce=announcements.append)
+		roleMap = atspi_mappings.build_role_map(
+			SimpleNamespace(
+				ROLE_DOCUMENT_WEB=20,
+				ROLE_HEADING=21,
+				ROLE_LINK=22,
+			),
+		)
+		adapter._backend.roleMap = roleMap
+		adapter._backend.stateMap = self.stateMap
+		adapter._backend.invertedStateValues = self.invertedStateValues
+		heading = _FakeSource(role=21, states=(2, 3), name="News", path=(12, 1))
+		link = _FakeSource(role=22, states=(1, 2, 3), name="Read more", path=(12, 2))
+		_FakeSource(
+			role=20,
+			states=(2, 3),
+			name="Example website",
+			path=(12,),
+			children=(heading, link),
+		)
+		focusEvent = atspi_backend.translate_atspi_event(
+			SimpleNamespace(
+				type="object:state-changed:focused",
+				detail1=1,
+				source=link,
+			),
+			roleMap,
+			self.stateMap,
+			self.invertedStateValues,
+		)
+
+		adapter._eventBridge.handleEvent(focusEvent)
+		handled = adapter.handleKeyboardGesture(
+			SimpleNamespace(event=SimpleNamespace(gestureName="H")),
+		)
+
+		self.assertTrue(handled)
+		self.assertEqual(["News"], announcements)
+
 	def test_linux_atspi_object_exposes_accessible_process_id(self):
 		backend = atspi_backend.ATSPI2Backend()
 		backend.roleMap = self.roleMap

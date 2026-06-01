@@ -90,10 +90,11 @@ class LinuxNVDAObject:
 		super().__init__()
 
 	def __getattr__(self, name: str) -> Any:
-		getter = getattr(self, f"_get_{name}", None)
-		if getter is not None:
-			return getter()
-		raise AttributeError(name)
+		try:
+			getter = object.__getattribute__(self, f"_get_{name}")
+		except AttributeError:
+			raise AttributeError(name) from None
+		return getter()
 
 	def makeTextInfo(self, position: Any) -> LinuxNVDAObjectTextInfo:
 		return self.TextInfo(self, position)

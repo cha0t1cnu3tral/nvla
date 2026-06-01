@@ -68,13 +68,19 @@ the application. Press `NVDA+Space` to toggle focus mode and browse mode
 manually while a document is active. Press `NVDA+Shift+Space` to toggle
 single-letter navigation.
 
+For the current browser preview, test Firefox on X11 first. Firefox exposes its
+web accessibility tree through AT-SPI when assistive technology connects.
+Chromium-based browsers may require launching with
+`--force-renderer-accessibility` before their page tree is available.
+
 ## Known Limitations
 
 - X11 keyboard suppression and pass-through still require desktop validation.
 - Wayland keyboard capture requires `python3-evdev`, readable keyboard devices
   under `/dev/input`, and writable `/dev/uinput`. Pointer capture is pending.
-- Browse mode is intentionally limited and does not match mature NVDA browser
-  support.
+- Browse mode provides initial AT-SPI website movement but does not yet match
+  mature NVDA browser support. Activation, elements lists, rich formatting,
+  embedded objects, dynamic page updates, and complex forms need more work.
 - Speech launches command-line clients per announcement instead of using a
   persistent Speech Dispatcher connection.
 - Wave and tone playback use command-line players instead of a streaming audio

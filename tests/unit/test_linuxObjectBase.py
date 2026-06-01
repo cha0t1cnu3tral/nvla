@@ -42,6 +42,10 @@ class TestLinuxNVDAObjectBase(unittest.TestCase):
 	def testResolvesGetterProperties(self):
 		self.assertEqual("example", _Object().name)
 
+	def testMissingGetterRaisesAttributeErrorWithoutRecursing(self):
+		with self.assertRaises(AttributeError):
+			_Object().children
+
 	def testCreatesAndMovesTextInfo(self):
 		obj = _Object()
 		info = obj.makeTextInfo("caret")
