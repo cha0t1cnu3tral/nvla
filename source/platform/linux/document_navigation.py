@@ -67,11 +67,20 @@ def _roleName(obj: Any) -> str:
 
 
 def _iterChildren(obj: Any) -> Iterable[Any]:
-	children = getattr(obj, "children", ())
-	try:
-		return tuple(children)
-	except TypeError:
-		return ()
+	children = getattr(obj, "children", None)
+	if children is not None:
+		try:
+			return tuple(children)
+		except TypeError:
+			pass
+	children = []
+	child = getattr(obj, "firstChild", None)
+	visitedObjects = set()
+	while child is not None and id(child) not in visitedObjects:
+		visitedObjects.add(id(child))
+		children.append(child)
+		child = getattr(child, "next", None)
+	return tuple(children)
 
 
 def _getText(obj: Any) -> str:

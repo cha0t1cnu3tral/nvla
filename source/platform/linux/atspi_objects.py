@@ -516,7 +516,7 @@ class LinuxATSPIObject(NVDAObject):
 		return set(self._states)
 
 	def _get_basicText(self) -> str:
-		return self._name or self._description or ""
+		return self._getAccessibleText()
 
 	def _get_location(self) -> LinuxRectLTWH | None:
 		return _getAccessibleExtents(self.accessible)

@@ -53,6 +53,34 @@ class TestLinuxDocumentNavigator(unittest.TestCase):
 		self.assertIs(self.table, self.navigator.moveQuickNav("table").obj)
 		self.assertIs(self.section, self.navigator.moveQuickNav("landmark").obj)
 
+	def testWalksAtspiStyleFirstChildAndSiblingLinks(self):
+		link = SimpleNamespace(
+			role=controlTypes.Role.LINK,
+			name="Profile",
+			basicText="",
+			firstChild=None,
+			next=None,
+		)
+		heading = SimpleNamespace(
+			role=controlTypes.Role.HEADING,
+			name="Account",
+			basicText="",
+			firstChild=None,
+			next=link,
+		)
+		root = SimpleNamespace(
+			role=controlTypes.Role.DOCUMENT,
+			name="",
+			basicText="Page introduction",
+			firstChild=heading,
+			next=None,
+		)
+		navigator = LinuxDocumentNavigator(root)
+
+		self.assertEqual("Page introduction", navigator.moveLine(1).text)
+		self.assertIs(heading, navigator.moveQuickNav("heading").obj)
+		self.assertIs(link, navigator.moveQuickNav("link").obj)
+
 	def testMovesBackwardByQuickNavigationCategory(self):
 		for _ in range(20):
 			self.navigator.moveLine(1)
