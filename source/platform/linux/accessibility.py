@@ -146,6 +146,10 @@ class LinuxAccessibilityAdapter:
 		)
 		self._initialized = False
 
+	@property
+	def dispatcher(self) -> LinuxEventDispatcher:
+		return self._dispatcher
+
 	def initialize(self) -> None:
 		self.initialize_iaccessible()
 

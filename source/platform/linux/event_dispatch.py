@@ -13,6 +13,8 @@ class LinuxEventDispatcher:
 	def __init__(self) -> None:
 		self._listeners: list[Callable[..., None]] = []
 		self.lastQueuedFocusObject: Any | None = None
+		self.focusObject: Any | None = None
+		self.mouseObject: Any | None = None
 
 	def registerListener(self, listener: Callable[..., None]) -> None:
 		if listener not in self._listeners:
@@ -25,10 +27,12 @@ class LinuxEventDispatcher:
 			return
 
 	def setFocusObject(self, obj: Any) -> bool:
+		self.focusObject = obj
 		importlib.import_module("globalVars").focusObject = obj
 		return True
 
 	def setMouseObject(self, obj: Any) -> bool:
+		self.mouseObject = obj
 		importlib.import_module("globalVars").mouseObject = obj
 		return True
 

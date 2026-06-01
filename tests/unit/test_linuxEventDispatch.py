@@ -30,6 +30,8 @@ class TestLinuxEventDispatcher(unittest.TestCase):
 
 		self.assertIs(focusObject, self.globalVars.focusObject)
 		self.assertIs(mouseObject, self.globalVars.mouseObject)
+		self.assertIs(focusObject, dispatcher.focusObject)
+		self.assertIs(mouseObject, dispatcher.mouseObject)
 
 	def test_notifies_registered_event_listeners(self):
 		dispatcher = LinuxEventDispatcher()

@@ -7,6 +7,7 @@ import threading
 import time
 from typing import Any, Callable
 
+from .preview_commands import LinuxPreviewCommandController, formatObjectAnnouncement
 from .speech import SpeechOutput, createSpeechOutput
 
 
@@ -44,15 +45,20 @@ def runNativePreview(
 		services = createServices(announce)
 	accessibility = services.accessibility
 	inputAdapter = services.input
+	commandController = LinuxPreviewCommandController(
+		dispatcher=accessibility.dispatcher,
+		announce=announce,
+	)
 
 	def handleDispatch(eventName: str, obj: Any, **kwargs: Any) -> None:
 		if eventName != "gainFocus":
 			return
-		announcement = _formatObjectAnnouncement(obj)
+		announcement = formatObjectAnnouncement(obj)
 		if announcement:
 			announce(announcement)
 
 	accessibility.registerDispatchListener(handleDispatch)
+	inputAdapter.registerKeyboardGestureHandler(commandController.handleGesture)
 	accessibilityInitialized = False
 	keyboardInitialized = False
 	mouseInitialized = False
@@ -85,6 +91,7 @@ def runNativePreview(
 		return 2
 	finally:
 		accessibility.unregisterDispatchListener(handleDispatch)
+		inputAdapter.unregisterKeyboardGestureHandler(commandController.handleGesture)
 		if mouseInitialized:
 			inputAdapter.terminate_mouse()
 		if keyboardInitialized:
@@ -93,17 +100,3 @@ def runNativePreview(
 			accessibility.terminate()
 		output.terminate()
 	return 0
-
-
-def _formatObjectAnnouncement(obj: Any) -> str:
-	parts = []
-	for value in (getattr(obj, "name", None), getattr(obj, "description", None)):
-		if value and value not in parts:
-			parts.append(str(value))
-	role = getattr(obj, "role", None)
-	roleLabel = getattr(role, "displayString", None) or getattr(role, "name", None)
-	if roleLabel:
-		roleLabel = str(roleLabel).lower()
-		if roleLabel not in parts:
-			parts.append(roleLabel)
-	return ", ".join(parts)

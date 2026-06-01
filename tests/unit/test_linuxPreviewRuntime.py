@@ -10,6 +10,7 @@ from platform.linux.preview_runtime import runNativePreview
 class _Adapter:
 	def __init__(self, *, fail=False):
 		self.fail = fail
+		self.dispatcher = SimpleNamespace(focusObject=None)
 		self.listener = None
 		self.calls = []
 
@@ -49,6 +50,15 @@ class _Input:
 
 	def __init__(self):
 		self.calls = []
+		self.handlers = []
+
+	def registerKeyboardGestureHandler(self, handler):
+		self.calls.append("registerKeyboardGestureHandler")
+		self.handlers.append(handler)
+
+	def unregisterKeyboardGestureHandler(self, handler):
+		self.calls.append("unregisterKeyboardGestureHandler")
+		self.handlers.remove(handler)
 
 	def initialize_keyboard(self, observer):
 		self.calls.append("initialize_keyboard")
@@ -105,8 +115,13 @@ class TestLinuxPreviewRuntime(unittest.TestCase):
 		)
 		self.assertEqual(
 			["initialize_keyboard", "initialize_mouse", "terminate_mouse", "terminate_keyboard"],
-			inputAdapter.calls,
+			[
+				call
+				for call in inputAdapter.calls
+				if call not in ("registerKeyboardGestureHandler", "unregisterKeyboardGestureHandler")
+			],
 		)
+		self.assertEqual([], inputAdapter.handlers)
 		self.assertIn("Keyboard capture mode: localOnly", writes)
 		self.assertIn("Mouse capture mode: globalObserveOnly", writes)
 

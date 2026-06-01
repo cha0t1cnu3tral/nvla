@@ -853,6 +853,12 @@ class LinuxInputAdapter:
 		if handler not in self._keyboardGestureHandlers:
 			self._keyboardGestureHandlers.append(handler)
 
+	def unregisterKeyboardGestureHandler(self, handler: Callable[[LinuxKeyboardGesture], bool]) -> None:
+		try:
+			self._keyboardGestureHandlers.remove(handler)
+		except ValueError:
+			return
+
 	def enableInputCoreGestureExecution(self, manager: Any | None = None) -> None:
 		registerKeyboardGestureSource()
 		self.setKeyboardGestureExecutor(lambda gesture: executeKeyboardGesture(gesture, manager=manager))

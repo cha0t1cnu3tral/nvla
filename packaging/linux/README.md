@@ -42,6 +42,9 @@ after manual startup succeeds:
 systemctl --user enable --now nvda-linux-preview.service
 ```
 
+The native preview announces AT-SPI focus changes. Press `NVDA+T` to repeat the
+cached focused object announcement.
+
 ## Test X11 keyboard observation
 
 From an X11 desktop session, confirm that global key events are visible before

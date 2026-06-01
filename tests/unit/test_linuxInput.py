@@ -600,6 +600,21 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual([], executed)
 		self.assertFalse(event.shouldPassThrough)
 
+	def test_unregisters_keyboard_gesture_handler(self):
+		adapter = LinuxInputAdapter()
+		handled = []
+
+		def handler(gesture):
+			handled.append(gesture)
+			return True
+
+		adapter.registerKeyboardGestureHandler(handler)
+		adapter.unregisterKeyboardGestureHandler(handler)
+		event = adapter.feedRawKeyboardEvent(SimpleNamespace(key="h", pressed=True))
+
+		self.assertEqual([], handled)
+		self.assertTrue(event.shouldPassThrough)
+
 	def test_unhandled_gesture_requests_pass_through_before_observer_dispatch(self):
 		adapter = LinuxInputAdapter()
 		received = []
