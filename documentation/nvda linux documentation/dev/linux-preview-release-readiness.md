@@ -11,6 +11,8 @@ but it should still be treated as a bring-up tool.
 ## Implemented without Linux desktop testing
 
 - Linux-native preflight and launcher paths that avoid `source/nvda.pyw`.
+- Preflight probes for an accessible AT-SPI desktop registry and X11 RECORD
+  support so release-smoke failures are reported before runtime startup.
 - A Linux-native preview runtime loop that combines AT-SPI focus announcements,
   document-navigation speech, keyboard capture, and pointer observation without
   loading the incomplete shared core.

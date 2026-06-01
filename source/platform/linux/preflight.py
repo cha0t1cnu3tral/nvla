@@ -25,6 +25,7 @@ def runPreflightChecks(
 	which: Callable[[str], str | None] = shutil.which,
 	importModule: Callable[[str], object] = importlib.import_module,
 	checkX11RecordExtension: Callable[[], tuple[bool, str]] | None = None,
+	checkAtspiDesktop: Callable[[], tuple[bool, str]] | None = None,
 ) -> tuple[PreflightCheck, ...]:
 	if environ is None:
 		import os
@@ -69,6 +70,12 @@ def runPreflightChecks(
 		importModule=importModule,
 		checkX11RecordExtension=checkX11RecordExtension,
 	)
+	pyatspi = _checkImport("pyatspi", "AT-SPI2 Python bindings", importModule)
+	atspiDesktop = (
+		_checkAtspiDesktop(checkAtspiDesktop)
+		if pyatspi.available
+		else PreflightCheck("atspiDesktop", False, True, "Install AT-SPI2 Python bindings first")
+	)
 	return (
 		PreflightCheck("linux", isLinux, True, platform),
 		PreflightCheck(
@@ -77,7 +84,8 @@ def runPreflightChecks(
 			True,
 			sessionName or "Set WAYLAND_DISPLAY or DISPLAY",
 		),
-		_checkImport("pyatspi", "AT-SPI2 Python bindings", importModule),
+		pyatspi,
+		atspiDesktop,
 		_checkImport("wx", "wxPython for settings UI", importModule, required=False),
 		PreflightCheck(
 			"speech",
@@ -227,3 +235,23 @@ def _checkX11RecordExtension() -> tuple[bool, str]:
 			except Exception:
 				pass
 	return True, "X11 RECORD extension available"
+
+
+def _checkAtspiDesktop(
+	checkAtspiDesktop: Callable[[], tuple[bool, str]] | None,
+) -> PreflightCheck:
+	if checkAtspiDesktop is None:
+		checkAtspiDesktop = _probeAtspiDesktop
+	available, detail = checkAtspiDesktop()
+	return PreflightCheck("atspiDesktop", available, True, detail)
+
+
+def _probeAtspiDesktop() -> tuple[bool, str]:
+	try:
+		pyatspi = importlib.import_module("pyatspi")
+		desktopCount = int(pyatspi.Registry.getDesktopCount())
+	except Exception as error:
+		return False, f"Unable to access AT-SPI desktop registry: {error}"
+	if desktopCount <= 0:
+		return False, "AT-SPI desktop registry did not expose a desktop"
+	return True, f"AT-SPI desktop registry exposed {desktopCount} desktop(s)"

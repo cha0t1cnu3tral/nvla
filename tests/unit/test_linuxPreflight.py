@@ -17,10 +17,12 @@ class TestLinuxPreflight(unittest.TestCase):
 			which=lambda command: f"/usr/bin/{command}" if command == "spd-say" else None,
 			importModule=lambda name: object(),
 			checkX11RecordExtension=lambda: (True, "available"),
+			checkAtspiDesktop=lambda: (True, "desktop available"),
 		)
 
 		self.assertTrue(isReadyForPreview(checks))
 		self.assertIn("[OK] desktopSession: X11", formatPreflightReport(checks))
+		self.assertIn("[OK] atspiDesktop: desktop available", formatPreflightReport(checks))
 		self.assertIn("[PENDING] audio:", formatPreflightReport(checks))
 		self.assertIn("[PENDING] clipboard:", formatPreflightReport(checks))
 		self.assertIn("[OK] globalKeyboardCapture: X11 NVDA-modifier command grabs available", formatPreflightReport(checks))
@@ -32,6 +34,7 @@ class TestLinuxPreflight(unittest.TestCase):
 			environ={"WAYLAND_DISPLAY": "wayland-0"},
 			which=lambda command: f"/usr/bin/{command}",
 			importModule=lambda name: object(),
+			checkAtspiDesktop=lambda: (True, "desktop available"),
 		)
 
 		speech = next(check for check in checks if check.name == "speech")
@@ -63,6 +66,7 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertIn("[MISSING] linux: win32", report)
 		self.assertIn("[MISSING] desktopSession:", report)
 		self.assertIn("[MISSING] pyatspi:", report)
+		self.assertIn("[MISSING] atspiDesktop:", report)
 		self.assertIn("[PENDING] wx:", report)
 		self.assertIn("[MISSING] speech:", report)
 
@@ -77,6 +81,7 @@ class TestLinuxPreflight(unittest.TestCase):
 			environ={"DISPLAY": ":1"},
 			which=lambda command: "/usr/bin/spd-say" if command == "spd-say" else None,
 			importModule=importModule,
+			checkAtspiDesktop=lambda: (True, "desktop available"),
 		)
 
 		globalKeyboardCapture = next(check for check in checks if check.name == "globalKeyboardCapture")
@@ -95,6 +100,7 @@ class TestLinuxPreflight(unittest.TestCase):
 			which=lambda command: "/usr/bin/spd-say" if command == "spd-say" else None,
 			importModule=lambda name: object(),
 			checkX11RecordExtension=lambda: (False, "X11 RECORD extension is unavailable"),
+			checkAtspiDesktop=lambda: (True, "desktop available"),
 		)
 
 		globalKeyboardCapture = next(check for check in checks if check.name == "globalKeyboardCapture")
@@ -102,6 +108,22 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertTrue(globalKeyboardCapture.available)
 		self.assertFalse(globalMouseObservation.available)
 		self.assertIn("RECORD extension is unavailable", globalMouseObservation.detail)
+
+	def test_reports_unavailable_atspi_desktop_registry(self):
+		checks = runPreflightChecks(
+			platform="linux",
+			environ={"DISPLAY": ":1"},
+			which=lambda command: "/usr/bin/spd-say" if command == "spd-say" else None,
+			importModule=lambda name: object(),
+			checkX11RecordExtension=lambda: (True, "available"),
+			checkAtspiDesktop=lambda: (False, "AT-SPI desktop registry did not expose a desktop"),
+		)
+
+		atspiDesktop = next(check for check in checks if check.name == "atspiDesktop")
+		self.assertFalse(isReadyForPreview(checks))
+		self.assertFalse(atspiDesktop.available)
+		self.assertTrue(atspiDesktop.required)
+		self.assertIn("did not expose a desktop", atspiDesktop.detail)
 
 	def test_x11_record_probe_closes_display(self):
 		display = SimpleNamespace(
@@ -134,6 +156,48 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertFalse(available)
 		self.assertIn("unavailable", detail)
 		display.close.assert_called_once_with()
+
+	def test_atspi_desktop_probe_reports_exposed_desktops(self):
+		with mock.patch.object(
+			preflight.importlib,
+			"import_module",
+			return_value=SimpleNamespace(
+				Registry=SimpleNamespace(getDesktopCount=lambda: 1),
+			),
+		):
+			available, detail = preflight._probeAtspiDesktop()
+
+		self.assertTrue(available)
+		self.assertIn("1 desktop", detail)
+
+	def test_atspi_desktop_probe_reports_empty_registry(self):
+		with mock.patch.object(
+			preflight.importlib,
+			"import_module",
+			return_value=SimpleNamespace(
+				Registry=SimpleNamespace(getDesktopCount=lambda: 0),
+			),
+		):
+			available, detail = preflight._probeAtspiDesktop()
+
+		self.assertFalse(available)
+		self.assertIn("did not expose a desktop", detail)
+
+	def test_atspi_desktop_probe_reports_registry_failure(self):
+		def fail():
+			raise RuntimeError("bus unavailable")
+
+		with mock.patch.object(
+			preflight.importlib,
+			"import_module",
+			return_value=SimpleNamespace(
+				Registry=SimpleNamespace(getDesktopCount=fail),
+			),
+		):
+			available, detail = preflight._probeAtspiDesktop()
+
+		self.assertFalse(available)
+		self.assertIn("bus unavailable", detail)
 
 
 if __name__ == "__main__":
