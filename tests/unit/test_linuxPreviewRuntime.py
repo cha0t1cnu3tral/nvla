@@ -47,6 +47,8 @@ class _Adapter:
 class _Input:
 	keyboardCaptureMode = SimpleNamespace(value="localOnly")
 	mouseCaptureMode = SimpleNamespace(value="globalObserveOnly")
+	keyboardEventSourceStartError = None
+	mouseEventSourceStartError = None
 
 	def __init__(self):
 		self.calls = []
@@ -170,6 +172,24 @@ class TestLinuxPreviewRuntime(unittest.TestCase):
 		self.assertEqual(0, result)
 		self.assertIn("Exiting NVDA Linux preview", output.spoken)
 		self.assertEqual([], inputAdapter.handlers)
+
+	def test_reports_keyboard_and_mouse_capture_fallback_reasons(self):
+		accessibility = _Adapter()
+		inputAdapter = _Input()
+		inputAdapter.keyboardEventSourceStartError = RuntimeError("keyboard unavailable")
+		inputAdapter.mouseEventSourceStartError = RuntimeError("mouse unavailable")
+		writes = []
+
+		result = runNativePreview(
+			durationSeconds=0,
+			services=SimpleNamespace(accessibility=accessibility, input=inputAdapter),
+			speechOutput=_Speech(),
+			write=writes.append,
+		)
+
+		self.assertEqual(0, result)
+		self.assertIn("Keyboard capture fallback reason: keyboard unavailable", writes)
+		self.assertIn("Mouse capture fallback reason: mouse unavailable", writes)
 
 
 if __name__ == "__main__":

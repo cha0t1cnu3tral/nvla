@@ -73,7 +73,11 @@ def runNativePreview(
 		mouseInitialized = True
 		write(f"Speech output: {output.name}")
 		write(f"Keyboard capture mode: {inputAdapter.keyboardCaptureMode.value}")
+		if inputAdapter.keyboardEventSourceStartError is not None:
+			write(f"Keyboard capture fallback reason: {inputAdapter.keyboardEventSourceStartError}")
 		write(f"Mouse capture mode: {inputAdapter.mouseCaptureMode.value}")
+		if inputAdapter.mouseEventSourceStartError is not None:
+			write(f"Mouse capture fallback reason: {inputAdapter.mouseEventSourceStartError}")
 		write("Linux native preview started. Press Ctrl+C to stop.")
 		output.speak("NVDA Linux preview started")
 		endTime = None if durationSeconds is None else monotonic() + max(0, durationSeconds)
