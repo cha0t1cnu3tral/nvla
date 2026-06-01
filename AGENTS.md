@@ -10,6 +10,9 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Speech output: eSpeak NG and Speech Dispatcher first.
 - Braille output: brltty/brlapi first.
 - Packaging target: Flatpak primary, .deb/.rpm secondary.
+- Release standard: smooth daily-use Linux screen reader behavior with
+  equivalent Linux execution for existing Windows keyboard shortcuts wherever
+  the operating system exposes the required capability.
 
 ## Completed So Far
 
@@ -94,15 +97,23 @@ This file tracks Linux port progress in this checkout, what is next, and practic
   quick navigation categories.
 - Added release-readiness audit:
   - `documentation/nvda linux documentation/dev/linux-preview-release-readiness.md`
+- Added full user-release roadmap:
+  - `documentation/nvda linux documentation/dev/linux-user-release-roadmap.md`
+- Added shortcut-parity audit:
+  - `tools/runLinuxShortcutParityAudit.py`
+- Added dependency-light Windows and native Ubuntu CI coverage plus an Ubuntu
+  preview packaging smoke.
+- Added native preview `NVDA+1` input help for captured-shortcut validation.
 
 ## Next Phase Work (Immediate)
 
 ### Phase 3: Input and Focus Infrastructure
 
-1. Implement X11 keyboard capture, likely with XInput2.
+1. Validate X11 command suppression and pass-through replay on real desktops,
+   then deepen the backend where parity gaps remain.
 2. Define and implement a Wayland-compatible capture strategy.
-3. Enforce physical backend pass-through decisions for unbound gestures and NVDA modifier double presses.
-4. Validate keyboard focus and hotkey behavior on a real Linux desktop.
+3. Add Linux Sticky Keys latch/lock handling and secure global-hotkey behavior.
+4. Drive the shortcut-parity audit toward executable shared-runtime coverage.
 
 ### Phase 2 Follow-Up
 
@@ -112,11 +123,13 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 
 ### Linux Preview Follow-Up
 
-1. Wire Linux document navigation into keyboard scripts and spoken output.
-2. Separate remaining shared event-dispatch imports from Windows GUI, braille,
-   and display dependencies.
-3. Add Linux-native audio playback for tones and wave output.
-4. Add production Flatpak, `.deb`, and `.rpm` packaging only after runtime
+1. Port shared startup far enough to execute the existing global command map
+   instead of relying on the small native preview controller.
+2. Replace command-backed speech and audio with persistent Speech Dispatcher
+   and streaming PipeWire/Pulse/ALSA paths.
+3. Add brlapi-backed braille, Linux device discovery, touch, and richer mouse
+   behavior.
+4. Add production Flatpak, `.deb`, and `.rpm` packaging after the runtime
    dependency strategy is settled.
 
 ## Full Phase Plan (Reference)
