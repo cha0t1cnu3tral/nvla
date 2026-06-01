@@ -58,6 +58,12 @@ For the release-oriented preflight, runtime, and manual validation checklist:
 python3 tools/runLinuxReleaseSmoke.py --duration 30
 ```
 
+For X11 release validation, require both global keyboard and pointer capture:
+
+```bash
+python3 tools/runLinuxReleaseSmoke.py --strict-capture --duration 30
+```
+
 ## Test X11 keyboard observation
 
 From an X11 desktop session, confirm that global key events are visible before

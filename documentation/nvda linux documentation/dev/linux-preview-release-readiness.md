@@ -61,6 +61,8 @@ but it should still be treated as a bring-up tool.
   user service.
 - A bounded release-smoke runner that gates on preflight and prints the manual
   X11 validation checklist around a native preview run.
+- Strict release-smoke capture gating for X11 validation runs that must not
+  silently degrade to local-only keyboard or pointer handling.
 
 ## Remaining non-desktop implementation work
 

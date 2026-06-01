@@ -18,11 +18,13 @@ _MANUAL_CHECKLIST = (
 	"Move the pointer over accessible controls and check for capture fallback errors.",
 	"Press NVDA+Q before timeout and confirm the preview exits cleanly.",
 )
+_CAPTURE_CHECK_NAMES = frozenset(("globalKeyboardCapture", "globalMouseObservation"))
 
 
 def runReleaseSmoke(
 	*,
 	durationSeconds: float = 30,
+	strictCapture: bool = False,
 	preflight: Callable[[], tuple] = runPreflightChecks,
 	runPreview: Callable[..., int] = runNativePreview,
 	write: Callable[[str], None] = print,
@@ -33,6 +35,16 @@ def runReleaseSmoke(
 	write(formatPreflightReport(checks))
 	if not isReadyForPreview(checks):
 		write("\nLinux preview dependencies are incomplete. Release smoke was not started.")
+		return 1
+	missingCaptureChecks = tuple(
+		check
+		for check in checks
+		if check.name in _CAPTURE_CHECK_NAMES and not check.available
+	)
+	for check in missingCaptureChecks:
+		write(f"\nWARNING: {check.name} is unavailable: {check.detail}")
+	if strictCapture and missingCaptureChecks:
+		write("\nStrict capture validation failed. Release smoke was not started.")
 		return 1
 	write("\nLinux preview release smoke checklist:")
 	for index, item in enumerate(_MANUAL_CHECKLIST, start=1):

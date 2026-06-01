@@ -57,6 +57,43 @@ class TestLinuxReleaseSmoke(unittest.TestCase):
 		self.assertEqual(2, result)
 		self.assertIn("status 2", output[-1])
 
+	def test_warns_but_runs_when_optional_capture_is_unavailable(self):
+		runPreview = mock.Mock(return_value=0)
+		output = []
+		checks = (
+			*_READY_CHECKS,
+			PreflightCheck("globalKeyboardCapture", False, False, "local-only"),
+		)
+
+		result = runReleaseSmoke(
+			preflight=lambda: checks,
+			runPreview=runPreview,
+			write=output.append,
+		)
+
+		self.assertEqual(0, result)
+		runPreview.assert_called_once()
+		self.assertTrue(any("WARNING: globalKeyboardCapture" in line for line in output))
+
+	def test_strict_capture_does_not_start_preview_when_capture_is_unavailable(self):
+		runPreview = mock.Mock()
+		output = []
+		checks = (
+			*_READY_CHECKS,
+			PreflightCheck("globalMouseObservation", False, False, "RECORD unavailable"),
+		)
+
+		result = runReleaseSmoke(
+			strictCapture=True,
+			preflight=lambda: checks,
+			runPreview=runPreview,
+			write=output.append,
+		)
+
+		self.assertEqual(1, result)
+		runPreview.assert_not_called()
+		self.assertIn("Strict capture validation failed", output[-1])
+
 
 if __name__ == "__main__":
 	unittest.main()
