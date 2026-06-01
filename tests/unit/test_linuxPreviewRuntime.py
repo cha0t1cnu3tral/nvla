@@ -68,6 +68,9 @@ class _Input:
 	def initialize_mouse(self):
 		self.calls.append("initialize_mouse")
 
+	def passNextKeyThrough(self):
+		self.calls.append("passNextKeyThrough")
+
 	def terminate_keyboard(self):
 		self.calls.append("terminate_keyboard")
 

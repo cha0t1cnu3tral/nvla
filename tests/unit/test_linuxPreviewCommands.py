@@ -189,6 +189,19 @@ class TestLinuxPreviewCommands(unittest.TestCase):
 			announcements,
 		)
 
+	def test_nvda_f2_requests_next_key_pass_through(self):
+		announcements = []
+		requests = []
+		controller = LinuxPreviewCommandController(
+			dispatcher=SimpleNamespace(focusObject=None),
+			announce=announcements.append,
+			passNextKeyThrough=lambda: requests.append(True),
+		)
+
+		self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+F2"))))
+		self.assertEqual([True], requests)
+		self.assertEqual(["Pass next key through"], announcements)
+
 	def test_formats_distinct_object_fields(self):
 		obj = SimpleNamespace(
 			name="Save",

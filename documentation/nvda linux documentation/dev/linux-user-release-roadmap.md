@@ -5,8 +5,10 @@ Last updated: 2026-06-01
 ## Target
 
 The release target is a smooth daily-use Linux screen reader, not a restricted
-preview. Existing Windows keyboard shortcuts should produce equivalent Linux
-behavior wherever the operating system exposes the required capability.
+preview. Every existing Windows keyboard shortcut must keep the same binding
+and produce equivalent Linux behavior wherever the operating system exposes
+the required capability. Linux must not substitute an alternate shortcut table
+for commands that already have Windows bindings.
 
 ## Shortcut Parity Model
 
@@ -28,8 +30,8 @@ pass-through behavior, spoken output, and desktop validation.
 Baseline on 2026-06-01:
 
 - Shared built-in keyboard identifiers translated by Linux input: `163/163`.
-- Shared identifiers handled by the dependency-light native preview: `6/163`.
-- Shared identifiers still waiting for shared-runtime integration: `157/163`.
+- Shared identifiers handled by the dependency-light native preview: `7/163`.
+- Shared identifiers still waiting for shared-runtime integration: `156/163`.
 
 ## Release Requirements
 

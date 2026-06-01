@@ -649,6 +649,27 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertTrue(nextPressedEvent.shouldPassThrough)
 		self.assertEqual(2, len(executed))
 
+	def test_pass_next_key_through_replays_complete_chord_without_handlers(self):
+		adapter = LinuxInputAdapter()
+		handled = []
+		adapter.registerKeyboardGestureHandler(lambda gesture: handled.append(gesture) or True)
+		adapter.passNextKeyThrough()
+
+		controlDown = adapter.feedRawKeyboardEvent(SimpleNamespace(key="control", pressed=True))
+		sDown = adapter.feedRawKeyboardEvent(SimpleNamespace(key="s", modifiers=("control",), pressed=True))
+		sRepeat = adapter.feedRawKeyboardEvent(SimpleNamespace(key="s", modifiers=("control",), pressed=True))
+		sUp = adapter.feedRawKeyboardEvent(SimpleNamespace(key="s", modifiers=("control",), pressed=False))
+		controlUp = adapter.feedRawKeyboardEvent(SimpleNamespace(key="control", pressed=False))
+		nextEvent = adapter.feedRawKeyboardEvent(SimpleNamespace(key="t", pressed=True))
+
+		self.assertTrue(controlDown.shouldPassThrough)
+		self.assertTrue(sDown.shouldPassThrough)
+		self.assertTrue(sRepeat.shouldPassThrough)
+		self.assertTrue(sUp.shouldPassThrough)
+		self.assertTrue(controlUp.shouldPassThrough)
+		self.assertFalse(nextEvent.shouldPassThrough)
+		self.assertEqual(["T"], [gesture.event.gestureName for gesture in handled])
+
 	def test_tracks_pressed_nvda_modifier_for_following_key_events(self):
 		adapter = LinuxInputAdapter()
 		executed = []

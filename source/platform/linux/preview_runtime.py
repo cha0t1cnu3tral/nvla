@@ -51,6 +51,7 @@ def runNativePreview(
 		dispatcher=accessibility.dispatcher,
 		announce=announce,
 		requestStop=stopRequested.set,
+		passNextKeyThrough=inputAdapter.passNextKeyThrough,
 	)
 
 	def handleDispatch(eventName: str, obj: Any, **kwargs: Any) -> None:

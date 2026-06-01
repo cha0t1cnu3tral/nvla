@@ -769,6 +769,8 @@ class LinuxInputAdapter:
 		self._pressedNVDAModifierKeys: set[str] = set()
 		self._bypassedNVDAModifierKeys: set[str] = set()
 		self._pressedPassThroughKeys: set[str] = set()
+		self._passNextKeyThroughArmed = False
+		self._requestedPassThroughKeys: set[str] = set()
 		self._lastNVDAModifierKey: str | None = None
 		self._lastNVDAModifierReleaseTime: float | None = None
 		self._clock = clock
@@ -863,6 +865,11 @@ class LinuxInputAdapter:
 		registerKeyboardGestureSource()
 		self.setKeyboardGestureExecutor(lambda gesture: executeKeyboardGesture(gesture, manager=manager))
 
+	def passNextKeyThrough(self) -> None:
+		"""Replay the next physical key sequence without invoking NVDA commands."""
+
+		self._passNextKeyThroughArmed = True
+
 	def _applyPressedNVDAModifierKeys(self, event: Any, translated: LinuxKeyEvent) -> LinuxKeyEvent:
 		nvdaModifierKeys = getattr(event, "nvdaModifierKeys", None)
 		rawKeyName = _canonicalizeLinuxKeyName(_getRawKeyName(event))
@@ -905,6 +912,17 @@ class LinuxInputAdapter:
 		translated = translateRawKeyEvent(event)
 		translated = self._applyPressedNVDAModifierKeys(event, translated)
 		rawKeyName = _canonicalizeLinuxKeyName(_getRawKeyName(event))
+		if (
+			translated.isPressed
+			and (self._passNextKeyThroughArmed or self._requestedPassThroughKeys)
+		) or rawKeyName in self._requestedPassThroughKeys:
+			translated = replace(translated, shouldPassThrough=True)
+			if translated.isPressed:
+				self._passNextKeyThroughArmed = False
+				if rawKeyName:
+					self._requestedPassThroughKeys.add(rawKeyName)
+			else:
+				self._requestedPassThroughKeys.discard(rawKeyName)
 		if rawKeyName in self._pressedPassThroughKeys:
 			translated = replace(translated, shouldPassThrough=True)
 			if not translated.isPressed:
@@ -984,6 +1002,8 @@ class LinuxInputAdapter:
 		self._pressedNVDAModifierKeys.clear()
 		self._bypassedNVDAModifierKeys.clear()
 		self._pressedPassThroughKeys.clear()
+		self._passNextKeyThroughArmed = False
+		self._requestedPassThroughKeys.clear()
 		self._lastNVDAModifierKey = None
 		self._lastNVDAModifierReleaseTime = None
 

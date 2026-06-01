@@ -14,6 +14,7 @@ PREVIEW_GESTURE_NAMES = frozenset(
 		"nvda+1",
 		"nvda+b",
 		"nvda+f12",
+		"nvda+f2",
 		"nvda+h",
 		"nvda+q",
 		"nvda+t",
@@ -22,6 +23,7 @@ PREVIEW_GESTURE_NAMES = frozenset(
 )
 _PREVIEW_HELP = (
 	"NVDA 1 input help. "
+	"NVDA F2 pass next key through. "
 	"NVDA F12 time, press twice for date. "
 	"NVDA T active window title. "
 	"NVDA Tab focused object. "
@@ -33,6 +35,7 @@ _PREVIEW_COMMAND_DESCRIPTIONS = {
 	"nvda+1": "Toggle input help",
 	"nvda+b": "Read active accessible tree",
 	"nvda+f12": "Speak time, press twice for date",
+	"nvda+f2": "Pass next key through",
 	"nvda+h": "Speak supported native preview commands",
 	"nvda+q": "Exit Linux preview",
 	"nvda+t": "Speak active window title",
@@ -49,12 +52,14 @@ class LinuxPreviewCommandController:
 		dispatcher: Any,
 		announce: Callable[[str], None],
 		requestStop: Callable[[], None] | None = None,
+		passNextKeyThrough: Callable[[], None] | None = None,
 		now: Callable[[], datetime] = datetime.now,
 		monotonic: Callable[[], float] = time.monotonic,
 	) -> None:
 		self._dispatcher = dispatcher
 		self._announce = announce
 		self._requestStop = requestStop
+		self._passNextKeyThrough = passNextKeyThrough
 		self._now = now
 		self._monotonic = monotonic
 		self._inputHelpActive = False
@@ -79,6 +84,10 @@ class LinuxPreviewCommandController:
 			return True
 		if gestureName == "nvda+b":
 			self._announce(formatObjectTreeAnnouncement(_getTopLevelObject(focusObject)) or "No active window")
+			return True
+		if gestureName == "nvda+f2" and self._passNextKeyThrough is not None:
+			self._passNextKeyThrough()
+			self._announce("Pass next key through")
 			return True
 		if gestureName == "nvda+f12":
 			pressTime = self._monotonic()
