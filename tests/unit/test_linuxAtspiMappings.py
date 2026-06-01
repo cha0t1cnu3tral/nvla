@@ -24,6 +24,19 @@ class TestLinuxAtspiMappings(unittest.TestCase):
 			atspi_mappings.map_role(999, roleMap),
 		)
 
+	def test_maps_browser_document_roles(self):
+		fakeAtspi = SimpleNamespace(
+			ROLE_DOCUMENT_FRAME=10,
+			ROLE_DOCUMENT_WEB=11,
+			ROLE_DOCUMENT_TEXT=12,
+			ROLE_DOCUMENT_EMAIL=13,
+		)
+		roleMap = atspi_mappings.build_role_map(fakeAtspi)
+
+		for role in (10, 11, 12, 13):
+			with self.subTest(role=role):
+				self.assertEqual(controlTypes.Role.DOCUMENT, atspi_mappings.map_role(role, roleMap))
+
 	def test_state_mapping_handles_inverted_visibility(self):
 		fakeAtspi = SimpleNamespace(
 			STATE_FOCUSED=1,

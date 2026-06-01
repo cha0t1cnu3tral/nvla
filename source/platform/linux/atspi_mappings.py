@@ -49,6 +49,9 @@ _ROLE_NAME_TO_NVDA_ROLE: dict[str, controlTypes.Role] = {
 	"ROLE_HEADING": controlTypes.Role.HEADING,
 	"ROLE_SECTION": controlTypes.Role.SECTION,
 	"ROLE_DOCUMENT_FRAME": controlTypes.Role.DOCUMENT,
+	"ROLE_DOCUMENT_WEB": controlTypes.Role.DOCUMENT,
+	"ROLE_DOCUMENT_TEXT": controlTypes.Role.DOCUMENT,
+	"ROLE_DOCUMENT_EMAIL": controlTypes.Role.DOCUMENT,
 }
 
 _STATE_NAME_TO_NVDA_STATE: dict[str, controlTypes.State] = {
