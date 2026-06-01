@@ -21,6 +21,12 @@ bash packaging/linux/installPreview.sh
 nvda-linux-preview
 ```
 
+Remove the user-level preview artifacts with:
+
+```bash
+bash packaging/linux/uninstallPreview.sh
+```
+
 Press `NVDA+Q` to exit cleanly. For a bounded test run:
 
 ```bash

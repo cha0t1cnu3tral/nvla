@@ -4,15 +4,18 @@
 
 set -euo pipefail
 
-root_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 bin_dir="${XDG_BIN_HOME:-$HOME/.local/bin}"
 applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 systemd_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 
-mkdir -p "$bin_dir" "$applications_dir" "$systemd_dir"
-ln -sfn "$root_dir/tools/runLinuxPort.sh" "$bin_dir/nvda-linux-preview"
-cp "$root_dir/packaging/linux/nvda-linux-preview.desktop" "$applications_dir/"
-cp "$root_dir/packaging/linux/nvda-linux-preview.service" "$systemd_dir/"
+if command -v systemctl >/dev/null 2>&1; then
+	systemctl --user disable --now nvda-linux-preview.service >/dev/null 2>&1 || true
+fi
+
+rm -f \
+	"$bin_dir/nvda-linux-preview" \
+	"$applications_dir/nvda-linux-preview.desktop" \
+	"$systemd_dir/nvda-linux-preview.service"
 
 if command -v update-desktop-database >/dev/null 2>&1; then
 	update-desktop-database "$applications_dir" >/dev/null 2>&1 || true
@@ -21,5 +24,4 @@ if command -v systemctl >/dev/null 2>&1; then
 	systemctl --user daemon-reload >/dev/null 2>&1 || true
 fi
 
-printf 'Installed NVDA Linux preview launcher at %s\n' "$bin_dir/nvda-linux-preview"
-printf 'Run nvda-linux-preview manually before enabling the user service.\n'
+printf 'Removed NVDA Linux preview user-level artifacts.\n'

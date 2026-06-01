@@ -18,6 +18,17 @@ class TestLinuxPreviewPackaging(unittest.TestCase):
 		self.assertIn('ln -sfn "$root_dir/tools/runLinuxPort.sh" "$bin_dir/nvda-linux-preview"', installer)
 		self.assertIn("nvda-linux-preview.desktop", installer)
 		self.assertIn("nvda-linux-preview.service", installer)
+		self.assertIn("systemctl --user daemon-reload", installer)
+
+	def testUninstallerRemovesUserLevelPreviewArtifacts(self):
+		uninstaller = (
+			self.root / "packaging" / "linux" / "uninstallPreview.sh"
+		).read_text(encoding="utf-8")
+		self.assertIn("systemctl --user disable --now nvda-linux-preview.service", uninstaller)
+		self.assertIn('"$bin_dir/nvda-linux-preview"', uninstaller)
+		self.assertIn('"$applications_dir/nvda-linux-preview.desktop"', uninstaller)
+		self.assertIn('"$systemd_dir/nvda-linux-preview.service"', uninstaller)
+		self.assertIn("systemctl --user daemon-reload", uninstaller)
 
 	def testDesktopEntryUsesInstalledPreviewCommand(self):
 		desktopEntry = (

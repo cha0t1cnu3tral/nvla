@@ -57,8 +57,8 @@ but it should still be treated as a bring-up tool.
 - A Linux preview document-navigation controller that activates for focused
   AT-SPI documents, consumes line and supported single-letter browse keys,
   and announces the resulting text.
-- A preview shell launcher, installer, desktop entry, and optional systemd
-  user service.
+- A preview shell launcher, installer, uninstaller, desktop entry, and
+  optional systemd user service.
 - A bounded release-smoke runner that gates on preflight and prints the manual
   X11 validation checklist around a native preview run.
 - Strict release-smoke capture gating for X11 validation runs that must not
