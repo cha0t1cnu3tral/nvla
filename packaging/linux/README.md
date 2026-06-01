@@ -42,8 +42,9 @@ after manual startup succeeds:
 systemctl --user enable --now nvda-linux-preview.service
 ```
 
-The native preview announces AT-SPI focus changes. Press `NVDA+T` to repeat the
-cached focused object announcement.
+The native preview announces AT-SPI focus changes. Press `NVDA+T` for the active
+window title, `NVDA+Tab` for the focused object, and `NVDA+B` to read through
+the active accessible object tree.
 
 ## Test X11 keyboard observation
 

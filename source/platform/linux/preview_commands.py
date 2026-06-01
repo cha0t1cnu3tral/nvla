@@ -14,11 +14,18 @@ class LinuxPreviewCommandController:
 		self._announce = announce
 
 	def handleGesture(self, gesture: Any) -> bool:
-		if gesture.event.gestureName.lower() != "nvda+t":
-			return False
-		announcement = formatObjectAnnouncement(self._dispatcher.focusObject)
-		self._announce(announcement or "unknown")
-		return True
+		gestureName = gesture.event.gestureName.lower()
+		focusObject = self._dispatcher.focusObject
+		if gestureName == "nvda+t":
+			self._announce(formatObjectAnnouncement(_getTopLevelObject(focusObject)) or "No title")
+			return True
+		if gestureName == "nvda+tab":
+			self._announce(formatObjectAnnouncement(focusObject) or "No focus")
+			return True
+		if gestureName == "nvda+b":
+			self._announce(formatObjectTreeAnnouncement(_getTopLevelObject(focusObject)) or "No active window")
+			return True
+		return False
 
 
 def formatObjectAnnouncement(obj: Any | None) -> str:
@@ -35,3 +42,39 @@ def formatObjectAnnouncement(obj: Any | None) -> str:
 		if roleLabel not in parts:
 			parts.append(roleLabel)
 	return ", ".join(parts)
+
+
+def formatObjectTreeAnnouncement(root: Any | None, *, maxObjects: int = 100) -> str:
+	"""Format a bounded depth-first AT-SPI object walk for the preview read-window command."""
+
+	if root is None:
+		return ""
+	announcements = []
+	visitedObjects = set()
+	obj = root
+	while obj is not None and len(visitedObjects) < maxObjects:
+		objectIdentity = id(obj)
+		if objectIdentity in visitedObjects:
+			break
+		visitedObjects.add(objectIdentity)
+		announcement = formatObjectAnnouncement(obj)
+		if announcement:
+			announcements.append(announcement)
+		child = getattr(obj, "firstChild", None)
+		if child is not None:
+			obj = child
+			continue
+		while obj is not None and obj is not root and getattr(obj, "next", None) is None:
+			obj = getattr(obj, "parent", None)
+		if obj is root:
+			break
+		obj = getattr(obj, "next", None)
+	return ". ".join(announcements)
+
+
+def _getTopLevelObject(obj: Any | None) -> Any | None:
+	if obj is None:
+		return None
+	while (parent := getattr(obj, "parent", None)) is not None:
+		obj = parent
+	return obj
