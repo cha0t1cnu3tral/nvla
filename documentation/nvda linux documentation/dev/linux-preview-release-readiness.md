@@ -4,13 +4,16 @@ Last updated: 2026-05-31
 
 ## Current result
 
-The Linux port is not a usable `0.1` screen-reader release yet. It has a
-preview launcher and user-level packaging artifacts, but the launcher should
-still be treated as a bring-up tool.
+The Linux port is not a complete `0.1` screen-reader release yet. It has a
+dependency-light native preview runtime and user-level packaging artifacts,
+but it should still be treated as a bring-up tool.
 
 ## Implemented without Linux desktop testing
 
 - Linux-native preflight and launcher paths that avoid `source/nvda.pyw`.
+- A Linux-native preview runtime loop that combines AT-SPI focus announcements,
+  document-navigation speech, keyboard capture, and pointer observation without
+  loading the incomplete shared core.
 - Linux-compatible shared bootstrap fallbacks for registry, argument parsing,
   logging, localization, queue watchdog selection, configuration, and add-on
   bundle decoding.

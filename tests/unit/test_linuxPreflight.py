@@ -59,7 +59,7 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertIn("[MISSING] linux: win32", report)
 		self.assertIn("[MISSING] desktopSession:", report)
 		self.assertIn("[MISSING] pyatspi:", report)
-		self.assertIn("[MISSING] wx:", report)
+		self.assertIn("[PENDING] wx:", report)
 		self.assertIn("[MISSING] speech:", report)
 
 	def test_reports_missing_optional_python_xlib_for_x11_capture(self):

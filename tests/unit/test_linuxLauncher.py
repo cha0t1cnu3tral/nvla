@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+from platform.linux import launcher
 from platform.linux.launcher import runLinuxPreview
 from platform.linux.preflight import PreflightCheck
 
@@ -33,7 +34,7 @@ class TestLinuxLauncher(unittest.TestCase):
 		self.assertEqual(1, result)
 		self.assertIn("dependencies are incomplete", messages[-1])
 
-	def test_runs_core_after_ready_preflight(self):
+	def test_runs_injected_main_after_ready_preflight(self):
 		messages = []
 		coreMain = mock.Mock()
 		with tempfile.TemporaryDirectory() as directory:
@@ -51,7 +52,41 @@ class TestLinuxLauncher(unittest.TestCase):
 		self.assertEqual(0, result)
 		coreMain.assert_called_once_with()
 
-	def test_reports_missing_core_import(self):
+	def test_returns_native_preview_status(self):
+		with tempfile.TemporaryDirectory() as directory:
+			originalDirectory = os.getcwd()
+			try:
+				result = runLinuxPreview(
+					sourceDir=Path(directory),
+					preflight=lambda: _READY_CHECKS,
+					coreMain=lambda: 2,
+					write=lambda message: None,
+				)
+			finally:
+				os.chdir(originalDirectory)
+
+		self.assertEqual(2, result)
+
+	def test_loads_native_preview_main_by_default(self):
+		previewMain = mock.Mock()
+		messages = []
+		with tempfile.TemporaryDirectory() as directory:
+			originalDirectory = os.getcwd()
+			try:
+				with mock.patch.object(launcher, "_loadNativePreviewMain", return_value=previewMain) as loadMain:
+					result = runLinuxPreview(
+						sourceDir=Path(directory),
+						preflight=lambda: _READY_CHECKS,
+						write=messages.append,
+					)
+			finally:
+				os.chdir(originalDirectory)
+
+		self.assertEqual(0, result)
+		loadMain.assert_called_once_with(())
+		previewMain.assert_called_once_with()
+
+	def test_reports_missing_preview_import(self):
 		messages = []
 
 		def failCore():

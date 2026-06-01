@@ -5,8 +5,9 @@ Linux-native launcher without using the Windows `source/nvda.pyw` entry point.
 
 ## Required runtime packages
 
-Install Python 3, AT-SPI2 Python bindings, wxPython, one supported speech
-command, and a command-line audio player. Package names differ by distribution.
+Install Python 3, AT-SPI2 Python bindings, one supported speech command, and a
+command-line audio player. wxPython is recommended for future settings UI work.
+Package names differ by distribution.
 
 Ubuntu:
 
@@ -86,8 +87,9 @@ button events from the preview X11 RECORD backend.
 
 ## Current limitations
 
-This is not a usable release yet. The launcher runs dependency preflight and
-reports the first remaining bootstrap blocker. X11 can suppress handled
-NVDA-modifier commands through passive grabs, but exact pass-through behavior
-still needs desktop validation. Wayland global capture, full browse-mode
-wiring, streaming Linux audio, and real desktop validation remain incomplete.
+This is not a complete release yet. The launcher runs dependency preflight and
+starts the native preview runtime without loading the incomplete shared core.
+X11 can suppress handled NVDA-modifier commands through passive grabs, but exact
+pass-through behavior still needs desktop validation. Wayland global capture,
+full browse-mode wiring, streaming Linux audio, and real desktop validation
+remain incomplete.

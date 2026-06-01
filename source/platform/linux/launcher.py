@@ -16,10 +16,10 @@ def runLinuxPreview(
 	sourceDir: Path,
 	args: Sequence[str] = (),
 	preflight: Callable[[], tuple] = runPreflightChecks,
-	coreMain: Callable[[], None] | None = None,
+	coreMain: Callable[[], int | None] | None = None,
 	write: Callable[[str], None] = print,
 ) -> int:
-	"""Run the early Linux preview or report the first actionable blocker."""
+	"""Run the Linux-native preview after checking desktop dependencies."""
 
 	checks = preflight()
 	write(formatPreflightReport(checks))
@@ -32,31 +32,22 @@ def runLinuxPreview(
 		sys.path.insert(0, str(sourceDir))
 	try:
 		if coreMain is None:
-			coreMain = _loadCoreMain(args)
-		coreMain()
+			coreMain = _loadNativePreviewMain(args)
+		result = coreMain()
+		if isinstance(result, int):
+			return result
 	except ImportError as error:
-		write(f"\nLinux core handoff is blocked by missing import: {error}")
+		write(f"\nLinux preview startup is blocked by missing import: {error}")
 		return 2
 	except Exception as error:
-		write(f"\nLinux core handoff failed: {error}")
+		write(f"\nLinux preview startup failed: {error}")
 		return 3
 	return 0
 
 
-def _loadCoreMain(args: Sequence[str]) -> Callable[[], None]:
-	"""Initialize the minimum global launcher state before loading NVDA core."""
+def _loadNativePreviewMain(args: Sequence[str]) -> Callable[[], int | None]:
+	if args:
+		raise ValueError(f"Unsupported Linux preview arguments: {' '.join(args)}")
+	from .preview_runtime import runNativePreview
 
-	import globalVars
-
-	globalVars.appDir = os.getcwd()
-	globalVars.appPid = os.getpid()
-	globalVars.unknownAppArgs = list(args)
-	import NVDAState
-
-	NVDAState._initializeStartTime()
-	import languageHandler
-
-	languageHandler.setLanguage("en")
-	import core
-
-	return core.main
+	return runNativePreview

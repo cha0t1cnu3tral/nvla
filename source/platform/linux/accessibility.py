@@ -158,6 +158,12 @@ class LinuxAccessibilityAdapter:
 	def unregisterEventListener(self, listener: Callable[[TranslatedATSPIEvent], None]) -> None:
 		self._backend.unregisterEventListener(listener)
 
+	def registerDispatchListener(self, listener: Callable[..., None]) -> None:
+		self._dispatcher.registerListener(listener)
+
+	def unregisterDispatchListener(self, listener: Callable[..., None]) -> None:
+		self._dispatcher.unregisterListener(listener)
+
 	def getNVDAObjectFromAccessible(self, accessible: Any) -> LinuxATSPIObject | None:
 		return self._eventBridge.getOrCreateObjectForSource(accessible)
 

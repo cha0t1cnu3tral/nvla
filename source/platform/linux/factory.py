@@ -1,6 +1,8 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 
+from typing import Callable
+
 from platform.common.interfaces import PlatformServices
 
 from .accessibility import LinuxAccessibilityAdapter
@@ -15,8 +17,8 @@ from .system import LinuxSystemAdapter
 from .windowing import LinuxWindowingAdapter
 
 
-def create_platform_services() -> PlatformServices:
-	accessibility = LinuxAccessibilityAdapter()
+def create_platform_services(announce: Callable[[str], None] | None = None) -> PlatformServices:
+	accessibility = LinuxAccessibilityAdapter(announce=announce)
 	input = LinuxInputAdapter()
 	input.registerKeyboardGestureHandler(accessibility.handleKeyboardGesture)
 	input.registerMouseListener(accessibility.handleMouseEvent)

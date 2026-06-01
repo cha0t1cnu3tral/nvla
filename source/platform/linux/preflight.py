@@ -76,7 +76,7 @@ def runPreflightChecks(
 			sessionName or "Set WAYLAND_DISPLAY or DISPLAY",
 		),
 		_checkImport("pyatspi", "AT-SPI2 Python bindings", importModule),
-		_checkImport("wx", "wxPython", importModule),
+		_checkImport("wx", "wxPython for settings UI", importModule, required=False),
 		PreflightCheck(
 			"speech",
 			speechCommand is not None,
@@ -116,12 +116,14 @@ def _checkImport(
 	name: str,
 	detail: str,
 	importModule: Callable[[str], object],
+	*,
+	required: bool = True,
 ) -> PreflightCheck:
 	try:
 		importModule(name)
 	except ImportError:
-		return PreflightCheck(name, False, True, f"Install {detail}")
-	return PreflightCheck(name, True, True, detail)
+		return PreflightCheck(name, False, required, f"Install {detail}")
+	return PreflightCheck(name, True, required, detail)
 
 
 def _checkGlobalKeyboardCapture(
