@@ -14,6 +14,14 @@ from typing import Any, Callable, Protocol
 
 from platform.common.errors import NotSupportedYetError
 
+from .mouse import (
+	LinuxMouseEvent,
+	LinuxMouseEventSource,
+	MouseCaptureMode,
+	createMouseEventSource,
+	translateRawMouseEvent,
+)
+
 try:
 	import inputCore
 except Exception:
@@ -752,6 +760,12 @@ class LinuxInputAdapter:
 		self._keyboardEventSourceStartError: Exception | None = None
 		self._keyboardCaptureMode = KeyboardCaptureMode.DISABLED
 		self._keyboardInitialized = False
+		self._mouseListeners: list[Callable[[LinuxMouseEvent], None]] = []
+		self._mouseEventSource: LinuxMouseEventSource | None = None
+		self._mouseEventSourceStarted = False
+		self._mouseEventSourceStartError: Exception | None = None
+		self._mouseCaptureMode = MouseCaptureMode.DISABLED
+		self._mouseInitialized = False
 		self._pressedNVDAModifierKeys: set[str] = set()
 		self._bypassedNVDAModifierKeys: set[str] = set()
 		self._pressedPassThroughKeys: set[str] = set()
@@ -771,6 +785,14 @@ class LinuxInputAdapter:
 	@property
 	def keyboardCaptureMode(self) -> KeyboardCaptureMode:
 		return self._keyboardCaptureMode
+
+	@property
+	def mouseEventSourceStartError(self) -> Exception | None:
+		return self._mouseEventSourceStartError
+
+	@property
+	def mouseCaptureMode(self) -> MouseCaptureMode:
+		return self._mouseCaptureMode
 
 	def initialize_keyboard(self, observer) -> None:
 		if self._keyboardInitialized:
@@ -808,6 +830,16 @@ class LinuxInputAdapter:
 	def unregisterKeyboardListener(self, listener: Callable[[LinuxKeyEvent], None]) -> None:
 		try:
 			self._keyboardListeners.remove(listener)
+		except ValueError:
+			return
+
+	def registerMouseListener(self, listener: Callable[[LinuxMouseEvent], None]) -> None:
+		if listener not in self._mouseListeners:
+			self._mouseListeners.append(listener)
+
+	def unregisterMouseListener(self, listener: Callable[[LinuxMouseEvent], None]) -> None:
+		try:
+			self._mouseListeners.remove(listener)
 		except ValueError:
 			return
 
@@ -894,8 +926,36 @@ class LinuxInputAdapter:
 			handleKeyEvent(translated)
 		return translated
 
-	def initialize_mouse(self) -> None:
-		raise NotSupportedYetError("Mouse hook initialization")
+	def feedRawMouseEvent(self, event: Any) -> LinuxMouseEvent:
+		translated = translateRawMouseEvent(event)
+		for listener in tuple(self._mouseListeners):
+			listener(translated)
+		return translated
+
+	def initialize_mouse(self, eventSource: LinuxMouseEventSource | None = None) -> None:
+		if self._mouseInitialized:
+			return
+		self._mouseInitialized = True
+		if eventSource is None:
+			import os
+
+			eventSource = createMouseEventSource(os.environ)
+		self._mouseEventSource = eventSource
+		if eventSource is None:
+			self._mouseCaptureMode = MouseCaptureMode.LOCAL_ONLY
+			return
+		try:
+			eventSource.start(self.feedRawMouseEvent)
+		except Exception as error:
+			try:
+				eventSource.stop()
+			except Exception:
+				pass
+			self._mouseEventSourceStartError = error
+			self._mouseCaptureMode = MouseCaptureMode.LOCAL_ONLY
+		else:
+			self._mouseEventSourceStarted = True
+			self._mouseCaptureMode = MouseCaptureMode.GLOBAL_OBSERVE_ONLY
 
 	def initialize_touch(self) -> None:
 		raise NotSupportedYetError("Touch hook initialization")
@@ -922,7 +982,19 @@ class LinuxInputAdapter:
 		self._lastNVDAModifierReleaseTime = None
 
 	def terminate_mouse(self) -> None:
-		raise NotSupportedYetError("Mouse hook termination")
+		if not self._mouseInitialized:
+			return
+		if self._mouseEventSourceStarted and self._mouseEventSource is not None:
+			try:
+				self._mouseEventSource.stop()
+			except Exception:
+				pass
+		self._mouseListeners.clear()
+		self._mouseEventSource = None
+		self._mouseEventSourceStarted = False
+		self._mouseEventSourceStartError = None
+		self._mouseCaptureMode = MouseCaptureMode.DISABLED
+		self._mouseInitialized = False
 
 	def terminate_touch(self) -> None:
 		raise NotSupportedYetError("Touch hook termination")

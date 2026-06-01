@@ -73,6 +73,17 @@ python3 tools/runLinuxFocusSpeechSmoke.py --duration 30
 Move focus between applications and controls. The tool prints and speaks each
 focused object's available name, description, and role.
 
+## Test X11 mouse observation
+
+From an X11 desktop session, confirm that global pointer events are visible:
+
+```bash
+python3 tools/runLinuxMouseSmoke.py --duration 30
+```
+
+Move and click the pointer in other applications. The tool reports motion and
+button events from the preview X11 RECORD backend.
+
 ## Current limitations
 
 This is not a usable release yet. The launcher runs dependency preflight and

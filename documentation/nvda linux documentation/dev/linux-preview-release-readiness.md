@@ -29,6 +29,8 @@ still be treated as a bring-up tool.
   client-list discovery behind the process-focus PAL boundary.
 - An X11 keyboard smoke tool that reports live normalized gestures through the
   RECORD observer and can exercise NVDA-modifier command suppression and replay.
+- X11 RECORD-based global pointer observation plus a mouse smoke tool that
+  reports live motion and button events without loading the Windows mouse stack.
 - An audible AT-SPI focus smoke tool that speaks live focused-object names,
   descriptions, and roles without requiring the incomplete core startup path.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
@@ -49,7 +51,8 @@ still be treated as a bring-up tool.
 - Replace or separate shared event-dispatch imports that still assume the full
   Windows-oriented object, GUI, braille, and display stack.
 - Replace command-backed preview audio with a streaming Linux audio backend.
-- Add mouse and touch implementations, plus a Wayland process-focus strategy.
+- Connect X11 pointer observation to Linux object tracking, add touch support,
+  and define Wayland process-focus and pointer strategies.
 - Add brlapi integration and Linux device discovery.
 - Define a production package dependency strategy before adding Flatpak,
   `.deb`, or `.rpm` release manifests.
