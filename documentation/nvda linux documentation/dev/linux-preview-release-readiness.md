@@ -61,6 +61,8 @@ but it should still be treated as a bring-up tool.
   optional systemd user service.
 - An Ubuntu CI packaging smoke that installs to custom XDG directories,
   validates rendered launcher paths, and removes the user-level artifacts.
+- A dependency-light focused Python test runner exercised on Windows and
+  native Ubuntu CI without building the Windows helper stack.
 - A bounded release-smoke runner that gates on preflight and prints the manual
   X11 validation checklist around a native preview run.
 - Strict release-smoke capture gating for X11 validation runs that must not
