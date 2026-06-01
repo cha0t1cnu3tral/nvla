@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import importlib
 from typing import Any, Callable
 
 from .mouse import LinuxMouseEvent
@@ -16,12 +15,12 @@ class LinuxMouseTracker:
 		self,
 		*,
 		getObjectAtPoint: Callable[[int, int], Any | None],
-		setMouseObject: Callable[[Any], Any] | None = None,
-		queueEvent: Callable[..., Any] | None = None,
+		setMouseObject: Callable[[Any], Any],
+		queueEvent: Callable[..., Any],
 	) -> None:
 		self._getObjectAtPoint = getObjectAtPoint
-		self._setMouseObject = setMouseObject or _setMouseObject
-		self._queueEvent = queueEvent or _queueEvent
+		self._setMouseObject = setMouseObject
+		self._queueEvent = queueEvent
 		self._lastObject: Any | None = None
 		self._lastPosition: tuple[int, int] | None = None
 
@@ -43,11 +42,3 @@ class LinuxMouseTracker:
 				return
 			self._lastObject = obj
 		self._queueEvent("mouseMove", obj, x=event.x, y=event.y)
-
-
-def _setMouseObject(obj: Any) -> Any:
-	return importlib.import_module("api").setMouseObject(obj)
-
-
-def _queueEvent(eventName: str, obj: Any, **kwargs: Any) -> Any:
-	return importlib.import_module("eventHandler").queueEvent(eventName, obj, **kwargs)

@@ -63,6 +63,20 @@ class TestLinuxCoreBootGuards(unittest.TestCase):
 			parent = parents.get(parent)
 		return False
 
+	def test_linux_platform_modules_do_not_import_shared_dispatch_modules(self):
+		linuxPlatformDir = Path(__file__).resolve().parents[2] / "source" / "platform" / "linux"
+		for path in linuxPlatformDir.glob("*.py"):
+			tree = ast.parse(path.read_text(encoding="utf-8"))
+			importedModules = {
+				alias.name
+				for node in ast.walk(tree)
+				if isinstance(node, ast.Import)
+				for alias in node.names
+			}
+			with self.subTest(path=path.name):
+				self.assertNotIn("api", importedModules)
+				self.assertNotIn("eventHandler", importedModules)
+
 
 if __name__ == "__main__":
 	unittest.main()

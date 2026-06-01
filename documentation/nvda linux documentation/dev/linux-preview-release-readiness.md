@@ -34,6 +34,9 @@ still be treated as a bring-up tool.
 - Linux-native pointer tracking groundwork that resolves observed X11 motion
   through AT-SPI hit testing and bridges accessible objects to mouse-move
   dispatch. Shared dispatch separation is still required for native startup.
+- A dependency-light Linux event dispatcher for cached focus and mouse state,
+  allowing AT-SPI and pointer bridges to avoid importing shared Win32-heavy
+  `api` and `eventHandler` modules during Linux adapter construction.
 - An audible AT-SPI focus smoke tool that speaks live focused-object names,
   descriptions, and roles without requiring the incomplete core startup path.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
@@ -51,7 +54,7 @@ still be treated as a bring-up tool.
 
 ## Remaining non-desktop implementation work
 
-- Replace or separate shared event-dispatch imports that still assume the full
+- Continue separating shared startup imports that still assume the full
   Windows-oriented object, GUI, braille, and display stack.
 - Replace command-backed preview audio with a streaming Linux audio backend.
 - Deepen Linux mouse behavior beyond accessible-object tracking, add touch

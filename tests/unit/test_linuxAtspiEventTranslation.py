@@ -739,7 +739,11 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 
 	def test_linux_event_bridge_routes_focus_and_property_events(self):
 		focusedObjects = []
-		bridge = accessibility.LinuxATSPINVDAEventBridge(onFocusObject=focusedObjects.append)
+		dispatcher = SimpleNamespace(setFocusObject=mock.Mock(), queueEvent=mock.Mock())
+		bridge = accessibility.LinuxATSPINVDAEventBridge(
+			onFocusObject=focusedObjects.append,
+			dispatcher=dispatcher,
+		)
 		focusEvent = self._translate(
 			SimpleNamespace(
 				type="object:state-changed:focused",
@@ -755,18 +759,17 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			),
 		)
 
-		with mock.patch.object(accessibility.api, "setFocusObject") as setFocusObject:
-			with mock.patch.object(accessibility.eventHandler, "queueEvent") as queueEvent:
-				bridge.handleEvent(focusEvent)
-				bridge.handleEvent(nameEvent)
+		bridge.handleEvent(focusEvent)
+		bridge.handleEvent(nameEvent)
 
-		self.assertEqual(1, setFocusObject.call_count)
-		self.assertEqual([setFocusObject.call_args.args[0]], focusedObjects)
-		self.assertEqual("gainFocus", queueEvent.call_args_list[0].args[0])
-		self.assertEqual("nameChange", queueEvent.call_args_list[1].args[0])
+		self.assertEqual(1, dispatcher.setFocusObject.call_count)
+		self.assertEqual([dispatcher.setFocusObject.call_args.args[0]], focusedObjects)
+		self.assertEqual("gainFocus", dispatcher.queueEvent.call_args_list[0].args[0])
+		self.assertEqual("nameChange", dispatcher.queueEvent.call_args_list[1].args[0])
 
 	def test_linux_event_bridge_routes_generic_property_change_to_state_change(self):
-		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		dispatcher = SimpleNamespace(queueEvent=mock.Mock())
+		bridge = accessibility.LinuxATSPINVDAEventBridge(dispatcher=dispatcher)
 		event = self._translate(
 			SimpleNamespace(
 				type="accessible:property-change",
@@ -775,13 +778,13 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			),
 		)
 
-		with mock.patch.object(accessibility.eventHandler, "queueEvent") as queueEvent:
-			bridge.handleEvent(event)
+		bridge.handleEvent(event)
 
-		self.assertEqual("stateChange", queueEvent.call_args_list[0].args[0])
+		self.assertEqual("stateChange", dispatcher.queueEvent.call_args_list[0].args[0])
 
 	def test_linux_event_bridge_routes_object_state_change(self):
-		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		dispatcher = SimpleNamespace(queueEvent=mock.Mock())
+		bridge = accessibility.LinuxATSPINVDAEventBridge(dispatcher=dispatcher)
 		event = self._translate(
 			SimpleNamespace(
 				type="object:state-changed:checked",
@@ -790,10 +793,9 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			),
 		)
 
-		with mock.patch.object(accessibility.eventHandler, "queueEvent") as queueEvent:
-			bridge.handleEvent(event)
+		bridge.handleEvent(event)
 
-		self.assertEqual("stateChange", queueEvent.call_args_list[0].args[0])
+		self.assertEqual("stateChange", dispatcher.queueEvent.call_args_list[0].args[0])
 
 	def test_linux_event_bridge_accumulates_named_state_changes_from_stale_snapshots(self):
 		bridge = accessibility.LinuxATSPINVDAEventBridge()
@@ -847,7 +849,8 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 		self.assertIn(controlTypes.State.OFFSCREEN, obj.states)
 
 	def test_linux_event_bridge_evicts_defunct_object_after_state_dispatch(self):
-		bridge = accessibility.LinuxATSPINVDAEventBridge()
+		dispatcher = SimpleNamespace(queueEvent=mock.Mock())
+		bridge = accessibility.LinuxATSPINVDAEventBridge(dispatcher=dispatcher)
 		source = _FakeSource(role=10, states=(2, 3), name="Closed", path=(6, 13))
 		event = self._translate(
 			SimpleNamespace(
@@ -857,21 +860,20 @@ class TestLinuxAtspiEventTranslation(unittest.TestCase):
 			),
 		)
 
-		with mock.patch.object(accessibility.eventHandler, "queueEvent") as queueEvent:
-			firstObj = bridge.getOrCreateObjectForSource(
+		firstObj = bridge.getOrCreateObjectForSource(
+			source,
+			atspi_backend.translate_atspi_source(
 				source,
-				atspi_backend.translate_atspi_source(
-					source,
-					self.roleMap,
-					self.stateMap,
-					self.invertedStateValues,
-				),
-			)
-			bridge.handleEvent(event)
+				self.roleMap,
+				self.stateMap,
+				self.invertedStateValues,
+			),
+		)
+		bridge.handleEvent(event)
 
 		secondObj = bridge.getOrCreateObjectForEvent(event)
 
-		self.assertEqual("stateChange", queueEvent.call_args_list[0].args[0])
+		self.assertEqual("stateChange", dispatcher.queueEvent.call_args_list[0].args[0])
 		self.assertIsNot(firstObj, secondObj)
 
 	def test_linux_event_bridge_applies_property_change_on_first_event(self):

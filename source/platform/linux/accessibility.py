@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-import importlib
 from typing import Any, Callable
 
 import controlTypes
@@ -14,14 +13,9 @@ from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent
 from .atspi_objects import LinuxATSPIObject
 from .document_navigation import LinuxDocumentNavigationController, LinuxDocumentNavigator
+from .event_dispatch import LinuxEventDispatcher
 from .mouse import LinuxMouseEvent
 from .mouse_tracking import LinuxMouseTracker
-
-
-def __getattr__(name: str) -> Any:
-	if name in {"api", "eventHandler"}:
-		return importlib.import_module(name)
-	raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class LinuxATSPINVDAEventBridge:
@@ -31,9 +25,11 @@ class LinuxATSPINVDAEventBridge:
 		self,
 		backend: ATSPI2Backend | None = None,
 		onFocusObject: Callable[[LinuxATSPIObject], None] | None = None,
+		dispatcher: LinuxEventDispatcher | None = None,
 	) -> None:
 		self._backend = backend
 		self._onFocusObject = onFocusObject
+		self._dispatcher = dispatcher or LinuxEventDispatcher()
 		self._objectsByKey: OrderedDict[str, LinuxATSPIObject] = OrderedDict()
 
 	def _getCacheKeyFromTranslatedSource(self, source: TranslatedATSPISource) -> str:
@@ -101,47 +97,53 @@ class LinuxATSPINVDAEventBridge:
 			self._objectsByKey.popitem(last=False)
 
 	def handleEvent(self, event: TranslatedATSPIEvent) -> None:
-		import api
-		import eventHandler
-
 		obj = self.getOrCreateObjectForEvent(event)
 		if obj is None:
 			return
 		if event.kind == "focus":
 			if event.isFocused:
-				api.setFocusObject(obj)
-				eventHandler.queueEvent("gainFocus", obj)
+				self._dispatcher.setFocusObject(obj)
+				self._dispatcher.queueEvent("gainFocus", obj)
 				if self._onFocusObject is not None:
 					self._onFocusObject(obj)
 			else:
-				eventHandler.queueEvent("stateChange", obj)
+				self._dispatcher.queueEvent("stateChange", obj)
 			return
 		if event.kind == "caret":
-			eventHandler.queueEvent("caret", obj)
+			self._dispatcher.queueEvent("caret", obj)
 			return
 		if event.kind == "stateChange":
-			eventHandler.queueEvent("stateChange", obj)
+			self._dispatcher.queueEvent("stateChange", obj)
 			if controlTypes.State.DEFUNCT in obj.states:
 				self._objectsByKey.pop(obj.sourceKey, None)
 			return
 		if event.kind != "propertyChange":
 			return
 		if event.propertyName == "name":
-			eventHandler.queueEvent("nameChange", obj)
+			self._dispatcher.queueEvent("nameChange", obj)
 		elif event.propertyName == "description":
-			eventHandler.queueEvent("descriptionChange", obj)
+			self._dispatcher.queueEvent("descriptionChange", obj)
 		elif event.propertyName == "value":
-			eventHandler.queueEvent("valueChange", obj)
+			self._dispatcher.queueEvent("valueChange", obj)
 		else:
-			eventHandler.queueEvent("stateChange", obj)
+			self._dispatcher.queueEvent("stateChange", obj)
 
 
 class LinuxAccessibilityAdapter:
 	def __init__(self, announce: Callable[[str], None] | None = None) -> None:
 		self._backend = ATSPI2Backend()
+		self._dispatcher = LinuxEventDispatcher()
 		self._documentNavigation = LinuxDocumentNavigationController(announce or self._announce)
-		self._eventBridge = LinuxATSPINVDAEventBridge(self._backend, self._setDocumentNavigationFocus)
-		self._mouseTracker = LinuxMouseTracker(getObjectAtPoint=self.getNVDAObjectFromPoint)
+		self._eventBridge = LinuxATSPINVDAEventBridge(
+			self._backend,
+			self._setDocumentNavigationFocus,
+			self._dispatcher,
+		)
+		self._mouseTracker = LinuxMouseTracker(
+			getObjectAtPoint=self.getNVDAObjectFromPoint,
+			setMouseObject=self._dispatcher.setMouseObject,
+			queueEvent=self._dispatcher.queueEvent,
+		)
 		self._initialized = False
 
 	def initialize(self) -> None:
