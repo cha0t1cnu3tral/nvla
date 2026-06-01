@@ -425,6 +425,28 @@ class ATSPI2Backend:
 			self.invertedStateValues,
 		)
 
+	def getAccessibleAtPoint(self, x: int, y: int) -> Any | None:
+		"""Return the deepest AT-SPI accessible exposed at desktop coordinates."""
+
+		atspi = self._atspi
+		if not self._initialized or atspi is None:
+			return None
+		coordinateType = getattr(atspi, "DESKTOP_COORDS", 0)
+		try:
+			desktopCount = int(atspi.Registry.getDesktopCount())
+		except Exception:
+			return None
+		for desktopIndex in reversed(range(desktopCount)):
+			try:
+				desktop = atspi.Registry.getDesktop(desktopIndex)
+			except Exception:
+				continue
+			for accessible in reversed(tuple(_iterAccessibleChildren(desktop))):
+				hit = _getAccessibleAtPoint(accessible, x, y, coordinateType)
+				if hit is not None:
+					return hit
+		return None
+
 	def _onAtspiEvent(self, event: Any) -> None:
 		try:
 			translated = self.translateEvent(event)
@@ -434,3 +456,23 @@ class ATSPI2Backend:
 		if translated is None:
 			return
 		self._queueTranslatedEvent(translated)
+
+
+def _iterAccessibleChildren(accessible: Any) -> tuple[Any, ...]:
+	try:
+		return tuple(accessible)
+	except Exception:
+		pass
+	try:
+		return tuple(accessible.getChildAtIndex(index) for index in range(int(accessible.childCount)))
+	except Exception:
+		return ()
+
+
+def _getAccessibleAtPoint(accessible: Any, x: int, y: int, coordinateType: int) -> Any | None:
+	try:
+		component = accessible.queryComponent()
+		hit = component.getAccessibleAtPoint(x, y, coordinateType)
+	except Exception:
+		return None
+	return hit

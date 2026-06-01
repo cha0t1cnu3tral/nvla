@@ -31,6 +31,9 @@ still be treated as a bring-up tool.
   RECORD observer and can exercise NVDA-modifier command suppression and replay.
 - X11 RECORD-based global pointer observation plus a mouse smoke tool that
   reports live motion and button events without loading the Windows mouse stack.
+- Linux-native pointer tracking groundwork that resolves observed X11 motion
+  through AT-SPI hit testing and bridges accessible objects to mouse-move
+  dispatch. Shared dispatch separation is still required for native startup.
 - An audible AT-SPI focus smoke tool that speaks live focused-object names,
   descriptions, and roles without requiring the incomplete core startup path.
 - Command-backed speech output using Speech Dispatcher or `espeak-ng`.
@@ -51,8 +54,8 @@ still be treated as a bring-up tool.
 - Replace or separate shared event-dispatch imports that still assume the full
   Windows-oriented object, GUI, braille, and display stack.
 - Replace command-backed preview audio with a streaming Linux audio backend.
-- Connect X11 pointer observation to Linux object tracking, add touch support,
-  and define Wayland process-focus and pointer strategies.
+- Deepen Linux mouse behavior beyond accessible-object tracking, add touch
+  support, and define Wayland process-focus and pointer strategies.
 - Add brlapi integration and Linux device discovery.
 - Define a production package dependency strategy before adding Flatpak,
   `.deb`, or `.rpm` release manifests.

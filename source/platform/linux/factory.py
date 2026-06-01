@@ -19,6 +19,7 @@ def create_platform_services() -> PlatformServices:
 	accessibility = LinuxAccessibilityAdapter()
 	input = LinuxInputAdapter()
 	input.registerKeyboardGestureHandler(accessibility.handleKeyboardGesture)
+	input.registerMouseListener(accessibility.handleMouseEvent)
 	return PlatformServices(
 		accessibility=accessibility,
 		input=input,

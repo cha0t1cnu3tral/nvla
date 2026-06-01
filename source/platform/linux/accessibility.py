@@ -14,6 +14,8 @@ from .atspi_backend import TranslatedATSPISource
 from .atspi_backend import TranslatedATSPIEvent
 from .atspi_objects import LinuxATSPIObject
 from .document_navigation import LinuxDocumentNavigationController, LinuxDocumentNavigator
+from .mouse import LinuxMouseEvent
+from .mouse_tracking import LinuxMouseTracker
 
 
 def __getattr__(name: str) -> Any:
@@ -139,6 +141,7 @@ class LinuxAccessibilityAdapter:
 		self._backend = ATSPI2Backend()
 		self._documentNavigation = LinuxDocumentNavigationController(announce or self._announce)
 		self._eventBridge = LinuxATSPINVDAEventBridge(self._backend, self._setDocumentNavigationFocus)
+		self._mouseTracker = LinuxMouseTracker(getObjectAtPoint=self.getNVDAObjectFromPoint)
 		self._initialized = False
 
 	def initialize(self) -> None:
@@ -155,6 +158,12 @@ class LinuxAccessibilityAdapter:
 
 	def getNVDAObjectFromAccessible(self, accessible: Any) -> LinuxATSPIObject | None:
 		return self._eventBridge.getOrCreateObjectForSource(accessible)
+
+	def getNVDAObjectFromPoint(self, x: int, y: int) -> LinuxATSPIObject | None:
+		return self.getNVDAObjectFromAccessible(self._backend.getAccessibleAtPoint(x, y))
+
+	def handleMouseEvent(self, event: LinuxMouseEvent) -> None:
+		self._mouseTracker.handleMouseEvent(event)
 
 	def createDocumentNavigator(self, root: LinuxATSPIObject) -> LinuxDocumentNavigator:
 		return LinuxDocumentNavigator(root)
