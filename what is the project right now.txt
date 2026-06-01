@@ -24,8 +24,9 @@ Current working areas
 
 - Linux key names are normalized to the existing NVDA kb: gesture identifiers
   so Windows-compatible NVDA shortcuts can be reused.
-- X11 has an initial passive-grab path for NVDA-modifier commands. Real desktop
-  suppression and pass-through behavior still needs validation.
+- X11 has an initial passive-grab path for NVDA-modifier commands and preview
+  browse keys. Unhandled browse keys are replayed to the application. Real
+  desktop suppression and pass-through behavior still needs validation.
 - Wayland has an initial evdev keyboard-grab and uinput replay path. It requires
   permission to read keyboard devices under /dev/input and write /dev/uinput.
 - Both backends fall back explicitly when global capture is unavailable.

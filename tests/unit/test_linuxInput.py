@@ -132,6 +132,7 @@ def _makeFakeX11Modules(*, hasRecordExtension=True):
 		XK=SimpleNamespace(
 			keysym_to_string=lambda keysym: {
 				38: "a",
+				43: "h",
 				50: "Shift_L",
 				57: "n",
 				90: "KP_Insert",
@@ -143,6 +144,7 @@ def _makeFakeX11Modules(*, hasRecordExtension=True):
 				"Insert": 118,
 				"KP_0": 91,
 				"KP_Insert": 90,
+				"h": 43,
 			}[name],
 		),
 		display=SimpleNamespace(Display=makeDisplay),
@@ -512,6 +514,44 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		adapter.terminate_keyboard()
 
 		self.assertEqual((modules.X.ReplayKeyboard, 11), displays[0].allowedEvents[-1])
+
+	def test_x11_nvda_modifier_source_grabs_and_suppresses_handled_browse_key(self):
+		modules, displays = _makeFakeX11Modules()
+		source = X11NVDAModifierKeyboardEventSource(
+			loadXlibModules=lambda: modules,
+			nvdaModifierKeys=4,
+		)
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+		adapter.registerKeyboardGestureHandler(lambda gesture: gesture.event.gestureName == "H")
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=43, state=0, time=20))
+		source._handleGrabbedEvent(SimpleNamespace(type=3, detail=43, state=0, time=21))
+		adapter.terminate_keyboard()
+
+		self.assertIn((43, 0, False, modules.X.GrabModeAsync, modules.X.GrabModeSync), displays[0].grabbedKeys)
+		self.assertEqual(
+			[(modules.X.SyncKeyboard, time) for time in (20, 21)],
+			displays[0].allowedEvents[-2:],
+		)
+
+	def test_x11_nvda_modifier_source_replays_unhandled_browse_key(self):
+		modules, displays = _makeFakeX11Modules()
+		source = X11NVDAModifierKeyboardEventSource(
+			loadXlibModules=lambda: modules,
+			nvdaModifierKeys=4,
+		)
+		adapter = LinuxInputAdapter(keyboardEventSource=source)
+		adapter.initialize_keyboard(SimpleNamespace())
+
+		source._handleGrabbedEvent(SimpleNamespace(type=2, detail=43, state=0, time=20))
+		source._handleGrabbedEvent(SimpleNamespace(type=3, detail=43, state=0, time=21))
+		adapter.terminate_keyboard()
+
+		self.assertEqual(
+			[(modules.X.ReplayKeyboard, time) for time in (20, 21)],
+			displays[0].allowedEvents[-2:],
+		)
 
 	def test_wayland_evdev_source_suppresses_handled_nvda_chord(self):
 		module = _makeFakeEvdevModule()

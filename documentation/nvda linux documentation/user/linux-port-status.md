@@ -19,7 +19,10 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
 - Keyboard startup exposes an explicit local-only fallback when X11 capture is
   unavailable or Wayland `evdev` and `uinput` permissions are incomplete.
-- X11 startup can suppress handled NVDA-modifier commands through passive grabs when `python-xlib` is installed. Exact pass-through behavior still needs desktop validation.
+- X11 startup can suppress handled NVDA-modifier commands and preview browse
+  keys through passive grabs when `python-xlib` is installed. Unhandled browse
+  keys are replayed to the application. Exact desktop behavior still needs
+  validation.
 - `tools/runLinuxKeyboardSmoke.py` can verify live X11 or Wayland keyboard
   capture before running the full preview.
 - X11 RECORD pointer observation, AT-SPI hit testing, accessible-object mouse tracking, and `tools/runLinuxMouseSmoke.py` are available for desktop testing.

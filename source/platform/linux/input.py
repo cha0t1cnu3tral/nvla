@@ -65,6 +65,19 @@ _NVDA_KEY_NUMPAD_INSERT = 2
 _NVDA_KEY_EXTENDED_INSERT = 4
 _DEFAULT_NVDA_MODIFIER_KEYS = _NVDA_KEY_NUMPAD_INSERT | _NVDA_KEY_EXTENDED_INSERT
 _DEFAULT_MULTI_PRESS_TIMEOUT_SECONDS = 0.5
+_X11_BROWSE_KEY_NAMES = (
+	"Up",
+	"Down",
+	"h",
+	"k",
+	"b",
+	"e",
+	"f",
+	"l",
+	"i",
+	"t",
+	"d",
+)
 _LINUX_NVDA_MODIFIER_KEY_ALIASES = {
 	"caps_lock": "capslock",
 	"capslock": "capslock",
@@ -580,7 +593,7 @@ class X11NVDAModifierKeyboardEventSource:
 		self._modules: Any | None = None
 		self._display: Any | None = None
 		self._rootWindow: Any | None = None
-		self._grabbedKeyCodes: tuple[int, ...] = ()
+		self._grabbedKeys: tuple[tuple[int, int], ...] = ()
 		self._stopEvent = threading.Event()
 		self._thread: threading.Thread | None = None
 
@@ -590,21 +603,21 @@ class X11NVDAModifierKeyboardEventSource:
 		modules = self._loadXlibModules()
 		display = modules.display.Display()
 		rootWindow = display.screen().root
-		grabbedKeyCodes = self._getConfiguredModifierKeyCodes(modules, display)
+		grabbedKeys = self._getConfiguredKeys(modules, display)
 		try:
-			for keyCode in grabbedKeyCodes:
+			for keyCode, modifiers in grabbedKeys:
 				rootWindow.grab_key(
 					keyCode,
-					modules.X.AnyModifier,
+					modifiers,
 					False,
 					modules.X.GrabModeAsync,
 					modules.X.GrabModeSync,
 				)
 			display.sync()
 		except Exception:
-			for keyCode in grabbedKeyCodes:
+			for keyCode, modifiers in grabbedKeys:
 				try:
-					rootWindow.ungrab_key(keyCode, modules.X.AnyModifier)
+					rootWindow.ungrab_key(keyCode, modifiers)
 				except Exception:
 					pass
 			display.close()
@@ -612,7 +625,7 @@ class X11NVDAModifierKeyboardEventSource:
 		self._modules = modules
 		self._display = display
 		self._rootWindow = rootWindow
-		self._grabbedKeyCodes = grabbedKeyCodes
+		self._grabbedKeys = grabbedKeys
 		self._emit = emit
 		self._stopEvent.clear()
 		self._thread = threading.Thread(
@@ -631,9 +644,9 @@ class X11NVDAModifierKeyboardEventSource:
 		if thread is not None:
 			thread.join(timeout=1)
 		if display is not None and rootWindow is not None and modules is not None:
-			for keyCode in self._grabbedKeyCodes:
+			for keyCode, modifiers in self._grabbedKeys:
 				try:
-					rootWindow.ungrab_key(keyCode, modules.X.AnyModifier)
+					rootWindow.ungrab_key(keyCode, modifiers)
 				except Exception:
 					pass
 			try:
@@ -648,7 +661,7 @@ class X11NVDAModifierKeyboardEventSource:
 		self._modules = None
 		self._display = None
 		self._rootWindow = None
-		self._grabbedKeyCodes = ()
+		self._grabbedKeys = ()
 		self._thread = None
 
 	def _run(self) -> None:
@@ -682,7 +695,7 @@ class X11NVDAModifierKeyboardEventSource:
 		)
 		display.flush()
 
-	def _getConfiguredModifierKeyCodes(self, modules: Any, display: Any) -> tuple[int, ...]:
+	def _getConfiguredKeys(self, modules: Any, display: Any) -> tuple[tuple[int, int], ...]:
 		keyNames = []
 		if self._nvdaModifierKeys & _NVDA_KEY_CAPS_LOCK:
 			keyNames.append("Caps_Lock")
@@ -690,12 +703,43 @@ class X11NVDAModifierKeyboardEventSource:
 			keyNames.extend(("KP_Insert", "KP_0"))
 		if self._nvdaModifierKeys & _NVDA_KEY_EXTENDED_INSERT:
 			keyNames.append("Insert")
+		keys = {
+			(keyCode, modules.X.AnyModifier)
+			for keyName in keyNames
+			if (keyCode := self._getKeyCode(modules, display, keyName))
+		}
+		browseModifierMasks = self._getBrowseModifierMasks(modules)
+		keys.update(
+			(keyCode, modifiers)
+			for keyName in _X11_BROWSE_KEY_NAMES
+			if (keyCode := self._getKeyCode(modules, display, keyName))
+			for modifiers in browseModifierMasks
+		)
+		return tuple(
+			sorted(
+				keys,
+			),
+		)
+
+	def _getKeyCode(self, modules: Any, display: Any, keyName: str) -> int:
+		try:
+			return display.keysym_to_keycode(modules.XK.string_to_keysym(keyName))
+		except Exception:
+			return 0
+
+	def _getBrowseModifierMasks(self, modules: Any) -> tuple[int, ...]:
+		shiftMask = modules.X.ShiftMask
+		ignoredMasks = (
+			getattr(modules.X, "LockMask", 0),
+			getattr(modules.X, "Mod2Mask", 0),
+		)
 		return tuple(
 			sorted(
 				{
-					keyCode
-					for keyName in keyNames
-					if (keyCode := display.keysym_to_keycode(modules.XK.string_to_keysym(keyName)))
+					baseMask | lockMask | numLockMask
+					for baseMask in (0, shiftMask)
+					for lockMask in (0, ignoredMasks[0])
+					for numLockMask in (0, ignoredMasks[1])
 				},
 			),
 		)
