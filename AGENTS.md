@@ -103,7 +103,8 @@ This file tracks Linux port progress in this checkout, what is next, and practic
   - `tools/runLinuxShortcutParityAudit.py`
 - Added dependency-light Windows and native Ubuntu CI coverage plus an Ubuntu
   preview packaging smoke.
-- Added native preview `NVDA+1` input help for captured-shortcut validation.
+- Added native preview `NVDA+1` input help and `NVDA+F12` date/time parity
+  commands.
 
 ## Next Phase Work (Immediate)
 

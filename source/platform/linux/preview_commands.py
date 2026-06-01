@@ -3,13 +3,17 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+import time
 from typing import Any, Callable
 
 
+_MULTI_PRESS_TIMEOUT_SECONDS = 0.5
 PREVIEW_GESTURE_NAMES = frozenset(
 	(
 		"nvda+1",
 		"nvda+b",
+		"nvda+f12",
 		"nvda+h",
 		"nvda+q",
 		"nvda+t",
@@ -18,14 +22,17 @@ PREVIEW_GESTURE_NAMES = frozenset(
 )
 _PREVIEW_HELP = (
 	"NVDA 1 input help. "
+	"NVDA F12 time, press twice for date. "
 	"NVDA T active window title. "
 	"NVDA Tab focused object. "
 	"NVDA B read active accessible tree. "
+	"NVDA H command help. "
 	"NVDA Q exit Linux preview."
 )
 _PREVIEW_COMMAND_DESCRIPTIONS = {
 	"nvda+1": "Toggle input help",
 	"nvda+b": "Read active accessible tree",
+	"nvda+f12": "Speak time, press twice for date",
 	"nvda+h": "Speak supported native preview commands",
 	"nvda+q": "Exit Linux preview",
 	"nvda+t": "Speak active window title",
@@ -42,11 +49,16 @@ class LinuxPreviewCommandController:
 		dispatcher: Any,
 		announce: Callable[[str], None],
 		requestStop: Callable[[], None] | None = None,
+		now: Callable[[], datetime] = datetime.now,
+		monotonic: Callable[[], float] = time.monotonic,
 	) -> None:
 		self._dispatcher = dispatcher
 		self._announce = announce
 		self._requestStop = requestStop
+		self._now = now
+		self._monotonic = monotonic
 		self._inputHelpActive = False
+		self._lastDateTimePressTime: float | None = None
 
 	def handleGesture(self, gesture: Any) -> bool:
 		gestureName = gesture.event.gestureName.lower()
@@ -67,6 +79,18 @@ class LinuxPreviewCommandController:
 			return True
 		if gestureName == "nvda+b":
 			self._announce(formatObjectTreeAnnouncement(_getTopLevelObject(focusObject)) or "No active window")
+			return True
+		if gestureName == "nvda+f12":
+			pressTime = self._monotonic()
+			value = self._now()
+			if (
+				self._lastDateTimePressTime is not None
+				and pressTime - self._lastDateTimePressTime <= _MULTI_PRESS_TIMEOUT_SECONDS
+			):
+				self._announce(value.strftime("%x"))
+			else:
+				self._announce(value.strftime("%X"))
+			self._lastDateTimePressTime = pressTime
 			return True
 		if gestureName == "nvda+q" and self._requestStop is not None:
 			self._announce("Exiting NVDA Linux preview")

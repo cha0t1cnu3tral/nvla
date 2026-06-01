@@ -1,6 +1,7 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 
+from datetime import datetime
 from types import SimpleNamespace
 import unittest
 
@@ -162,6 +163,28 @@ class TestLinuxPreviewCommands(unittest.TestCase):
 				"NVDA+T: Speak active window title",
 				"NVDA+F1: Unassigned",
 				"Input help off",
+			],
+			announcements,
+		)
+
+	def test_nvda_f12_reports_time_then_date_on_repeat(self):
+		announcements = []
+		pressTimes = iter((10.0, 10.2, 11.0))
+		controller = LinuxPreviewCommandController(
+			dispatcher=SimpleNamespace(focusObject=None),
+			announce=announcements.append,
+			now=lambda: datetime(2026, 6, 1, 14, 30, 5),
+			monotonic=lambda: next(pressTimes),
+		)
+
+		for _ in range(3):
+			self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+F12"))))
+
+		self.assertEqual(
+			[
+				datetime(2026, 6, 1, 14, 30, 5).strftime("%X"),
+				datetime(2026, 6, 1, 14, 30, 5).strftime("%x"),
+				datetime(2026, 6, 1, 14, 30, 5).strftime("%X"),
 			],
 			announcements,
 		)

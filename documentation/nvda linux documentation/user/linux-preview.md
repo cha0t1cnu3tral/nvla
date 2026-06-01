@@ -47,6 +47,7 @@ checklist item after validating the desktop behavior.
 | Command | Action |
 | --- | --- |
 | `NVDA+1` | Toggle input help for captured shortcuts. |
+| `NVDA+F12` | Speak the time; press twice for the date. |
 | `NVDA+T` | Speak the active window title. |
 | `NVDA+Tab` | Speak the focused accessible object. |
 | `NVDA+B` | Read a bounded traversal of the active accessible object tree. |

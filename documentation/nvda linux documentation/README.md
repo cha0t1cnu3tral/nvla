@@ -76,7 +76,8 @@ bash tools/runLinuxPort.sh
 
 The launcher runs preflight first and then starts the dependency-light native
 preview runtime instead of loading the Windows-only `source/nvda.pyw` entry
-point. Press `NVDA+H` for supported commands and `NVDA+Q` to exit cleanly.
+point. Press `NVDA+1` for input help, `NVDA+H` for supported commands, and
+`NVDA+Q` to exit cleanly.
 
 Run the bounded X11 release workflow and write a reviewable validation report
 with:
