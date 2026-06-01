@@ -41,7 +41,7 @@ but it should still be treated as a bring-up tool.
   reports live motion and button events without loading the Windows mouse stack.
 - Linux-native pointer tracking groundwork that resolves observed X11 motion
   through AT-SPI hit testing and bridges accessible objects to mouse-move
-  dispatch. Shared dispatch separation is still required for native startup.
+  dispatch through the dependency-light native event dispatcher.
 - A dependency-light Linux event dispatcher for cached focus and mouse state,
   allowing AT-SPI and pointer bridges to avoid importing shared Win32-heavy
   `api` and `eventHandler` modules during Linux adapter construction.

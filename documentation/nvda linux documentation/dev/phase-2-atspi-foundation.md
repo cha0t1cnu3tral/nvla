@@ -74,7 +74,7 @@ Initial AT-SPI2 backend scaffolding is now in place in the Linux PAL accessibili
 Run focused Linux-port validation from the repository root with:
 
 ```powershell
-uv run python tests/linuxPortUnitRunner.py
+uv run --no-project python tests/linuxPortUnitRunner.py
 ```
 
 This currently covers AT-SPI role/state mapping, event translation, queue coalescing, object caching, event routing, basic object navigation, object geometry, TextInfo line/word/sentence/paragraph expansion, TextInfo geometry/hit-testing, and baseline Linux TextInfo behavior.

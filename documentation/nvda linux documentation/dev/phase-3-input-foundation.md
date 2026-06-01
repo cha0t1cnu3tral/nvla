@@ -56,7 +56,7 @@ full pass-through parity remain pending.
 Run focused Linux-port validation from the repository root with:
 
 ```powershell
-uv run python tests/linuxPortUnitRunner.py
+uv run --no-project python tests/linuxPortUnitRunner.py
 ```
 
 This currently validates AT-SPI accessibility scaffolding plus Linux keyboard event normalization, Windows-compatible gesture identifiers, and an injected `inputCore`-style execution handoff without requiring a Linux desktop session.

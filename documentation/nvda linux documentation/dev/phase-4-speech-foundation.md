@@ -1,6 +1,6 @@
 # Phase 4: Linux Speech Foundation
 
-Date: 2026-05-30
+Date: 2026-06-01
 
 ## Summary
 
@@ -23,7 +23,8 @@ The first Linux-native speech path is in place for an early `0.1` milestone. It 
   - Windows keeps its existing `oneCore`, `espeak`, and `silence` order.
 - Removed early Linux boot dependencies on Windows-only helper/audio initialization.
   - Linux skips `NVDAHelper`, `nvwave`, tones, sound splitting, audio ducking, and comtypes logging.
-  - Unfinished Linux mouse and touch hooks are treated as explicit non-fatal limitations during startup.
+  - Linux pointer observation is enabled when available; unfinished touch hooks
+    remain an explicit non-fatal limitation during startup.
   - Linux DPI setup and session pumping use non-fatal compositor/toolkit fallbacks.
   - Linux uses a lifecycle-compatible placeholder instead of a Win32 message window.
   - Linux uses a lightweight watchdog compatibility module and skips the synthetic Win32 desktop object cache.
@@ -35,7 +36,7 @@ The first Linux-native speech path is in place for an early `0.1` milestone. It 
 Run:
 
 ```powershell
-uv run python tests/linuxPortUnitRunner.py
+uv run --no-project python tests/linuxPortUnitRunner.py
 ```
 
 The dependency-light suite validates Speech Dispatcher selection, eSpeak NG fallback, cancellation, process cleanup, synth-driver completion notifications, stale-notification suppression, and platform-specific availability.
@@ -71,12 +72,12 @@ Remaining Phase 4 work:
 
 The first usable screen-reader preview still needs:
 
-- Real X11 keyboard capture with pass-through enforcement.
+- Validate X11 keyboard capture and pass-through enforcement on a real desktop.
 - A documented restricted Wayland fallback until compositor-specific global capture is available.
 - Continue Linux startup cleanup for remaining Windows-only imports beyond the early helper/audio path.
 - Continue separating shared startup imports before the native preview can reuse
   more of `core.main()`.
 - Reintroduce optional subsystems behind real Linux implementations, starting with brlapi-backed braille.
 - Real desktop smoke tests: focus an application, receive AT-SPI focus events, speak the focused control, and execute commands such as `NVDA+t`.
-- A simple launch script and package dependency list for Speech Dispatcher,
-  eSpeak NG, AT-SPI2, Python, and optional wxPython settings UI support.
+- Settle the production package dependency strategy beyond the current
+  user-level preview installer and documented dependency list.
