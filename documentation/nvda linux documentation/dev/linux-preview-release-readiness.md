@@ -59,6 +59,8 @@ but it should still be treated as a bring-up tool.
   and announces the resulting text.
 - A preview shell launcher, installer, uninstaller, desktop entry, and
   optional systemd user service.
+- An Ubuntu CI packaging smoke that installs to custom XDG directories,
+  validates rendered launcher paths, and removes the user-level artifacts.
 - A bounded release-smoke runner that gates on preflight and prints the manual
   X11 validation checklist around a native preview run.
 - Strict release-smoke capture gating for X11 validation runs that must not

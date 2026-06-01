@@ -37,3 +37,12 @@ jobs:
       - name: Run focused Linux port tests
         shell: pwsh
         run: uv run --no-project python tests/linuxPortUnitRunner.py
+  linuxPreviewPackagingSmoke:
+    name: Linux preview packaging smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Run Linux preview packaging smoke
+        shell: bash
+        run: bash tests/linuxPreviewPackagingSmoke.sh
