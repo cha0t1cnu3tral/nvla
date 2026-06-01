@@ -18,8 +18,13 @@ escape_systemd_argument() {
 }
 
 mkdir -p "$bin_dir" "$applications_dir" "$systemd_dir"
-ln -sfn "$root_dir/tools/runLinuxPort.sh" "$bin_dir/nvda-linux-preview"
-launcher_exec="$(escape_systemd_argument "$bin_dir/nvda-linux-preview")"
+launcher_path="$bin_dir/nvda-linux-preview"
+if [[ -e "$launcher_path" && ! -L "$launcher_path" ]]; then
+	printf 'Refusing to replace non-symbolic launcher at %s\n' "$launcher_path" >&2
+	exit 1
+fi
+ln -sfn "$root_dir/tools/runLinuxPort.sh" "$launcher_path"
+launcher_exec="$(escape_systemd_argument "$launcher_path")"
 escaped_launcher_exec="${launcher_exec//\\/\\\\}"
 escaped_launcher_exec="${escaped_launcher_exec//&/\\&}"
 escaped_launcher_exec="${escaped_launcher_exec//|/\\|}"
@@ -37,5 +42,5 @@ if command -v systemctl >/dev/null 2>&1; then
 	systemctl --user daemon-reload >/dev/null 2>&1 || true
 fi
 
-printf 'Installed NVDA Linux preview launcher at %s\n' "$bin_dir/nvda-linux-preview"
+printf 'Installed NVDA Linux preview launcher at %s\n' "$launcher_path"
 printf 'Run nvda-linux-preview manually before enabling the user service.\n'

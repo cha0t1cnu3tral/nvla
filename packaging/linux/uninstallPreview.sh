@@ -12,8 +12,12 @@ if command -v systemctl >/dev/null 2>&1; then
 	systemctl --user disable --now nvda-linux-preview.service >/dev/null 2>&1 || true
 fi
 
+launcher_path="$bin_dir/nvda-linux-preview"
+if [[ -L "$launcher_path" ]]; then
+	rm -f -- "$launcher_path"
+fi
+
 rm -f \
-	"$bin_dir/nvda-linux-preview" \
 	"$applications_dir/nvda-linux-preview.desktop" \
 	"$systemd_dir/nvda-linux-preview.service"
 

@@ -15,10 +15,12 @@ class TestLinuxPreviewPackaging(unittest.TestCase):
 
 	def testInstallerLinksLauncherAndInstallsDesktopArtifacts(self):
 		installer = (self.root / "packaging" / "linux" / "installPreview.sh").read_text(encoding="utf-8")
-		self.assertIn('ln -sfn "$root_dir/tools/runLinuxPort.sh" "$bin_dir/nvda-linux-preview"', installer)
+		self.assertIn('launcher_path="$bin_dir/nvda-linux-preview"', installer)
+		self.assertIn('ln -sfn "$root_dir/tools/runLinuxPort.sh" "$launcher_path"', installer)
 		self.assertIn("nvda-linux-preview.desktop", installer)
 		self.assertIn("nvda-linux-preview.service", installer)
 		self.assertIn("@NVDA_LINUX_PREVIEW_LAUNCHER@", installer)
+		self.assertIn('[[ -e "$launcher_path" && ! -L "$launcher_path" ]]', installer)
 		self.assertIn("systemctl --user daemon-reload", installer)
 
 	def testUninstallerRemovesUserLevelPreviewArtifacts(self):
@@ -29,6 +31,7 @@ class TestLinuxPreviewPackaging(unittest.TestCase):
 		self.assertIn('"$bin_dir/nvda-linux-preview"', uninstaller)
 		self.assertIn('"$applications_dir/nvda-linux-preview.desktop"', uninstaller)
 		self.assertIn('"$systemd_dir/nvda-linux-preview.service"', uninstaller)
+		self.assertIn('[[ -L "$launcher_path" ]]', uninstaller)
 		self.assertIn("systemctl --user daemon-reload", uninstaller)
 
 	def testDesktopEntryTemplatesInstalledPreviewCommand(self):

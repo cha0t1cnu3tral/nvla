@@ -40,4 +40,14 @@ test ! -e "$launcher_path"
 test ! -e "$XDG_DATA_HOME/applications/nvda-linux-preview.desktop"
 test ! -e "$XDG_CONFIG_HOME/systemd/user/nvda-linux-preview.service"
 
+printf 'foreign launcher\n' > "$launcher_path"
+if bash "$root_dir/packaging/linux/installPreview.sh"; then
+	printf 'Installer replaced a non-symbolic launcher.\n' >&2
+	exit 1
+fi
+grep -Fx -- 'foreign launcher' "$launcher_path"
+bash "$root_dir/packaging/linux/uninstallPreview.sh"
+test -f "$launcher_path"
+grep -Fx -- 'foreign launcher' "$launcher_path"
+
 printf 'Linux preview packaging smoke passed.\n'
