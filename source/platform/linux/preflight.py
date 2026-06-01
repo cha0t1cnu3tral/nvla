@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import importlib
 import shutil
 import sys
-from typing import Callable, Mapping
+from typing import Any, Callable, Mapping
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,7 @@ def runPreflightChecks(
 	environ: Mapping[str, str] | None = None,
 	which: Callable[[str], str | None] = shutil.which,
 	importModule: Callable[[str], object] = importlib.import_module,
+	checkX11RecordExtension: Callable[[], tuple[bool, str]] | None = None,
 ) -> tuple[PreflightCheck, ...]:
 	if environ is None:
 		import os
@@ -66,6 +67,7 @@ def runPreflightChecks(
 	globalMouseObservation = _checkGlobalMouseObservation(
 		environ=environ,
 		importModule=importModule,
+		checkX11RecordExtension=checkX11RecordExtension,
 	)
 	return (
 		PreflightCheck("linux", isLinux, True, platform),
@@ -166,6 +168,7 @@ def _checkGlobalMouseObservation(
 	*,
 	environ: Mapping[str, str],
 	importModule: Callable[[str], object],
+	checkX11RecordExtension: Callable[[], tuple[bool, str]] | None,
 ) -> PreflightCheck:
 	if environ.get("WAYLAND_DISPLAY"):
 		return PreflightCheck(
@@ -190,9 +193,37 @@ def _checkGlobalMouseObservation(
 			False,
 			"Install python3-xlib for X11 global observation",
 		)
+	if checkX11RecordExtension is None:
+		checkX11RecordExtension = _checkX11RecordExtension
+	recordAvailable, recordDetail = checkX11RecordExtension()
+	if not recordAvailable:
+		return PreflightCheck(
+			"globalMouseObservation",
+			False,
+			False,
+			recordDetail,
+		)
 	return PreflightCheck(
 		"globalMouseObservation",
 		True,
 		False,
 		"X11 RECORD pointer observation available; validate behavior on desktop",
 	)
+
+
+def _checkX11RecordExtension() -> tuple[bool, str]:
+	display: Any | None = None
+	try:
+		displayModule = importlib.import_module("Xlib.display")
+		display = displayModule.Display()
+		if not display.has_extension("RECORD"):
+			return False, "X11 RECORD extension is unavailable"
+	except Exception as error:
+		return False, f"Unable to inspect X11 RECORD extension: {error}"
+	finally:
+		if display is not None:
+			try:
+				display.close()
+			except Exception:
+				pass
+	return True, "X11 RECORD extension available"

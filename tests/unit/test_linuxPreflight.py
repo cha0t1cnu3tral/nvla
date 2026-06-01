@@ -2,7 +2,10 @@
 # This file is covered by the GNU General Public License.
 
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 
+from platform.linux import preflight
 from platform.linux.preflight import formatPreflightReport, isReadyForPreview, runPreflightChecks
 
 
@@ -13,6 +16,7 @@ class TestLinuxPreflight(unittest.TestCase):
 			environ={"DISPLAY": ":1"},
 			which=lambda command: f"/usr/bin/{command}" if command == "spd-say" else None,
 			importModule=lambda name: object(),
+			checkX11RecordExtension=lambda: (True, "available"),
 		)
 
 		self.assertTrue(isReadyForPreview(checks))
@@ -83,6 +87,53 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertFalse(globalMouseObservation.available)
 		self.assertFalse(globalMouseObservation.required)
 		self.assertIn("python3-xlib", globalMouseObservation.detail)
+
+	def test_reports_missing_optional_x11_record_extension_for_mouse_observation(self):
+		checks = runPreflightChecks(
+			platform="linux",
+			environ={"DISPLAY": ":1"},
+			which=lambda command: "/usr/bin/spd-say" if command == "spd-say" else None,
+			importModule=lambda name: object(),
+			checkX11RecordExtension=lambda: (False, "X11 RECORD extension is unavailable"),
+		)
+
+		globalKeyboardCapture = next(check for check in checks if check.name == "globalKeyboardCapture")
+		globalMouseObservation = next(check for check in checks if check.name == "globalMouseObservation")
+		self.assertTrue(globalKeyboardCapture.available)
+		self.assertFalse(globalMouseObservation.available)
+		self.assertIn("RECORD extension is unavailable", globalMouseObservation.detail)
+
+	def test_x11_record_probe_closes_display(self):
+		display = SimpleNamespace(
+			has_extension=mock.Mock(return_value=True),
+			close=mock.Mock(),
+		)
+		with mock.patch.object(
+			preflight.importlib,
+			"import_module",
+			return_value=SimpleNamespace(Display=lambda: display),
+		):
+			available, detail = preflight._checkX11RecordExtension()
+
+		self.assertTrue(available)
+		self.assertIn("available", detail)
+		display.close.assert_called_once_with()
+
+	def test_x11_record_probe_reports_missing_extension_and_closes_display(self):
+		display = SimpleNamespace(
+			has_extension=mock.Mock(return_value=False),
+			close=mock.Mock(),
+		)
+		with mock.patch.object(
+			preflight.importlib,
+			"import_module",
+			return_value=SimpleNamespace(Display=lambda: display),
+		):
+			available, detail = preflight._checkX11RecordExtension()
+
+		self.assertFalse(available)
+		self.assertIn("unavailable", detail)
+		display.close.assert_called_once_with()
 
 
 if __name__ == "__main__":
