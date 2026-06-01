@@ -31,11 +31,11 @@ class TestLinuxPreviewPackaging(unittest.TestCase):
 		self.assertIn('"$systemd_dir/nvda-linux-preview.service"', uninstaller)
 		self.assertIn("systemctl --user daemon-reload", uninstaller)
 
-	def testDesktopEntryUsesInstalledPreviewCommand(self):
+	def testDesktopEntryTemplatesInstalledPreviewCommand(self):
 		desktopEntry = (
 			self.root / "packaging" / "linux" / "nvda-linux-preview.desktop"
 		).read_text(encoding="utf-8")
-		self.assertIn("Exec=nvda-linux-preview", desktopEntry)
+		self.assertIn("Exec=@NVDA_LINUX_PREVIEW_LAUNCHER@", desktopEntry)
 
 	def testSystemdServiceTemplatesInstalledPreviewCommand(self):
 		service = (

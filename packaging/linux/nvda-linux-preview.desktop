@@ -2,7 +2,7 @@
 Type=Application
 Name=NVDA Linux Preview
 Comment=Start the experimental NVDA Linux screen reader port
-Exec=nvda-linux-preview
+Exec=@NVDA_LINUX_PREVIEW_LAUNCHER@
 Terminal=true
 Categories=Accessibility;
 Keywords=screen reader;accessibility;

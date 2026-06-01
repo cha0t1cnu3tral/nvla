@@ -19,11 +19,13 @@ escape_systemd_argument() {
 
 mkdir -p "$bin_dir" "$applications_dir" "$systemd_dir"
 ln -sfn "$root_dir/tools/runLinuxPort.sh" "$bin_dir/nvda-linux-preview"
-cp "$root_dir/packaging/linux/nvda-linux-preview.desktop" "$applications_dir/"
 launcher_exec="$(escape_systemd_argument "$bin_dir/nvda-linux-preview")"
 escaped_launcher_exec="${launcher_exec//\\/\\\\}"
 escaped_launcher_exec="${escaped_launcher_exec//&/\\&}"
 escaped_launcher_exec="${escaped_launcher_exec//|/\\|}"
+sed "s|@NVDA_LINUX_PREVIEW_LAUNCHER@|$escaped_launcher_exec|" \
+	"$root_dir/packaging/linux/nvda-linux-preview.desktop" \
+	> "$applications_dir/nvda-linux-preview.desktop"
 sed "s|@NVDA_LINUX_PREVIEW_LAUNCHER@|$escaped_launcher_exec|" \
 	"$root_dir/packaging/linux/nvda-linux-preview.service" \
 	> "$systemd_dir/nvda-linux-preview.service"
