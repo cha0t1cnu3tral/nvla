@@ -52,10 +52,10 @@ with:
 bash packaging/linux/uninstallPreview.sh
 ```
 
-The native preview announces AT-SPI focus changes. Press `NVDA+T` for the active
-window title, `NVDA+Tab` for the focused object, and `NVDA+B` to read through
-the active accessible object tree. Press `NVDA+H` for native preview command
-help and `NVDA+Q` to exit cleanly.
+The native preview announces AT-SPI focus changes. Press `NVDA+1` for input
+help, `NVDA+T` for the active window title, `NVDA+Tab` for the focused object,
+and `NVDA+B` to read through the active accessible object tree. Press `NVDA+H`
+for native preview command help and `NVDA+Q` to exit cleanly.
 
 For a time-bounded full preview smoke run:
 

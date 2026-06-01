@@ -54,7 +54,7 @@ class TestLinuxPreviewPackaging(unittest.TestCase):
 		guide = (
 			self.root / "documentation" / "nvda linux documentation" / "user" / "linux-preview.md"
 		).read_text(encoding="utf-8")
-		for command in ("NVDA+T", "NVDA+Tab", "NVDA+B", "NVDA+H", "NVDA+Q"):
+		for command in ("NVDA+1", "NVDA+T", "NVDA+Tab", "NVDA+B", "NVDA+H", "NVDA+Q"):
 			with self.subTest(command=command):
 				self.assertIn(command, guide)
 		self.assertIn("--strict-capture", guide)

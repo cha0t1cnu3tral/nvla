@@ -16,6 +16,7 @@ _MANUAL_CHECKLIST = (
 	"Press NVDA+Tab and confirm the focused control is spoken.",
 	"Press NVDA+B and confirm the active accessible tree is read.",
 	"Press NVDA+H and confirm the native preview command help is spoken.",
+	"Press NVDA+1, inspect a captured shortcut, then press NVDA+1 again to leave input help.",
 	"Press an unhandled NVDA chord and confirm the focused application still receives it.",
 	"Move the pointer over accessible controls and check for capture fallback errors.",
 	"Press NVDA+Q before timeout and confirm the preview exits cleanly.",

@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 PREVIEW_GESTURE_NAMES = frozenset(
 	(
+		"nvda+1",
 		"nvda+b",
 		"nvda+h",
 		"nvda+q",
@@ -16,11 +17,20 @@ PREVIEW_GESTURE_NAMES = frozenset(
 	),
 )
 _PREVIEW_HELP = (
+	"NVDA 1 input help. "
 	"NVDA T active window title. "
 	"NVDA Tab focused object. "
 	"NVDA B read active accessible tree. "
 	"NVDA Q exit Linux preview."
 )
+_PREVIEW_COMMAND_DESCRIPTIONS = {
+	"nvda+1": "Toggle input help",
+	"nvda+b": "Read active accessible tree",
+	"nvda+h": "Speak supported native preview commands",
+	"nvda+q": "Exit Linux preview",
+	"nvda+t": "Speak active window title",
+	"nvda+tab": "Speak focused object",
+}
 
 
 class LinuxPreviewCommandController:
@@ -36,9 +46,18 @@ class LinuxPreviewCommandController:
 		self._dispatcher = dispatcher
 		self._announce = announce
 		self._requestStop = requestStop
+		self._inputHelpActive = False
 
 	def handleGesture(self, gesture: Any) -> bool:
 		gestureName = gesture.event.gestureName.lower()
+		if gestureName == "nvda+1":
+			self._inputHelpActive = not self._inputHelpActive
+			self._announce("Input help on" if self._inputHelpActive else "Input help off")
+			return True
+		if self._inputHelpActive:
+			description = _PREVIEW_COMMAND_DESCRIPTIONS.get(gestureName, "Unassigned")
+			self._announce(f"{gesture.event.gestureName}: {description}")
+			return True
 		focusObject = self._dispatcher.focusObject
 		if gestureName == "nvda+t":
 			self._announce(formatObjectAnnouncement(_getTopLevelObject(focusObject)) or "No title")
