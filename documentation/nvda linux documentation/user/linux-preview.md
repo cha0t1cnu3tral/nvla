@@ -30,8 +30,11 @@ nvda-linux-preview --duration 30
 For X11 release validation:
 
 ```bash
-python3 tools/runLinuxReleaseSmoke.py --strict-capture --duration 30
+python3 tools/runLinuxReleaseSmoke.py --strict-capture --duration 30 --report linux-preview-smoke.md
 ```
+
+The Markdown report records preflight and runtime output. Mark each manual
+checklist item after validating the desktop behavior.
 
 ## Native Preview Commands
 

@@ -1,11 +1,12 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 
+from datetime import datetime, timezone
 import unittest
 from unittest import mock
 
 from platform.linux.preflight import PreflightCheck
-from platform.linux.release_smoke import runReleaseSmoke
+from platform.linux.release_smoke import formatReleaseSmokeReport, runReleaseSmoke
 
 
 _READY_CHECKS = (
@@ -15,6 +16,34 @@ _READY_CHECKS = (
 
 
 class TestLinuxReleaseSmoke(unittest.TestCase):
+	def test_formats_durable_markdown_report(self):
+		report = formatReleaseSmokeReport(
+			output=("preflight", "completed"),
+			exitStatus=0,
+			durationSeconds=30,
+			strictCapture=True,
+			generatedAt=datetime(2026, 6, 1, 12, 30, tzinfo=timezone.utc),
+		)
+
+		self.assertIn("- Generated: `2026-06-01T12:30:00+00:00`", report)
+		self.assertIn("- Result: `PASS`", report)
+		self.assertIn("- Capture validation: `strict`", report)
+		self.assertIn("- [ ] Press NVDA+T", report)
+		self.assertIn("```text\npreflight\ncompleted\n```", report)
+
+	def test_formats_failed_fallback_allowed_report(self):
+		report = formatReleaseSmokeReport(
+			output=(),
+			exitStatus=1,
+			durationSeconds=15,
+			strictCapture=False,
+			generatedAt=datetime(2026, 6, 1, tzinfo=timezone.utc),
+		)
+
+		self.assertIn("- Result: `FAIL`", report)
+		self.assertIn("- Exit status: `1`", report)
+		self.assertIn("- Capture validation: `fallback allowed`", report)
+
 	def test_runs_bounded_preview_after_ready_preflight(self):
 		runPreview = mock.Mock(return_value=0)
 		output = []

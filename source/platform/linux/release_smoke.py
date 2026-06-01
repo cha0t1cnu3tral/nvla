@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
+from datetime import datetime
 
 from .preflight import formatPreflightReport, isReadyForPreview, runPreflightChecks
 from .preview_runtime import runNativePreview
@@ -20,6 +21,38 @@ _MANUAL_CHECKLIST = (
 	"Press NVDA+Q before timeout and confirm the preview exits cleanly.",
 )
 _CAPTURE_CHECK_NAMES = frozenset(("globalKeyboardCapture", "globalMouseObservation"))
+
+
+def formatReleaseSmokeReport(
+	*,
+	output: Iterable[str],
+	exitStatus: int,
+	durationSeconds: float,
+	strictCapture: bool,
+	generatedAt: datetime | None = None,
+) -> str:
+	"""Format a durable Markdown record for a Linux preview release-smoke run."""
+
+	if generatedAt is None:
+		generatedAt = datetime.now().astimezone()
+	captureMode = "strict" if strictCapture else "fallback allowed"
+	result = "PASS" if exitStatus == 0 else "FAIL"
+	transcript = "\n".join(output)
+	checklist = "\n".join(f"- [ ] {item}" for item in _MANUAL_CHECKLIST)
+	return (
+		"# NVDA Linux Preview Release Smoke Report\n\n"
+		f"- Generated: `{generatedAt.isoformat(timespec='seconds')}`\n"
+		f"- Result: `{result}`\n"
+		f"- Exit status: `{exitStatus}`\n"
+		f"- Requested duration: `{durationSeconds:g}` seconds\n"
+		f"- Capture validation: `{captureMode}`\n\n"
+		"## Manual Checklist\n\n"
+		f"{checklist}\n\n"
+		"## Transcript\n\n"
+		"```text\n"
+		f"{transcript}\n"
+		"```\n"
+	)
 
 
 def runReleaseSmoke(

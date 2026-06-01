@@ -65,8 +65,11 @@ python3 tools/runLinuxReleaseSmoke.py --duration 30
 For X11 release validation, require both global keyboard and pointer capture:
 
 ```bash
-python3 tools/runLinuxReleaseSmoke.py --strict-capture --duration 30
+python3 tools/runLinuxReleaseSmoke.py --strict-capture --duration 30 --report linux-preview-smoke.md
 ```
+
+Review the generated Markdown report and mark each manual checklist item after
+the desktop run.
 
 ## Test X11 keyboard observation
 
