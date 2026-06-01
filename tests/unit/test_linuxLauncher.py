@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 
 from platform.linux import launcher
-from platform.linux.launcher import runLinuxPreview
+from platform.linux.launcher import _parseNativePreviewArgs, runLinuxPreview
 from platform.linux.preflight import PreflightCheck
 
 
@@ -20,6 +20,10 @@ _READY_CHECKS = (
 
 
 class TestLinuxLauncher(unittest.TestCase):
+	def test_parses_optional_native_preview_duration(self):
+		self.assertIsNone(_parseNativePreviewArgs(()).duration)
+		self.assertEqual(30, _parseNativePreviewArgs(("--duration", "30")).duration)
+
 	def test_rejects_incomplete_preflight(self):
 		messages = []
 		checks = (PreflightCheck("linux", False, True, "win32"),)

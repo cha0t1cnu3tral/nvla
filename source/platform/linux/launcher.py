@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 from collections.abc import Callable, Sequence
 import os
 from pathlib import Path
@@ -21,6 +22,15 @@ def runLinuxPreview(
 ) -> int:
 	"""Run the Linux-native preview after checking desktop dependencies."""
 
+	try:
+		if coreMain is None:
+			coreMain = _loadNativePreviewMain(args)
+	except ImportError as error:
+		write(f"\nLinux preview startup is blocked by missing import: {error}")
+		return 2
+	except Exception as error:
+		write(f"\nLinux preview startup failed: {error}")
+		return 3
 	checks = preflight()
 	write(formatPreflightReport(checks))
 	if not isReadyForPreview(checks):
@@ -31,8 +41,6 @@ def runLinuxPreview(
 	if str(sourceDir) not in sys.path:
 		sys.path.insert(0, str(sourceDir))
 	try:
-		if coreMain is None:
-			coreMain = _loadNativePreviewMain(args)
 		result = coreMain()
 		if isinstance(result, int):
 			return result
@@ -46,8 +54,18 @@ def runLinuxPreview(
 
 
 def _loadNativePreviewMain(args: Sequence[str]) -> Callable[[], int | None]:
-	if args:
-		raise ValueError(f"Unsupported Linux preview arguments: {' '.join(args)}")
+	parsedArgs = _parseNativePreviewArgs(args)
 	from .preview_runtime import runNativePreview
 
-	return runNativePreview
+	return lambda: runNativePreview(durationSeconds=parsedArgs.duration)
+
+
+def _parseNativePreviewArgs(args: Sequence[str]) -> argparse.Namespace:
+	parser = argparse.ArgumentParser(description="Run the NVDA Linux native preview.")
+	parser.add_argument(
+		"--duration",
+		type=float,
+		default=None,
+		help="Stop automatically after this many seconds.",
+	)
+	return parser.parse_args(args)

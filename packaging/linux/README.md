@@ -46,6 +46,12 @@ The native preview announces AT-SPI focus changes. Press `NVDA+T` for the active
 window title, `NVDA+Tab` for the focused object, and `NVDA+B` to read through
 the active accessible object tree. Press `NVDA+Q` to exit cleanly.
 
+For a time-bounded full preview smoke run:
+
+```bash
+nvda-linux-preview --duration 30
+```
+
 ## Test X11 keyboard observation
 
 From an X11 desktop session, confirm that global key events are visible before
