@@ -133,6 +133,17 @@ class TestLinuxPreviewCommands(unittest.TestCase):
 		self.assertEqual(["Exiting NVDA Linux preview"], announcements)
 		self.assertEqual([True], stopRequests)
 
+	def test_nvda_h_announces_native_preview_command_help(self):
+		announcements = []
+		controller = LinuxPreviewCommandController(
+			dispatcher=SimpleNamespace(focusObject=None),
+			announce=announcements.append,
+		)
+
+		self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+H"))))
+		self.assertIn("NVDA T active window title", announcements[0])
+		self.assertIn("NVDA Q exit Linux preview", announcements[0])
+
 	def test_formats_distinct_object_fields(self):
 		obj = SimpleNamespace(
 			name="Save",

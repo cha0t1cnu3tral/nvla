@@ -6,6 +6,14 @@ from __future__ import annotations
 from typing import Any, Callable
 
 
+_PREVIEW_HELP = (
+	"NVDA T active window title. "
+	"NVDA Tab focused object. "
+	"NVDA B read active accessible tree. "
+	"NVDA Q exit Linux preview."
+)
+
+
 class LinuxPreviewCommandController:
 	"""Small native command set used before shared global commands are portable."""
 
@@ -35,6 +43,9 @@ class LinuxPreviewCommandController:
 		if gestureName == "nvda+q" and self._requestStop is not None:
 			self._announce("Exiting NVDA Linux preview")
 			self._requestStop()
+			return True
+		if gestureName == "nvda+h":
+			self._announce(_PREVIEW_HELP)
 			return True
 		return False
 
