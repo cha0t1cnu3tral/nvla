@@ -25,6 +25,8 @@ still be treated as a bring-up tool.
 - X11 synchronous passive grabs for configured NVDA modifier keys. This
   suppresses handled preview commands and replays unhandled events, but still
   requires desktop validation for exact pass-through parity.
+- Linux `/proc` process enumeration and X11 EWMH desktop, active-window, and
+  client-list discovery behind the process-focus PAL boundary.
 - An X11 keyboard smoke tool that reports live normalized gestures through the
   RECORD observer and can exercise NVDA-modifier command suppression and replay.
 - An audible AT-SPI focus smoke tool that speaks live focused-object names,
@@ -47,7 +49,7 @@ still be treated as a bring-up tool.
 - Replace or separate shared event-dispatch imports that still assume the full
   Windows-oriented object, GUI, braille, and display stack.
 - Replace command-backed preview audio with a streaming Linux audio backend.
-- Add process-focus, mouse, and touch implementations.
+- Add mouse and touch implementations, plus a Wayland process-focus strategy.
 - Add brlapi integration and Linux device discovery.
 - Define a production package dependency strategy before adding Flatpak,
   `.deb`, or `.rpm` release manifests.
