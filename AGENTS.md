@@ -106,7 +106,8 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Added dependency-light Windows and native Ubuntu CI coverage plus an Ubuntu
   preview packaging smoke.
 - Added native preview `NVDA+1` input help, `NVDA+C` clipboard reporting,
-  `NVDA+F2` pass-next-key-through, and `NVDA+F12` date/time parity commands.
+  `NVDA+F2` pass-next-key-through, `NVDA+F12` date/time, and `NVDA+Shift+B`
+  battery-status parity commands.
 
 ## Next Phase Work (Immediate)
 

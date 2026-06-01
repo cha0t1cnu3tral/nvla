@@ -53,6 +53,7 @@ def runNativePreview(
 		requestStop=stopRequested.set,
 		passNextKeyThrough=inputAdapter.passNextKeyThrough,
 		getClipboardText=getattr(getattr(services, "clipboard", None), "get_text", None),
+		getBatteryStatus=getattr(getattr(services, "system", None), "get_battery_status", None),
 	)
 
 	def handleDispatch(eventName: str, obj: Any, **kwargs: Any) -> None:

@@ -19,6 +19,7 @@ PREVIEW_GESTURE_NAMES = frozenset(
 		"nvda+f2",
 		"nvda+h",
 		"nvda+q",
+		"nvda+shift+b",
 		"nvda+t",
 		"nvda+tab",
 	),
@@ -31,6 +32,7 @@ _PREVIEW_HELP = (
 	"NVDA T active window title. "
 	"NVDA Tab focused object. "
 	"NVDA B read active accessible tree. "
+	"NVDA Shift B battery status. "
 	"NVDA H command help. "
 	"NVDA Q exit Linux preview."
 )
@@ -42,6 +44,7 @@ _PREVIEW_COMMAND_DESCRIPTIONS = {
 	"nvda+f2": "Pass next key through",
 	"nvda+h": "Speak supported native preview commands",
 	"nvda+q": "Exit Linux preview",
+	"nvda+shift+b": "Speak battery status",
 	"nvda+t": "Speak active window title",
 	"nvda+tab": "Speak focused object",
 }
@@ -58,6 +61,7 @@ class LinuxPreviewCommandController:
 		requestStop: Callable[[], None] | None = None,
 		passNextKeyThrough: Callable[[], None] | None = None,
 		getClipboardText: Callable[[], str] | None = None,
+		getBatteryStatus: Callable[[], str] | None = None,
 		now: Callable[[], datetime] = datetime.now,
 		monotonic: Callable[[], float] = time.monotonic,
 	) -> None:
@@ -66,6 +70,7 @@ class LinuxPreviewCommandController:
 		self._requestStop = requestStop
 		self._passNextKeyThrough = passNextKeyThrough
 		self._getClipboardText = getClipboardText
+		self._getBatteryStatus = getBatteryStatus
 		self._now = now
 		self._monotonic = monotonic
 		self._inputHelpActive = False
@@ -95,6 +100,9 @@ class LinuxPreviewCommandController:
 			return True
 		if gestureName == "nvda+c" and self._getClipboardText is not None:
 			self._announceClipboardText()
+			return True
+		if gestureName == "nvda+shift+b" and self._getBatteryStatus is not None:
+			self._announce(self._getBatteryStatus())
 			return True
 		if gestureName == "nvda+f2" and self._passNextKeyThrough is not None:
 			self._passNextKeyThrough()

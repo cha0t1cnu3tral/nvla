@@ -236,6 +236,17 @@ class TestLinuxPreviewCommands(unittest.TestCase):
 			announcements,
 		)
 
+	def test_nvda_shift_b_reports_battery_status(self):
+		announcements = []
+		controller = LinuxPreviewCommandController(
+			dispatcher=SimpleNamespace(focusObject=None),
+			announce=announcements.append,
+			getBatteryStatus=lambda: "75 percent, not plugged in",
+		)
+
+		self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+Shift+B"))))
+		self.assertEqual(["75 percent, not plugged in"], announcements)
+
 	def test_formats_distinct_object_fields(self):
 		obj = SimpleNamespace(
 			name="Save",

@@ -2,6 +2,8 @@
 # This file is covered by the GNU General Public License.
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from platform.linux.display import LinuxDisplayAdapter
 from platform.linux.message_window import LinuxMessageWindowAdapter
@@ -22,11 +24,40 @@ class TestLinuxPalFallbacks(unittest.TestCase):
 		self.assertIsNone(adapter.pump_all())
 
 	def test_system_basics_are_non_fatal(self):
-		adapter = LinuxSystemAdapter()
+		with TemporaryDirectory() as powerSupplyPath:
+			adapter = LinuxSystemAdapter(Path(powerSupplyPath))
 
-		self.assertTrue(adapter.get_os_version_string())
-		self.assertIsNone(adapter.register_application_restart())
-		self.assertEqual("Unknown power status", adapter.get_battery_status())
+			self.assertTrue(adapter.get_os_version_string())
+			self.assertIsNone(adapter.register_application_restart())
+			self.assertEqual("No system battery", adapter.get_battery_status())
+
+	def test_system_reports_linux_battery_percentage_and_remaining_time(self):
+		with TemporaryDirectory() as powerSupplyPath:
+			battery = Path(powerSupplyPath) / "BAT0"
+			battery.mkdir()
+			(battery / "type").write_text("Battery\n", encoding="utf-8")
+			(battery / "capacity").write_text("75\n", encoding="utf-8")
+			(battery / "status").write_text("Discharging\n", encoding="utf-8")
+			(battery / "energy_now").write_text("50000000\n", encoding="utf-8")
+			(battery / "power_now").write_text("20000000\n", encoding="utf-8")
+
+			self.assertEqual(
+				"75 percent, not plugged in, 2 hours and 30 minutes remaining",
+				LinuxSystemAdapter(Path(powerSupplyPath)).get_battery_status(),
+			)
+
+	def test_system_reports_charging_battery(self):
+		with TemporaryDirectory() as powerSupplyPath:
+			battery = Path(powerSupplyPath) / "BAT0"
+			battery.mkdir()
+			(battery / "type").write_text("Battery\n", encoding="utf-8")
+			(battery / "capacity").write_text("42\n", encoding="utf-8")
+			(battery / "status").write_text("Charging\n", encoding="utf-8")
+
+			self.assertEqual(
+				"42 percent, plugged in",
+				LinuxSystemAdapter(Path(powerSupplyPath)).get_battery_status(),
+			)
 
 	def test_watchdog_lifecycle_is_non_fatal(self):
 		watchdog.terminate()

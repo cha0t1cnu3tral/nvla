@@ -51,6 +51,7 @@ checklist item after validating the desktop behavior.
 | `NVDA+C` | Report clipboard text; repeat to spell or hear character descriptions. |
 | `NVDA+F2` | Pass the next physical key sequence directly to the focused application. |
 | `NVDA+F12` | Speak the time; press twice for the date. |
+| `NVDA+Shift+B` | Report battery status and estimated discharge time when available. |
 | `NVDA+T` | Speak the active window title. |
 | `NVDA+Tab` | Speak the focused accessible object. |
 | `NVDA+B` | Read a bounded traversal of the active accessible object tree. |

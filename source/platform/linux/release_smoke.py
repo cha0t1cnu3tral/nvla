@@ -20,6 +20,7 @@ _MANUAL_CHECKLIST = (
 	"Press NVDA+F2, then a shortcut, and confirm the focused application receives it.",
 	"Press NVDA+F12 once for the time and twice for the date.",
 	"Copy text, then press NVDA+C once, twice, and three times to validate clipboard reporting.",
+	"Press NVDA+Shift+B and confirm battery status is spoken.",
 	"Press an unhandled NVDA chord and confirm the focused application still receives it.",
 	"Move the pointer over accessible controls and check for capture fallback errors.",
 	"Press NVDA+Q before timeout and confirm the preview exits cleanly.",
