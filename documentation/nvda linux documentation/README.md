@@ -14,15 +14,21 @@ Current dev milestones documented:
 - Phase 4 Linux speech transport and initial NVDA synth driver
 - Linux preview release-readiness audit
 
-## Focused validation on Windows
+## Focused validation
 
 The full NVDA unit harness currently requires built Windows helper DLLs. For dependency-light Linux-port work, run:
+
+```bash
+python tests/linuxPortUnitRunner.py
+```
+
+This runner installs narrow test stubs and runs the focused Linux-port tests
+without loading `nvdaHelperLocal.dll`. The Linux-port gate executes it on
+Windows and Ubuntu. On Windows, select the managed interpreter used by CI with:
 
 ```powershell
 uv run --no-project python tests/linuxPortUnitRunner.py
 ```
-
-This runner installs narrow test stubs and runs the AT-SPI mapping/event/object tests without loading `nvdaHelperLocal.dll`.
 
 ## Linux preview preflight
 
@@ -32,7 +38,10 @@ On a Linux desktop, check the early preview dependencies with:
 python tools/runLinuxPortPreflight.py
 ```
 
-The command checks the desktop session, AT-SPI2 Python bindings, wxPython, Linux speech commands, and optional X11 NVDA-modifier command grabs through `python-xlib`. Wayland global capture and full X11 pass-through parity remain pending.
+The command checks the desktop session, AT-SPI2 desktop registry, wxPython,
+Linux speech commands, and optional X11 keyboard and pointer capture support
+through `python-xlib`. Wayland global capture and full X11 pass-through parity
+remain pending.
 
 From an X11 desktop session, verify live keyboard observation with:
 
@@ -52,13 +61,28 @@ Verify live AT-SPI focus events and command-backed speech with:
 python tools/runLinuxFocusSpeechSmoke.py --duration 30
 ```
 
-Run the early launcher with:
+Verify live X11 pointer observation with:
+
+```bash
+python tools/runLinuxMouseSmoke.py --duration 30
+```
+
+Run the native preview launcher with:
 
 ```bash
 bash tools/runLinuxPort.sh
 ```
 
-The launcher runs preflight first and then attempts the Linux core handoff. During bring-up, it reports the first remaining missing import instead of loading the Windows-only `source/nvda.pyw` entry point.
+The launcher runs preflight first and then starts the dependency-light native
+preview runtime instead of loading the Windows-only `source/nvda.pyw` entry
+point. Press `NVDA+H` for supported commands and `NVDA+Q` to exit cleanly.
+
+Run the bounded X11 release workflow and write a reviewable validation report
+with:
+
+```bash
+python tools/runLinuxReleaseSmoke.py --strict-capture --duration 30 --report linux-preview-smoke.md
+```
 
 Preview packaging and user-level install instructions are available in
 `packaging/linux/README.md`.

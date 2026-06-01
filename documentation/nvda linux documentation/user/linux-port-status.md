@@ -1,6 +1,6 @@
 # NVDA Linux Port Status
 
-Last updated: 2026-05-30
+Last updated: 2026-06-01
 
 ## Current phase
 
@@ -17,9 +17,10 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux keyboard events can be normalized and handed to existing `kb:` gesture bindings through `inputCore`.
 - Linux NVDA modifier handling covers configured modifier keys, held modifiers, and pass-through intent.
 - Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
-- Keyboard startup exposes an explicit local-only fallback while real X11 and Wayland capture backends remain pending.
+- Keyboard startup exposes an explicit local-only fallback when X11 capture is unavailable and for restricted Wayland sessions.
 - X11 startup can suppress handled NVDA-modifier commands through passive grabs when `python-xlib` is installed. Exact pass-through behavior still needs desktop validation.
 - `tools/runLinuxKeyboardSmoke.py` can verify live X11 key observation before running the full preview.
+- X11 RECORD pointer observation, AT-SPI hit testing, accessible-object mouse tracking, and `tools/runLinuxMouseSmoke.py` are available for desktop testing.
 - `tools/runLinuxFocusSpeechSmoke.py` can speak live AT-SPI focus changes for early desktop testing.
 - Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
 - Initial Linux wave and tone output is available through `pw-play`, `paplay`, or `aplay`.
@@ -29,11 +30,14 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Focused AT-SPI documents now activate a preview browse controller for line arrows and supported single-letter quick navigation with spoken results.
 - Early Linux startup skips Windows-only helper/audio initialization so speech bring-up is no longer tied to `NVDAHelper`, WASAPI, tones, or sound splitting.
 - The early `0.1` Linux path also skips optional Windows-heavy braille, vision, display-model, remote, update, and hardware-detection subsystems until Linux implementations are added.
-- A user-level Linux preview launcher, desktop entry, and optional systemd service are available under `packaging/linux/`.
+- A Linux-native preview runtime announces focus changes and supports `NVDA+T`, `NVDA+Tab`, `NVDA+B`, `NVDA+H`, and `NVDA+Q`.
+- A bounded strict-capture release smoke workflow can write a Markdown report for manual desktop validation.
+- A user-level Linux preview launcher, installer, uninstaller, desktop entry, and optional systemd service are available under `packaging/linux/`.
+- Dependency-light Python tests run on Windows and native Ubuntu CI, with an Ubuntu packaging smoke for custom XDG paths.
 
 ## What to expect right now
 
 - Linux support is not yet production-ready.
-- The current focus is physical keyboard capture, Linux boot-path cleanup, and real desktop AT-SPI-to-speech smoke testing.
+- The current focus is real X11 desktop validation, deeper AT-SPI review behavior, shared boot-path cleanup, and a Wayland capture strategy.
 - X11 NVDA-modifier command suppression is available for desktop testing. Wayland global capture is not implemented yet.
 - The preview packaging is for bring-up only. User-facing Linux builds will come after core accessibility, input, audio, and production packaging work.
