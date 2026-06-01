@@ -1,98 +1,106 @@
 What Is The Project Right Now
 
-This project is an NVDA codebase checkout that is being actively adapted toward a Linux port, while still preserving the existing Windows behavior and architecture where possible.
+Last updated: 2026-06-01
 
-Current focus:
-- Building a Linux-compatible foundation without breaking the Windows code path.
-- Introducing platform abstraction so core NVDA logic can call shared interfaces instead of Windows-only modules directly.
-- Starting the Linux accessibility backend using AT-SPI2 (the standard accessibility stack used on Linux desktops).
+This checkout is an active Linux port of NVDA on the linux-port branch. The
+stable Windows implementation remains in the tree, while Linux-specific
+platform adapters provide an early native preview path for X11 and Wayland.
 
-Project state right now (high-level)
+The Linux port is not production-ready. It is usable for focused development,
+dependency-light automated tests, and real-desktop preview validation.
 
-The project is in early-to-mid Linux port groundwork, not in a finished Linux-usable state yet.
+Current working areas
 
-What is already done:
-- Phase 0 groundwork/documentation is in place (dependency mapping, compatibility matrix, target distro planning, CI gate draft).
-- Phase 1 platform abstraction layer (PAL) has been scaffolded and partially wired into core startup/coordination paths.
-- Linux platform stubs exist for features that are not implemented yet, with explicit "not supported yet" behavior.
-- Phase 2 has started with an AT-SPI2 backend scaffold, plus role/state mapping helpers and initial unit tests for mappings.
+1. AT-SPI2 accessibility
 
-What that means in practice:
-- The codebase now has a structure that can support Linux work incrementally.
-- Linux support is still mostly foundational; many runtime features are not implemented yet.
-- Accessibility event handling and object/text integration are the main next technical blockers.
+- Linux accessibility events are translated, coalesced, and dispatched through
+  Linux NVDA object wrappers.
+- Wrapped objects expose roles, states, names, descriptions, tree navigation,
+  screen geometry, hit testing, and baseline AT-SPI text ranges.
+- Text support includes caret, selection, character, line, word, sentence, and
+  paragraph primitives.
 
-Completed work (practical summary)
+2. Keyboard input on X11 and Wayland
 
-1. Linux port planning and guardrails (Phase 0)
-- CI gate draft for the Linux-port branch was created.
-- Target Linux distro set was documented (for expected support/testing baseline).
-- Windows-only dependency map was documented (to identify what must be replaced or abstracted).
-- Compatibility matrix was documented (feature availability across platforms).
+- Linux key names are normalized to the existing NVDA kb: gesture identifiers
+  so Windows-compatible NVDA shortcuts can be reused.
+- X11 has an initial passive-grab path for NVDA-modifier commands. Real desktop
+  suppression and pass-through behavior still needs validation.
+- Wayland has an initial evdev keyboard-grab and uinput replay path. It requires
+  permission to read keyboard devices under /dev/input and write /dev/uinput.
+- Both backends fall back explicitly when global capture is unavailable.
 
-2. Platform Abstraction Layer (Phase 1)
-- `source/platform/` structure was added with `common`, `windows`, and `linux` areas.
-- A PAL entry point/factory (`source/platform/pal.py`) was added.
-- Core routing in `source/core.py` now uses PAL hooks for platform-specific behaviors (accessibility/input/session/windowing paths).
-- Linux placeholder implementations were added for not-yet-supported features.
+3. Focus mode and browse mode
 
-3. AT-SPI2 foundation (Phase 2 initial slice)
-- Linux AT-SPI backend scaffold added (`source/platform/linux/atspi_backend.py`).
-- AT-SPI role/state mapping helpers added (`source/platform/linux/atspi_mappings.py`).
-- Linux accessibility adapter wired to backend lifecycle (`source/platform/linux/accessibility.py`).
-- Unit tests added for role/state mapping behavior (`tests/unit/test_linuxAtspiMappings.py`).
+- Focused AT-SPI documents activate a Linux preview document navigator.
+- Browse mode supports Up Arrow, Down Arrow, and single-letter quick navigation
+  for headings, links, buttons, edit fields, form fields, lists, list items,
+  tables, and landmarks.
+- Editable controls automatically use focus mode so typing and arrow keys pass
+  through to the application.
+- NVDA+Space toggles focus mode and browse mode manually while a document is
+  active.
+- This is an early AT-SPI document-navigation path, not full NVDA virtual-buffer
+  parity yet.
 
-What is still missing (important)
+4. Native preview commands
 
-The Linux port is not yet functionally complete because the key behavior layer is still unfinished:
-- AT-SPI event bridge logic is not fully implemented.
-- AT-SPI objects are not yet fully integrated into NVDA object creation flow.
-- Text navigation/review support via AT-SPI Text interfaces is not implemented.
-- Input/focus infrastructure for Linux (X11/Wayland) is still future work.
-- Audio/speech/braille Linux-native backends are mostly future phases.
-- Windows helper/injection assumptions (`nvdaHelper`) still need Linux-native replacements or redesigns later.
+The dependency-light preview currently implements these shared NVDA shortcuts:
 
-Immediate next development work (what should be continued next)
+- NVDA+1: toggle input help
+- NVDA+C: report clipboard text, with repeat spelling and descriptions
+- NVDA+F2: pass the next key sequence through
+- NVDA+F12: report time, then date on repeat
+- NVDA+Shift+B: report battery status
+- NVDA+T: report active window title
+- NVDA+Tab: report focused object
+- NVDA+B: read a bounded active accessible tree
+- NVDA+H: report native preview command help
+- NVDA+Q: exit the Linux preview
+- NVDA+Space: toggle focus mode and browse mode inside documents
 
-Phase 2 should continue next. This is the current critical path.
+The full shared global command map is not running end-to-end on Linux yet.
+tools/runLinuxShortcutParityAudit.py reports which shared identifiers are
+translated and which commands still need shared-runtime integration.
 
-1. Implement AT-SPI event bridge in `ATSPI2Backend._onAtspiEvent`
-- Focus events: `object:state-changed:focused`
-- Property changes: `accessible:property-change`
-- Caret movement: `object:text-caret-moved`
+5. Mouse, speech, audio, clipboard, and packaging
 
+- X11 RECORD pointer observation, AT-SPI hit testing, and accessible-object
+  mouse tracking are available for validation.
+- Wayland pointer capture is still pending.
+- Speech uses spd-say first and espeak-ng as a fallback.
+- Wave and tone output uses pw-play, paplay, or aplay.
+- Clipboard text uses wl-clipboard, xclip, or xsel.
+- User-level Linux preview install, uninstall, desktop-entry, and optional
+  systemd service artifacts exist under packaging/linux.
 
-2. Add AT-SPI object wrapper integration into NVDA object creation flow
-- Use role/state mapping helpers during object construction.
-- Ensure Linux accessible objects can be translated into NVDA's internal object model.
+Immediate next work
 
-Why this matters:
-- Event handling alone is not enough; NVDA also needs usable objects for navigation, focus reporting, and review.
+1. Validate X11 command suppression and pass-through replay on a real desktop.
+2. Validate Wayland evdev capture and uinput replay with real permissions.
+3. Add Wayland pointer observation.
+4. Expand focus/browse behavior beyond the initial document navigator,
+   including richer forms interaction, review behavior, and embedded objects.
+5. Continue moving Linux startup toward the shared NVDA runtime so more
+   existing commands execute without native-preview replacements.
+6. Add persistent Speech Dispatcher and streaming Linux audio paths.
+7. Add brlapi-backed braille and Linux device discovery.
 
-3. Implement AT-SPI TextInfo primitives
-- Start with text/caret/range primitives needed for review and navigation.
-- Build a minimal version first, then expand for browse/review parity.
+Useful commands
 
-Why this matters:
-- Text access is core to screen reader usability.
+- Run the dependency-light Linux tests:
+  python tests/linuxPortUnitRunner.py
+- Run preflight:
+  python tools/runLinuxPortPreflight.py
+- Run the native preview:
+  python tools/runLinuxPort.py --native-preview
+- Audit shortcut parity:
+  python tools/runLinuxShortcutParityAudit.py
+- Run bounded release smoke:
+  python tools/runLinuxReleaseSmoke.py --strict-capture --duration 30
 
-4. Add event coalescing and cache policy
-- Reduce D-Bus overhead and avoid event storms.
-- Coalesce repeated focus/property/caret events where appropriate.
+Known development constraint
 
-Why this matters:
-- Linux AT-SPI over D-Bus can become noisy and expensive without caching/throttling.
-
-5. Add Linux-focused unit tests for event translation behavior
-- Validate event type mapping and payload translation.
-- Test edge cases (missing objects, repeated events, invalid state transitions).
-
-Why this matters:
-- This is the safest way to keep progress stable while Linux support is incomplete.
-
-What comes after that (next phase prep)
-
-Once the AT-SPI event bridge and object/text flow are usable, the project should move into Phase 3 preparation:
-- Define Linux input adapter interfaces (X11 and Wayland).
-- Implement an initial keyboard focus path for Linux sessions.
-- Add fallback behavior when global hooks are unavailable (especially important on Wayland).
+Full uv-based test installation can fail on Windows until Microsoft Visual C++
+build tools are installed for fast-diff-match-patch. The dependency-light Linux
+runner remains the expected validation path for the current port work.

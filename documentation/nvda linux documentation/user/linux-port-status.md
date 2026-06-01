@@ -29,7 +29,11 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Initial Linux text clipboard access is available through `wl-clipboard`, `xclip`, or `xsel`.
 - Linux automatic synth selection now prefers the Linux-native speech path without changing Windows synth selection.
 - Linux document navigation primitives cover line movement and quick navigation for headings, links, form fields, lists, tables, and landmarks.
-- Focused AT-SPI documents now activate a preview browse controller for line arrows and supported single-letter quick navigation with spoken results.
+- Focused AT-SPI documents now activate a preview browse controller for line
+  arrows and supported single-letter quick navigation with spoken results.
+- Editable document controls automatically enter focus mode so application
+  input is preserved, and `NVDA+Space` toggles focus mode and browse mode
+  manually.
 - Early Linux startup skips Windows-only helper/audio initialization so speech bring-up is no longer tied to `NVDAHelper`, WASAPI, tones, or sound splitting.
 - The early `0.1` Linux path also skips optional Windows-heavy braille, vision, display-model, remote, update, and hardware-detection subsystems until Linux implementations are added.
 - A Linux-native preview runtime announces focus changes and supports `NVDA+1`,
