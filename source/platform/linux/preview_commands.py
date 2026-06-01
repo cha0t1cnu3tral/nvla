@@ -33,6 +33,8 @@ _PREVIEW_HELP = (
 	"NVDA Tab focused object. "
 	"NVDA B read active accessible tree. "
 	"NVDA Shift B battery status. "
+	"NVDA Space toggle focus mode and browse mode inside documents. "
+	"NVDA Shift Space toggle single letter navigation inside documents. "
 	"NVDA H command help. "
 	"NVDA Q exit Linux preview."
 )

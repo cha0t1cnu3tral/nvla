@@ -64,7 +64,7 @@ def runNativePreview(
 			announce(announcement)
 
 	accessibility.registerDispatchListener(handleDispatch)
-	inputAdapter.registerKeyboardGestureHandler(commandController.handleGesture)
+	inputAdapter.registerKeyboardGestureHandler(commandController.handleGesture, first=True)
 	accessibilityInitialized = False
 	keyboardInitialized = False
 	mouseInitialized = False

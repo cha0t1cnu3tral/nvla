@@ -54,9 +54,12 @@ class _Input:
 		self.calls = []
 		self.handlers = []
 
-	def registerKeyboardGestureHandler(self, handler):
+	def registerKeyboardGestureHandler(self, handler, *, first=False):
 		self.calls.append("registerKeyboardGestureHandler")
-		self.handlers.append(handler)
+		if first:
+			self.handlers.insert(0, handler)
+		else:
+			self.handlers.append(handler)
 
 	def unregisterKeyboardGestureHandler(self, handler):
 		self.calls.append("unregisterKeyboardGestureHandler")

@@ -55,6 +55,8 @@ checklist item after validating the desktop behavior.
 | `NVDA+T` | Speak the active window title. |
 | `NVDA+Tab` | Speak the focused accessible object. |
 | `NVDA+B` | Read a bounded traversal of the active accessible object tree. |
+| `NVDA+Space` | Toggle focus mode and browse mode inside an active document. |
+| `NVDA+Shift+Space` | Toggle single-letter navigation inside an active document. |
 | `NVDA+H` | Speak the supported native preview commands. |
 | `NVDA+Q` | Exit the Linux preview cleanly. |
 

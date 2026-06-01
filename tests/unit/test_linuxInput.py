@@ -756,6 +756,15 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		self.assertEqual([], handled)
 		self.assertTrue(event.shouldPassThrough)
 
+	def test_registers_priority_keyboard_gesture_handler_first(self):
+		adapter = LinuxInputAdapter()
+		documentHandler = lambda gesture: False
+		inputHelpHandler = lambda gesture: True
+		adapter.registerKeyboardGestureHandler(documentHandler)
+		adapter.registerKeyboardGestureHandler(inputHelpHandler, first=True)
+
+		self.assertEqual([inputHelpHandler, documentHandler], adapter._keyboardGestureHandlers)
+
 	def test_unhandled_gesture_requests_pass_through_before_observer_dispatch(self):
 		adapter = LinuxInputAdapter()
 		received = []

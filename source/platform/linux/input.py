@@ -1056,9 +1056,17 @@ class LinuxInputAdapter:
 	) -> None:
 		self._keyboardGestureExecutor = executor
 
-	def registerKeyboardGestureHandler(self, handler: Callable[[LinuxKeyboardGesture], bool]) -> None:
+	def registerKeyboardGestureHandler(
+		self,
+		handler: Callable[[LinuxKeyboardGesture], bool],
+		*,
+		first: bool = False,
+	) -> None:
 		if handler not in self._keyboardGestureHandlers:
-			self._keyboardGestureHandlers.append(handler)
+			if first:
+				self._keyboardGestureHandlers.insert(0, handler)
+			else:
+				self._keyboardGestureHandlers.append(handler)
 
 	def unregisterKeyboardGestureHandler(self, handler: Callable[[LinuxKeyboardGesture], bool]) -> None:
 		try:

@@ -144,6 +144,8 @@ class TestLinuxPreviewCommands(unittest.TestCase):
 		self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+H"))))
 		self.assertIn("NVDA 1 input help", announcements[0])
 		self.assertIn("NVDA T active window title", announcements[0])
+		self.assertIn("NVDA Space toggle focus mode", announcements[0])
+		self.assertIn("NVDA Shift Space toggle single letter navigation", announcements[0])
 		self.assertIn("NVDA Q exit Linux preview", announcements[0])
 
 	def test_nvda_1_toggles_input_help_and_reports_captured_gestures(self):
