@@ -31,6 +31,19 @@ class TestLinuxPreviewPackaging(unittest.TestCase):
 		).read_text(encoding="utf-8")
 		self.assertIn("ExecStart=%h/.local/bin/nvda-linux-preview", service)
 
+	def testPackagingReadmeLinksUserFacingLinuxPreviewGuide(self):
+		readme = (self.root / "packaging" / "linux" / "README.md").read_text(encoding="utf-8")
+		self.assertIn("documentation/nvda linux documentation/user/linux-preview.md", readme)
+
+	def testLinuxPreviewGuideDocumentsNativeCommandsAndStrictSmoke(self):
+		guide = (
+			self.root / "documentation" / "nvda linux documentation" / "user" / "linux-preview.md"
+		).read_text(encoding="utf-8")
+		for command in ("NVDA+T", "NVDA+Tab", "NVDA+B", "NVDA+H", "NVDA+Q"):
+			with self.subTest(command=command):
+				self.assertIn(command, guide)
+		self.assertIn("--strict-capture", guide)
+
 
 if __name__ == "__main__":
 	unittest.main()

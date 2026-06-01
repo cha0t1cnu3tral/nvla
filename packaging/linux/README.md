@@ -3,6 +3,9 @@
 This directory contains user-level preview packaging artifacts. They expose the
 Linux-native launcher without using the Windows `source/nvda.pyw` entry point.
 
+See `documentation/nvda linux documentation/user/linux-preview.md` for the
+user-facing preview commands and limitations.
+
 ## Required runtime packages
 
 Install Python 3, AT-SPI2 Python bindings, one supported speech command, and a

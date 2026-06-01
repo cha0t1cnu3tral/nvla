@@ -63,6 +63,8 @@ but it should still be treated as a bring-up tool.
   X11 validation checklist around a native preview run.
 - Strict release-smoke capture gating for X11 validation runs that must not
   silently degrade to local-only keyboard or pointer handling.
+- A user-facing Linux preview guide covering commands, installation, strict
+  smoke validation, supported sessions, and known limitations.
 
 ## Remaining non-desktop implementation work
 
