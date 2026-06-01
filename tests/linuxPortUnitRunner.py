@@ -25,19 +25,28 @@ SOURCE_DIR = ROOT_DIR / "source"
 DEFAULT_TESTS = (
 	ROOT_DIR / "tests" / "unit" / "test_linuxAtspiMappings.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxAtspiEventTranslation.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxAtspiHitTesting.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxAudio.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxClipboard.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxBootstrapFallbacks.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxCoreBootGuards.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxDocumentNavigation.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxEventDispatch.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxFocusSpeechSmoke.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxInput.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxKeyboardSmoke.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxLauncher.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxMouse.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxMouseSmoke.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxMouseTracking.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxObjectBase.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxPackaging.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxPalFallbacks.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxPreflight.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxPreviewCommands.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxPreviewRuntime.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxProcessFocus.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxReleaseSmoke.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxSpeech.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxSpeechDriver.py",
 )
@@ -275,6 +284,17 @@ def _install_core_stubs() -> None:
 	sys.modules["logHandler"] = logHandler
 
 
+def _install_windows_bootstrap_stubs() -> None:
+	"""Allow non-Windows fallback tests to import shared modules without Win32 dependencies."""
+
+	winBindings = ModuleType("winBindings")
+	kernel32 = ModuleType("winBindings.kernel32")
+	winBindings.kernel32 = kernel32
+	sys.modules["winBindings"] = winBindings
+	sys.modules["winBindings.kernel32"] = kernel32
+	sys.modules["winKernel"] = ModuleType("winKernel")
+
+
 def _load_local_platform_package() -> None:
 	sys.path.insert(0, str(SOURCE_DIR))
 	spec = importlib.util.spec_from_file_location(
@@ -305,6 +325,7 @@ def _install_stubs() -> None:
 	_install_text_infos_stub()
 	_install_nvda_object_stub()
 	_install_core_stubs()
+	_install_windows_bootstrap_stubs()
 	_load_local_platform_package()
 
 
