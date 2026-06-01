@@ -32,6 +32,7 @@ class TestLinuxShortcutParity(unittest.TestCase):
 		self.assertIn("kb:NVDA+1", report.previewHandledIdentifiers)
 		self.assertIn("kb:NVDA+f12", report.previewHandledIdentifiers)
 		self.assertIn("kb:NVDA+f2", report.previewHandledIdentifiers)
+		self.assertIn("kb:NVDA+c", report.previewHandledIdentifiers)
 		self.assertIn("kb:NVDA+2", report.sharedRuntimePendingIdentifiers)
 		self.assertNotIn("kb:NVDA+t", report.sharedRuntimePendingIdentifiers)
 

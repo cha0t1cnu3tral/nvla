@@ -10,6 +10,8 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 - Speech output: eSpeak NG and Speech Dispatcher first.
 - Braille output: brltty/brlapi first.
 - Packaging target: Flatpak primary, .deb/.rpm secondary.
+- Keyboard parity target: preserve existing Windows NVDA bindings on Linux for
+  every command; do not create alternate Linux shortcuts for shared commands.
 - Release standard: smooth daily-use Linux screen reader behavior with
   equivalent Linux execution for existing Windows keyboard shortcuts wherever
   the operating system exposes the required capability.
@@ -103,8 +105,8 @@ This file tracks Linux port progress in this checkout, what is next, and practic
   - `tools/runLinuxShortcutParityAudit.py`
 - Added dependency-light Windows and native Ubuntu CI coverage plus an Ubuntu
   preview packaging smoke.
-- Added native preview `NVDA+1` input help, `NVDA+F2` pass-next-key-through,
-  and `NVDA+F12` date/time parity commands.
+- Added native preview `NVDA+1` input help, `NVDA+C` clipboard reporting,
+  `NVDA+F2` pass-next-key-through, and `NVDA+F12` date/time parity commands.
 
 ## Next Phase Work (Immediate)
 

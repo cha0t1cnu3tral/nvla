@@ -52,6 +52,7 @@ def runNativePreview(
 		announce=announce,
 		requestStop=stopRequested.set,
 		passNextKeyThrough=inputAdapter.passNextKeyThrough,
+		getClipboardText=getattr(getattr(services, "clipboard", None), "get_text", None),
 	)
 
 	def handleDispatch(eventName: str, obj: Any, **kwargs: Any) -> None:

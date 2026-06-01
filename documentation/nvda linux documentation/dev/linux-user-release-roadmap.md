@@ -30,8 +30,8 @@ pass-through behavior, spoken output, and desktop validation.
 Baseline on 2026-06-01:
 
 - Shared built-in keyboard identifiers translated by Linux input: `163/163`.
-- Shared identifiers handled by the dependency-light native preview: `7/163`.
-- Shared identifiers still waiting for shared-runtime integration: `156/163`.
+- Shared identifiers handled by the dependency-light native preview: `8/163`.
+- Shared identifiers still waiting for shared-runtime integration: `155/163`.
 
 ## Release Requirements
 

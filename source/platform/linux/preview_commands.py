@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import datetime
 import time
 from typing import Any, Callable
+import unicodedata
 
 
 _MULTI_PRESS_TIMEOUT_SECONDS = 0.5
@@ -13,6 +14,7 @@ PREVIEW_GESTURE_NAMES = frozenset(
 	(
 		"nvda+1",
 		"nvda+b",
+		"nvda+c",
 		"nvda+f12",
 		"nvda+f2",
 		"nvda+h",
@@ -23,6 +25,7 @@ PREVIEW_GESTURE_NAMES = frozenset(
 )
 _PREVIEW_HELP = (
 	"NVDA 1 input help. "
+	"NVDA C clipboard text. "
 	"NVDA F2 pass next key through. "
 	"NVDA F12 time, press twice for date. "
 	"NVDA T active window title. "
@@ -34,6 +37,7 @@ _PREVIEW_HELP = (
 _PREVIEW_COMMAND_DESCRIPTIONS = {
 	"nvda+1": "Toggle input help",
 	"nvda+b": "Read active accessible tree",
+	"nvda+c": "Speak clipboard text",
 	"nvda+f12": "Speak time, press twice for date",
 	"nvda+f2": "Pass next key through",
 	"nvda+h": "Speak supported native preview commands",
@@ -53,6 +57,7 @@ class LinuxPreviewCommandController:
 		announce: Callable[[str], None],
 		requestStop: Callable[[], None] | None = None,
 		passNextKeyThrough: Callable[[], None] | None = None,
+		getClipboardText: Callable[[], str] | None = None,
 		now: Callable[[], datetime] = datetime.now,
 		monotonic: Callable[[], float] = time.monotonic,
 	) -> None:
@@ -60,10 +65,13 @@ class LinuxPreviewCommandController:
 		self._announce = announce
 		self._requestStop = requestStop
 		self._passNextKeyThrough = passNextKeyThrough
+		self._getClipboardText = getClipboardText
 		self._now = now
 		self._monotonic = monotonic
 		self._inputHelpActive = False
 		self._lastDateTimePressTime: float | None = None
+		self._lastClipboardPressTime: float | None = None
+		self._clipboardPressCount = 0
 
 	def handleGesture(self, gesture: Any) -> bool:
 		gestureName = gesture.event.gestureName.lower()
@@ -84,6 +92,9 @@ class LinuxPreviewCommandController:
 			return True
 		if gestureName == "nvda+b":
 			self._announce(formatObjectTreeAnnouncement(_getTopLevelObject(focusObject)) or "No active window")
+			return True
+		if gestureName == "nvda+c" and self._getClipboardText is not None:
+			self._announceClipboardText()
 			return True
 		if gestureName == "nvda+f2" and self._passNextKeyThrough is not None:
 			self._passNextKeyThrough()
@@ -109,6 +120,33 @@ class LinuxPreviewCommandController:
 			self._announce(_PREVIEW_HELP)
 			return True
 		return False
+
+	def _announceClipboardText(self) -> None:
+		try:
+			text = self._getClipboardText()
+		except Exception:
+			text = None
+		if not text or not isinstance(text, str) or text.isspace():
+			self._announce("There is no text on the clipboard")
+			return
+		if len(text) >= 1024:
+			self._announce(f"The clipboard contains a large amount of text. It is {len(text)} characters long")
+			return
+		pressTime = self._monotonic()
+		if (
+			self._lastClipboardPressTime is not None
+			and pressTime - self._lastClipboardPressTime <= _MULTI_PRESS_TIMEOUT_SECONDS
+		):
+			self._clipboardPressCount += 1
+		else:
+			self._clipboardPressCount = 0
+		self._lastClipboardPressTime = pressTime
+		if self._clipboardPressCount == 0:
+			self._announce(text)
+		elif self._clipboardPressCount == 1:
+			self._announce(" ".join(_spellCharacter(character) for character in text))
+		else:
+			self._announce(" ".join(_describeCharacter(character) for character in text))
 
 
 def formatObjectAnnouncement(obj: Any | None) -> str:
@@ -161,3 +199,13 @@ def _getTopLevelObject(obj: Any | None) -> Any | None:
 	while (parent := getattr(obj, "parent", None)) is not None:
 		obj = parent
 	return obj
+
+
+def _describeCharacter(character: str) -> str:
+	if character == " ":
+		return "space"
+	return unicodedata.name(character, character).lower()
+
+
+def _spellCharacter(character: str) -> str:
+	return "space" if character == " " else character

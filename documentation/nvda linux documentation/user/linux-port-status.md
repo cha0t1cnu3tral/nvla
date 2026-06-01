@@ -31,8 +31,8 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Early Linux startup skips Windows-only helper/audio initialization so speech bring-up is no longer tied to `NVDAHelper`, WASAPI, tones, or sound splitting.
 - The early `0.1` Linux path also skips optional Windows-heavy braille, vision, display-model, remote, update, and hardware-detection subsystems until Linux implementations are added.
 - A Linux-native preview runtime announces focus changes and supports `NVDA+1`,
-  `NVDA+F2`, `NVDA+F12`, `NVDA+T`, `NVDA+Tab`, `NVDA+B`, `NVDA+H`, and
-  `NVDA+Q`.
+  `NVDA+C`, `NVDA+F2`, `NVDA+F12`, `NVDA+T`, `NVDA+Tab`, `NVDA+B`, `NVDA+H`,
+  and `NVDA+Q`.
 - A bounded strict-capture release smoke workflow can write a Markdown report for manual desktop validation.
 - A user-level Linux preview launcher, installer, uninstaller, desktop entry, and optional systemd service are available under `packaging/linux/`.
 - Dependency-light Python tests run on Windows and native Ubuntu CI, with an Ubuntu packaging smoke for custom XDG paths.

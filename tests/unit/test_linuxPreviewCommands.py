@@ -202,6 +202,40 @@ class TestLinuxPreviewCommands(unittest.TestCase):
 		self.assertEqual([True], requests)
 		self.assertEqual(["Pass next key through"], announcements)
 
+	def test_nvda_c_reports_clipboard_text_and_repeat_spelling(self):
+		announcements = []
+		pressTimes = iter((10.0, 10.2, 10.4))
+		controller = LinuxPreviewCommandController(
+			dispatcher=SimpleNamespace(focusObject=None),
+			announce=announcements.append,
+			getClipboardText=lambda: "A ",
+			monotonic=lambda: next(pressTimes),
+		)
+
+		for _ in range(3):
+			self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+C"))))
+
+		self.assertEqual(["A ", "A space", "latin capital letter a space"], announcements)
+
+	def test_nvda_c_reports_empty_and_large_clipboards(self):
+		announcements = []
+		controller = LinuxPreviewCommandController(
+			dispatcher=SimpleNamespace(focusObject=None),
+			announce=announcements.append,
+			getClipboardText=lambda: " ",
+		)
+
+		self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+C"))))
+		controller._getClipboardText = lambda: "x" * 1024
+		self.assertTrue(controller.handleGesture(SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+C"))))
+		self.assertEqual(
+			[
+				"There is no text on the clipboard",
+				"The clipboard contains a large amount of text. It is 1024 characters long",
+			],
+			announcements,
+		)
+
 	def test_formats_distinct_object_fields(self):
 		obj = SimpleNamespace(
 			name="Save",
