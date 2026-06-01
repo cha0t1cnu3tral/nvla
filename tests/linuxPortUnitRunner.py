@@ -47,6 +47,7 @@ DEFAULT_TESTS = (
 	ROOT_DIR / "tests" / "unit" / "test_linuxPreviewRuntime.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxProcessFocus.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxReleaseSmoke.py",
+	ROOT_DIR / "tests" / "unit" / "test_linuxShortcutParity.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxSpeech.py",
 	ROOT_DIR / "tests" / "unit" / "test_linuxSpeechDriver.py",
 )

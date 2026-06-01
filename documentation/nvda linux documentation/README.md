@@ -13,6 +13,7 @@ Current dev milestones documented:
 - Phase 3 input foundation and Linux keyboard event normalization
 - Phase 4 Linux speech transport and initial NVDA synth driver
 - Linux preview release-readiness audit
+- Linux user-release roadmap and shortcut-parity audit
 
 ## Focused validation
 
@@ -89,3 +90,6 @@ Preview packaging and user-level install instructions are available in
 
 The current release-readiness audit is available in
 `dev/linux-preview-release-readiness.md`.
+
+The full user-release target and shortcut-parity workflow are documented in
+`dev/linux-user-release-roadmap.md`.

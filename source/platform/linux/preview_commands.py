@@ -6,6 +6,15 @@ from __future__ import annotations
 from typing import Any, Callable
 
 
+PREVIEW_GESTURE_NAMES = frozenset(
+	(
+		"nvda+b",
+		"nvda+h",
+		"nvda+q",
+		"nvda+t",
+		"nvda+tab",
+	),
+)
 _PREVIEW_HELP = (
 	"NVDA T active window title. "
 	"NVDA Tab focused object. "

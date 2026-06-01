@@ -71,6 +71,8 @@ but it should still be treated as a bring-up tool.
   transcript, and an unchecked desktop-validation checklist.
 - A user-facing Linux preview guide covering commands, installation, strict
   smoke validation, supported sessions, and known limitations.
+- A shortcut-parity audit that inventories the shared Windows keyboard map and
+  distinguishes identifier translation from executable native runtime scripts.
 
 ## Remaining non-desktop implementation work
 
