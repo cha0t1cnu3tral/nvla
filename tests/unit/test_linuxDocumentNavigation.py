@@ -104,6 +104,45 @@ class TestLinuxDocumentNavigationController(unittest.TestCase):
 		self.assertTrue(self.controller.handleGesture(self._gesture("downArrow")))
 		self.assertEqual(["First line", "Second line"], self.announcements)
 
+	def testAutomaticallyUsesFocusModeForEditableControls(self):
+		self.controller.setFocusObject(_Object(controlTypes.Role.EDITABLETEXT, name="Search"))
+
+		self.assertTrue(self.controller.isFocusMode)
+		self.assertFalse(self.controller.handleGesture(self._gesture("downArrow")))
+		self.assertFalse(self.controller.handleGesture(self._gesture("H")))
+		self.assertEqual([], self.announcements)
+
+	def testUsesBrowseModeForNonEditableControls(self):
+		self.controller.setFocusObject(_Object(controlTypes.Role.LINK, name="Profile"))
+
+		self.assertFalse(self.controller.isFocusMode)
+		self.assertTrue(self.controller.handleGesture(self._gesture("downArrow")))
+		self.assertEqual(["First line"], self.announcements)
+
+	def testNvdaSpaceTogglesFocusAndBrowseModes(self):
+		self.assertTrue(self.controller.handleGesture(self._gesture("NVDA+Space")))
+		self.assertTrue(self.controller.isFocusMode)
+		self.assertFalse(self.controller.handleGesture(self._gesture("downArrow")))
+		self.assertTrue(self.controller.handleGesture(self._gesture("NVDA+Space")))
+		self.assertFalse(self.controller.isFocusMode)
+		self.assertEqual(["Focus mode", "Browse mode"], self.announcements)
+
+	def testManualModeOverrideSurvivesFocusChangesWithinDocument(self):
+		self.assertTrue(self.controller.handleGesture(self._gesture("NVDA+Space")))
+
+		self.controller.setFocusObject(_Object(controlTypes.Role.LINK, name="Profile"))
+
+		self.assertTrue(self.controller.isFocusMode)
+
+	def testChangingDocumentResetsManualModeOverride(self):
+		self.assertTrue(self.controller.handleGesture(self._gesture("NVDA+Space")))
+		newRoot = _Object(controlTypes.Role.DOCUMENT, basicText="New page")
+
+		self.controller.setRoot(newRoot)
+		self.controller.setFocusObject(_Object(controlTypes.Role.LINK, name="Profile"))
+
+		self.assertFalse(self.controller.isFocusMode)
+
 
 if __name__ == "__main__":
 	unittest.main()

@@ -193,6 +193,7 @@ class LinuxAccessibilityAdapter:
 		while root is not None and root.role is not controlTypes.Role.DOCUMENT:
 			root = root.parent
 		self._documentNavigation.setRoot(root)
+		self._documentNavigation.setFocusObject(obj)
 
 	def terminate(self) -> None:
 		self.terminate_iaccessible()

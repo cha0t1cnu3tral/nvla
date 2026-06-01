@@ -39,6 +39,13 @@ _QUICK_NAV_GESTURES = {
 	"t": "table",
 	"d": "landmark",
 }
+_FOCUS_MODE_ROLE_NAMES = frozenset(
+	{
+		"COMBOBOX",
+		"EDITABLETEXT",
+		"PASSWORDEDIT",
+	}
+)
 
 
 @dataclass(frozen=True)
@@ -143,18 +150,50 @@ class LinuxDocumentNavigationController:
 		self._announce = announce
 		self._root: Any | None = None
 		self._navigator: LinuxDocumentNavigator | None = None
+		self._focusObject: Any | None = None
+		self._isFocusMode = False
+		self._isFocusModeForced = False
 
 	def setRoot(self, root: Any | None) -> None:
 		if root is self._root:
 			return
 		self._root = root
 		self._navigator = LinuxDocumentNavigator(root) if root is not None else None
+		self._isFocusModeForced = False
+		self._updateAutomaticFocusMode()
+
+	def setFocusObject(self, obj: Any | None) -> None:
+		self._focusObject = obj
+		if not self._isFocusModeForced:
+			self._updateAutomaticFocusMode()
+
+	@property
+	def isFocusMode(self) -> bool:
+		return self._isFocusMode
+
+	def _updateAutomaticFocusMode(self) -> None:
+		obj = self._focusObject
+		self._isFocusMode = (
+			self._navigator is not None
+			and obj is not None
+			and (
+				_roleName(obj) in _FOCUS_MODE_ROLE_NAMES
+				or bool(getattr(obj, "isEditable", False))
+			)
+		)
 
 	def handleGesture(self, gesture: Any) -> bool:
 		navigator = self._navigator
 		if navigator is None:
 			return False
 		gestureName = gesture.event.gestureName.lower()
+		if gestureName == "nvda+space":
+			self._isFocusMode = not self._isFocusMode
+			self._isFocusModeForced = True
+			self._announce("Focus mode" if self._isFocusMode else "Browse mode")
+			return True
+		if self._isFocusMode:
+			return False
 		if gestureName == "downarrow":
 			position = navigator.moveLine(1)
 		elif gestureName == "uparrow":
