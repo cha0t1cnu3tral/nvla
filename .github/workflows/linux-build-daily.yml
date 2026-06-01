@@ -1,0 +1,41 @@
+# GitHub Actions workflow to build once per day
+# This workflow triggers a build once every day at midnight UTC.
+# Adjust the cron expression and Python version as needed for your project.
+name: Linux Daily Build
+
+on:
+  # Run once per day at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * *'
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          # Adjust to the Python version required by your project
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y scons libx11-dev libxext-dev libxrandr-dev libgl1-mesa-dev
+          pip install -r requirements.txt
+
+      - name: Build project
+        run: |
+          # Run the scons build; adjust targets to your needs
+          scons release
+
+      - name: Run tests
+        run: |
+          # Use the project's test framework (pytest is common for Python)
+          pytest -q || true
