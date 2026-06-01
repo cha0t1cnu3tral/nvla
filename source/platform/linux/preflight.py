@@ -63,6 +63,10 @@ def runPreflightChecks(
 		environ=environ,
 		importModule=importModule,
 	)
+	globalMouseObservation = _checkGlobalMouseObservation(
+		environ=environ,
+		importModule=importModule,
+	)
 	return (
 		PreflightCheck("linux", isLinux, True, platform),
 		PreflightCheck(
@@ -92,6 +96,7 @@ def runPreflightChecks(
 			clipboardCommand or "Install wl-clipboard, xclip, or xsel for text clipboard support",
 		),
 		globalKeyboardCapture,
+		globalMouseObservation,
 	)
 
 
@@ -152,4 +157,40 @@ def _checkGlobalKeyboardCapture(
 		True,
 		False,
 		"X11 NVDA-modifier command grabs available; validate pass-through behavior on desktop",
+	)
+
+
+def _checkGlobalMouseObservation(
+	*,
+	environ: Mapping[str, str],
+	importModule: Callable[[str], object],
+) -> PreflightCheck:
+	if environ.get("WAYLAND_DISPLAY"):
+		return PreflightCheck(
+			"globalMouseObservation",
+			False,
+			False,
+			"Wayland global observation is not implemented yet",
+		)
+	if not environ.get("DISPLAY"):
+		return PreflightCheck(
+			"globalMouseObservation",
+			False,
+			False,
+			"Set DISPLAY for X11 global observation",
+		)
+	try:
+		importModule("Xlib")
+	except ImportError:
+		return PreflightCheck(
+			"globalMouseObservation",
+			False,
+			False,
+			"Install python3-xlib for X11 global observation",
+		)
+	return PreflightCheck(
+		"globalMouseObservation",
+		True,
+		False,
+		"X11 RECORD pointer observation available; validate behavior on desktop",
 	)

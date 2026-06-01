@@ -20,6 +20,7 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertIn("[PENDING] audio:", formatPreflightReport(checks))
 		self.assertIn("[PENDING] clipboard:", formatPreflightReport(checks))
 		self.assertIn("[OK] globalKeyboardCapture: X11 NVDA-modifier command grabs available", formatPreflightReport(checks))
+		self.assertIn("[OK] globalMouseObservation: X11 RECORD pointer observation available", formatPreflightReport(checks))
 
 	def test_prefers_speech_dispatcher_before_espeak_ng(self):
 		checks = runPreflightChecks(
@@ -38,6 +39,9 @@ class TestLinuxPreflight(unittest.TestCase):
 		globalKeyboardCapture = next(check for check in checks if check.name == "globalKeyboardCapture")
 		self.assertFalse(globalKeyboardCapture.available)
 		self.assertIn("Wayland", globalKeyboardCapture.detail)
+		globalMouseObservation = next(check for check in checks if check.name == "globalMouseObservation")
+		self.assertFalse(globalMouseObservation.available)
+		self.assertIn("Wayland", globalMouseObservation.detail)
 
 	def test_reports_missing_required_dependencies(self):
 		def missingModule(name):
@@ -75,6 +79,10 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertFalse(globalKeyboardCapture.available)
 		self.assertFalse(globalKeyboardCapture.required)
 		self.assertIn("python3-xlib", globalKeyboardCapture.detail)
+		globalMouseObservation = next(check for check in checks if check.name == "globalMouseObservation")
+		self.assertFalse(globalMouseObservation.available)
+		self.assertFalse(globalMouseObservation.required)
+		self.assertIn("python3-xlib", globalMouseObservation.detail)
 
 
 if __name__ == "__main__":
