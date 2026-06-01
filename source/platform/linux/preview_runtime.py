@@ -27,6 +27,7 @@ def runNativePreview(
 
 	if wait is None:
 		wait = threading.Event().wait
+	stopRequested = threading.Event()
 	output = speechOutput if speechOutput is not None else createOutput()
 	if output is None:
 		write("Install Speech Dispatcher or espeak-ng before running the Linux preview.")
@@ -48,6 +49,7 @@ def runNativePreview(
 	commandController = LinuxPreviewCommandController(
 		dispatcher=accessibility.dispatcher,
 		announce=announce,
+		requestStop=stopRequested.set,
 	)
 
 	def handleDispatch(eventName: str, obj: Any, **kwargs: Any) -> None:
@@ -77,6 +79,8 @@ def runNativePreview(
 		endTime = None if durationSeconds is None else monotonic() + max(0, durationSeconds)
 		while True:
 			accessibility.pump_all()
+			if stopRequested.is_set():
+				break
 			if endTime is not None:
 				remaining = endTime - monotonic()
 				if remaining <= 0:

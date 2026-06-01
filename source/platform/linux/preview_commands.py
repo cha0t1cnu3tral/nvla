@@ -9,9 +9,16 @@ from typing import Any, Callable
 class LinuxPreviewCommandController:
 	"""Small native command set used before shared global commands are portable."""
 
-	def __init__(self, *, dispatcher: Any, announce: Callable[[str], None]) -> None:
+	def __init__(
+		self,
+		*,
+		dispatcher: Any,
+		announce: Callable[[str], None],
+		requestStop: Callable[[], None] | None = None,
+	) -> None:
 		self._dispatcher = dispatcher
 		self._announce = announce
+		self._requestStop = requestStop
 
 	def handleGesture(self, gesture: Any) -> bool:
 		gestureName = gesture.event.gestureName.lower()
@@ -24,6 +31,10 @@ class LinuxPreviewCommandController:
 			return True
 		if gestureName == "nvda+b":
 			self._announce(formatObjectTreeAnnouncement(_getTopLevelObject(focusObject)) or "No active window")
+			return True
+		if gestureName == "nvda+q" and self._requestStop is not None:
+			self._announce("Exiting NVDA Linux preview")
+			self._requestStop()
 			return True
 		return False
 

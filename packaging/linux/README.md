@@ -44,7 +44,7 @@ systemctl --user enable --now nvda-linux-preview.service
 
 The native preview announces AT-SPI focus changes. Press `NVDA+T` for the active
 window title, `NVDA+Tab` for the focused object, and `NVDA+B` to read through
-the active accessible object tree.
+the active accessible object tree. Press `NVDA+Q` to exit cleanly.
 
 ## Test X11 keyboard observation
 

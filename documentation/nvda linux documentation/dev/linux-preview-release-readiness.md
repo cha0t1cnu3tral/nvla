@@ -14,8 +14,9 @@ but it should still be treated as a bring-up tool.
 - A Linux-native preview runtime loop that combines AT-SPI focus announcements,
   document-navigation speech, keyboard capture, and pointer observation without
   loading the incomplete shared core.
-- Native `NVDA+T`, `NVDA+Tab`, and `NVDA+B` preview commands for the active
-  window title, focused object, and a bounded read-through of the active tree.
+- Native `NVDA+T`, `NVDA+Tab`, `NVDA+B`, and `NVDA+Q` preview commands for the
+  active window title, focused object, a bounded active-tree read-through, and
+  clean preview shutdown.
 - Linux-compatible shared bootstrap fallbacks for registry, argument parsing,
   logging, localization, queue watchdog selection, configuration, and add-on
   bundle decoding.

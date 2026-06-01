@@ -149,6 +149,28 @@ class TestLinuxPreviewRuntime(unittest.TestCase):
 		self.assertEqual(["initialize", "unregisterDispatchListener"], accessibility.calls)
 		self.assertIn("registry unavailable", writes[-1])
 
+	def test_nvda_q_stops_runtime_through_registered_command_handler(self):
+		accessibility = _Adapter()
+		inputAdapter = _Input()
+		output = _Speech()
+		originalPumpAll = accessibility.pump_all
+
+		def pumpAll():
+			originalPumpAll()
+			inputAdapter.handlers[0](SimpleNamespace(event=SimpleNamespace(gestureName="NVDA+Q")))
+
+		accessibility.pump_all = pumpAll
+
+		result = runNativePreview(
+			services=SimpleNamespace(accessibility=accessibility, input=inputAdapter),
+			speechOutput=output,
+			write=lambda text: None,
+		)
+
+		self.assertEqual(0, result)
+		self.assertIn("Exiting NVDA Linux preview", output.spoken)
+		self.assertEqual([], inputAdapter.handlers)
+
 
 if __name__ == "__main__":
 	unittest.main()
