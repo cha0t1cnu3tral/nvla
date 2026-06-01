@@ -5,7 +5,7 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/nvda-linux-preview
+ExecStart=@NVDA_LINUX_PREVIEW_LAUNCHER@
 Restart=on-failure
 RestartSec=2
 

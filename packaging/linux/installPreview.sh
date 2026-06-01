@@ -9,10 +9,24 @@ bin_dir="${XDG_BIN_HOME:-$HOME/.local/bin}"
 applications_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 systemd_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 
+escape_systemd_argument() {
+	local value="$1"
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	value="${value//%/%%}"
+	printf '"%s"' "$value"
+}
+
 mkdir -p "$bin_dir" "$applications_dir" "$systemd_dir"
 ln -sfn "$root_dir/tools/runLinuxPort.sh" "$bin_dir/nvda-linux-preview"
 cp "$root_dir/packaging/linux/nvda-linux-preview.desktop" "$applications_dir/"
-cp "$root_dir/packaging/linux/nvda-linux-preview.service" "$systemd_dir/"
+launcher_exec="$(escape_systemd_argument "$bin_dir/nvda-linux-preview")"
+escaped_launcher_exec="${launcher_exec//\\/\\\\}"
+escaped_launcher_exec="${escaped_launcher_exec//&/\\&}"
+escaped_launcher_exec="${escaped_launcher_exec//|/\\|}"
+sed "s|@NVDA_LINUX_PREVIEW_LAUNCHER@|$escaped_launcher_exec|" \
+	"$root_dir/packaging/linux/nvda-linux-preview.service" \
+	> "$systemd_dir/nvda-linux-preview.service"
 
 if command -v update-desktop-database >/dev/null 2>&1; then
 	update-desktop-database "$applications_dir" >/dev/null 2>&1 || true
