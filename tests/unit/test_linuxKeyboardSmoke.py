@@ -34,6 +34,10 @@ class _SmokeCommandGrabSource(_SmokeKeyboardSource):
 		emit(SimpleNamespace(key="insert", pressed=False, nvdaModifierKeys=4))
 
 
+class _SmokeWaylandSource(_SmokeCommandGrabSource):
+	supportsPassThroughEnforcement = True
+
+
 class TestLinuxKeyboardSmoke(unittest.TestCase):
 	def test_observes_x11_keys_and_stops_source(self):
 		source = _SmokeKeyboardSource()
@@ -55,16 +59,21 @@ class TestLinuxKeyboardSmoke(unittest.TestCase):
 		self.assertIn("down: A passThrough", output)
 		self.assertIn("up: A passThrough", output)
 
-	def test_rejects_wayland_session(self):
+	def test_observes_wayland_keys_and_suppresses_smoke_command(self):
+		source = _SmokeWaylandSource()
 		output = []
 
 		result = runKeyboardSmoke(
+			durationSeconds=0,
 			environ={"DISPLAY": ":1", "WAYLAND_DISPLAY": "wayland-0"},
+			source=source,
 			write=output.append,
 		)
 
-		self.assertEqual(1, result)
-		self.assertIn("Wayland", output[0])
+		self.assertEqual(0, result)
+		self.assertTrue(source.isStopped)
+		self.assertIn("Keyboard capture mode: global", output)
+		self.assertIn("handled: NVDA+T", output)
 
 	def test_command_grab_mode_handles_smoke_chord(self):
 		source = _SmokeCommandGrabSource()

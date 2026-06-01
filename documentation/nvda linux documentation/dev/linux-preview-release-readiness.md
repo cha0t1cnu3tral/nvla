@@ -35,10 +35,14 @@ but it should still be treated as a bring-up tool.
 - X11 synchronous passive grabs for configured NVDA modifier keys. This
   suppresses handled preview commands and replays unhandled events, but still
   requires desktop validation for exact pass-through parity.
+- Wayland `evdev` keyboard capture with physical device grabs and `/dev/uinput`
+  replay for unhandled sequences. This requires explicit device permissions
+  and real desktop validation.
 - Linux `/proc` process enumeration and X11 EWMH desktop, active-window, and
   client-list discovery behind the process-focus PAL boundary.
-- An X11 keyboard smoke tool that reports live normalized gestures through the
-  RECORD observer and can exercise NVDA-modifier command suppression and replay.
+- A keyboard smoke tool that reports live normalized gestures through the X11
+  RECORD observer or Wayland evdev backend and can exercise command suppression
+  and replay.
 - X11 RECORD-based global pointer observation plus a mouse smoke tool that
   reports live motion and button events without loading the Windows mouse stack.
 - Linux-native pointer tracking groundwork that resolves observed X11 motion
@@ -91,7 +95,8 @@ but it should still be treated as a bring-up tool.
 
 - Validate X11 NVDA-modifier command suppression and pass-through replay
   against real desktop applications.
-- Define, implement, and validate the Wayland capture strategy.
+- Validate Wayland keyboard permissions and replay, then implement Wayland
+  pointer capture.
 - Verify AT-SPI focus, caret, property, and document events against real apps
   and browsers.
 - Verify Speech Dispatcher and `espeak-ng` behavior in a graphical session.

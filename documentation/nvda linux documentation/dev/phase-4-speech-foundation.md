@@ -73,7 +73,8 @@ Remaining Phase 4 work:
 The first usable screen-reader preview still needs:
 
 - Validate X11 keyboard capture and pass-through enforcement on a real desktop.
-- A documented restricted Wayland fallback until compositor-specific global capture is available.
+- Validate Wayland `evdev` keyboard capture and `/dev/uinput` replay with
+  packaged device permissions.
 - Continue Linux startup cleanup for remaining Windows-only imports beyond the early helper/audio path.
 - Continue separating shared startup imports before the native preview can reuse
   more of `core.main()`.

@@ -14,7 +14,7 @@ Legend:
 | --- | --- | --- | --- |
 | Accessibility tree and events | UIA + IAccessible + IA2/COM | AT-SPI2 over D-Bus | Initial path available |
 | Text ranges / review | UIA TextPattern + IAccessible text variants | AT-SPI text interfaces | Initial path available |
-| Global keyboard hooks | Win32 hooks / `SendInput` ecosystem | X11 capture + restricted Wayland fallback | Initial path available |
+| Global keyboard hooks | Win32 hooks / `SendInput` ecosystem | X11 capture + Wayland `evdev` capture and `uinput` replay | Initial paths available; desktop validation required |
 | Mouse tracking / routing | Win32 cursor APIs | X11 RECORD observation + AT-SPI hit testing | Initial path available |
 | Touch gestures | Windows touch and gesture stack | Wayland/libinput gesture translation | Gap |
 | Speech output | SAPI, eSpeak, Windows audio routing | Speech Dispatcher + eSpeak NG command fallback | Initial path available |

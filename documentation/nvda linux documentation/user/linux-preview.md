@@ -6,8 +6,9 @@ It is not yet a replacement for the stable Windows release.
 ## Supported Preview Path
 
 - X11 is the primary validation target.
-- Wayland can start in a restricted local-only mode, but global keyboard and
-  pointer capture are not implemented yet.
+- Wayland keyboard capture can use `python3-evdev` plus `/dev/input` read and
+  `/dev/uinput` write permissions. Without those permissions it falls back to
+  restricted local-only mode. Wayland pointer capture is not implemented.
 - Speech output uses Speech Dispatcher through `spd-say`, with `espeak-ng` as
   a fallback.
 - Accessibility events and object information come from AT-SPI2.
@@ -63,7 +64,8 @@ navigation keys for headings, links, controls, lists, tables, and landmarks.
 ## Known Limitations
 
 - X11 keyboard suppression and pass-through still require desktop validation.
-- Wayland global keyboard and pointer capture are not implemented.
+- Wayland keyboard capture requires `python3-evdev`, readable keyboard devices
+  under `/dev/input`, and writable `/dev/uinput`. Pointer capture is pending.
 - Browse mode is intentionally limited and does not match mature NVDA browser
   support.
 - Speech launches command-line clients per announcement instead of using a

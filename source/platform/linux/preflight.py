@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import importlib
+import os
 import shutil
 import sys
 from typing import Any, Callable, Mapping
@@ -26,6 +27,7 @@ def runPreflightChecks(
 	importModule: Callable[[str], object] = importlib.import_module,
 	checkX11RecordExtension: Callable[[], tuple[bool, str]] | None = None,
 	checkAtspiDesktop: Callable[[], tuple[bool, str]] | None = None,
+	checkWaylandEvdevAccess: Callable[[], tuple[bool, str]] | None = None,
 ) -> tuple[PreflightCheck, ...]:
 	if environ is None:
 		import os
@@ -64,6 +66,7 @@ def runPreflightChecks(
 	globalKeyboardCapture = _checkGlobalKeyboardCapture(
 		environ=environ,
 		importModule=importModule,
+		checkWaylandEvdevAccess=checkWaylandEvdevAccess,
 	)
 	globalMouseObservation = _checkGlobalMouseObservation(
 		environ=environ,
@@ -140,13 +143,17 @@ def _checkGlobalKeyboardCapture(
 	*,
 	environ: Mapping[str, str],
 	importModule: Callable[[str], object],
+	checkWaylandEvdevAccess: Callable[[], tuple[bool, str]] | None,
 ) -> PreflightCheck:
 	if environ.get("WAYLAND_DISPLAY"):
+		if checkWaylandEvdevAccess is None:
+			checkWaylandEvdevAccess = lambda: _probeWaylandEvdevAccess(importModule)
+		available, detail = checkWaylandEvdevAccess()
 		return PreflightCheck(
 			"globalKeyboardCapture",
+			available,
 			False,
-			False,
-			"Wayland global capture is not implemented yet; preview remains local-only",
+			detail,
 		)
 	if not environ.get("DISPLAY"):
 		return PreflightCheck(
@@ -170,6 +177,45 @@ def _checkGlobalKeyboardCapture(
 		False,
 		"X11 NVDA-modifier command grabs available; validate pass-through behavior on desktop",
 	)
+
+
+def _probeWaylandEvdevAccess(importModule: Callable[[str], object] = importlib.import_module) -> tuple[bool, str]:
+	try:
+		evdev = importModule("evdev")
+	except ImportError:
+		return False, "Wayland keyboard capture requires python3-evdev"
+	try:
+		devices = []
+		for path in evdev.list_devices():
+			try:
+				devices.append(evdev.InputDevice(path))
+			except OSError:
+				continue
+	except Exception as error:
+		return False, f"Unable to inspect Wayland evdev keyboard devices: {error}"
+	try:
+		keyboards = tuple(
+			device
+			for device in devices
+			if _isEvdevKeyboard(device, evdev.ecodes)
+		)
+	finally:
+		for device in devices:
+			try:
+				device.close()
+			except Exception:
+				pass
+	if not keyboards:
+		return False, "Grant Wayland capture read access to keyboard devices under /dev/input"
+	uinputPath = next((path for path in ("/dev/uinput", "/dev/input/uinput") if os.path.exists(path)), None)
+	if uinputPath is None or not os.access(uinputPath, os.W_OK):
+		return False, "Grant write access to /dev/uinput for Wayland keyboard replay"
+	return True, "Wayland evdev capture and uinput replay available"
+
+
+def _isEvdevKeyboard(device: Any, ecodes: Any) -> bool:
+	keyCapabilities = device.capabilities().get(ecodes.EV_KEY, ())
+	return ecodes.KEY_A in keyCapabilities and ecodes.KEY_Z in keyCapabilities
 
 
 def _checkGlobalMouseObservation(

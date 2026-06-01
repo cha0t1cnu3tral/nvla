@@ -10,6 +10,7 @@ from typing import Any, Callable, Mapping
 from .input import (
 	KeyboardCaptureMode,
 	LinuxInputAdapter,
+	WaylandKeyboardEventSource,
 	X11KeyboardEventSource,
 	X11NVDAModifierKeyboardEventSource,
 )
@@ -25,22 +26,26 @@ def runKeyboardSmoke(
 	wait: Callable[[float], Any] | None = None,
 	write: Callable[[str], None] = print,
 ) -> int:
-	"""Observe live X11 gestures through the preview keyboard backend."""
+	"""Observe live gestures through the preview keyboard backend."""
 
 	if environ is None:
 		environ = os.environ
-	if environ.get("WAYLAND_DISPLAY"):
-		write("Wayland global keyboard capture is not implemented yet.")
-		return 1
-	if not environ.get("DISPLAY"):
-		write("Set DISPLAY and run this tool from an X11 desktop session.")
+	isWayland = bool(environ.get("WAYLAND_DISPLAY"))
+	if not isWayland and not environ.get("DISPLAY"):
+		write("Set WAYLAND_DISPLAY or DISPLAY and run this tool from a Linux desktop session.")
 		return 1
 	if wait is None:
 		wait = threading.Event().wait
 	if source is None:
-		source = X11NVDAModifierKeyboardEventSource() if commandGrabs else X11KeyboardEventSource()
+		source = (
+			WaylandKeyboardEventSource()
+			if isWayland
+			else X11NVDAModifierKeyboardEventSource()
+			if commandGrabs
+			else X11KeyboardEventSource()
+		)
 	adapter = LinuxInputAdapter(keyboardEventSource=source)
-	if commandGrabs:
+	if commandGrabs or isWayland:
 		adapter.setKeyboardGestureExecutor(
 			lambda gesture: _handleSmokeCommand(gesture.displayName, handledGestureNames, write),
 		)
@@ -50,9 +55,9 @@ def runKeyboardSmoke(
 		mode = adapter.keyboardCaptureMode
 		write(f"Keyboard capture mode: {mode.value}")
 		if mode is KeyboardCaptureMode.LOCAL_ONLY:
-			write(f"X11 keyboard observation failed: {adapter.keyboardEventSourceStartError}")
+			write(f"Keyboard capture failed: {adapter.keyboardEventSourceStartError}")
 			return 2
-		if commandGrabs:
+		if commandGrabs or isWayland:
 			write("Press NVDA+T in another application; it should be logged as handled and suppressed.")
 			write("Try another NVDA chord to exercise pass-through replay.")
 		else:

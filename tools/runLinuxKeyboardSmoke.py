@@ -16,7 +16,7 @@ from platform.linux.keyboard_smoke import runKeyboardSmoke  # noqa: E402
 
 
 def main() -> int:
-	parser = argparse.ArgumentParser(description="Observe NVDA Linux preview X11 keyboard gestures.")
+	parser = argparse.ArgumentParser(description="Observe NVDA Linux preview keyboard gestures.")
 	parser.add_argument("--duration", type=float, default=15, help="Observation duration in seconds.")
 	parser.add_argument(
 		"--command-grabs",

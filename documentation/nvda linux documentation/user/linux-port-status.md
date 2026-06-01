@@ -17,9 +17,11 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 - Linux keyboard events can be normalized and handed to existing `kb:` gesture bindings through `inputCore`.
 - Linux NVDA modifier handling covers configured modifier keys, held modifiers, and pass-through intent.
 - Linux Super, navigation, and keypad key names are translated to the existing NVDA identifiers so built-in Windows keyboard command maps can be reused.
-- Keyboard startup exposes an explicit local-only fallback when X11 capture is unavailable and for restricted Wayland sessions.
+- Keyboard startup exposes an explicit local-only fallback when X11 capture is
+  unavailable or Wayland `evdev` and `uinput` permissions are incomplete.
 - X11 startup can suppress handled NVDA-modifier commands through passive grabs when `python-xlib` is installed. Exact pass-through behavior still needs desktop validation.
-- `tools/runLinuxKeyboardSmoke.py` can verify live X11 key observation before running the full preview.
+- `tools/runLinuxKeyboardSmoke.py` can verify live X11 or Wayland keyboard
+  capture before running the full preview.
 - X11 RECORD pointer observation, AT-SPI hit testing, accessible-object mouse tracking, and `tools/runLinuxMouseSmoke.py` are available for desktop testing.
 - `tools/runLinuxFocusSpeechSmoke.py` can speak live AT-SPI focus changes for early desktop testing.
 - Initial Linux speech output is available through Speech Dispatcher, with an `espeak-ng` command fallback.
@@ -40,6 +42,9 @@ Phase 0 and Phase 1 are established. Phase 2 AT-SPI accessibility foundations ar
 ## What to expect right now
 
 - Linux support is not yet production-ready.
-- The current focus is real X11 desktop validation, deeper AT-SPI review behavior, shared boot-path cleanup, and a Wayland capture strategy.
-- X11 NVDA-modifier command suppression is available for desktop testing. Wayland global capture is not implemented yet.
+- The current focus is real X11 and Wayland desktop validation, deeper AT-SPI
+  review behavior, shared boot-path cleanup, and Wayland pointer capture.
+- X11 NVDA-modifier command suppression is available for desktop testing.
+  Wayland keyboard capture now uses `evdev` device grabs and `uinput` replay
+  when permissions are configured.
 - The preview packaging is for bring-up only. User-facing Linux builds will come after core accessibility, input, audio, and production packaging work.

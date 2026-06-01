@@ -114,7 +114,8 @@ This file tracks Linux port progress in this checkout, what is next, and practic
 
 1. Validate X11 command suppression and pass-through replay on real desktops,
    then deepen the backend where parity gaps remain.
-2. Define and implement a Wayland-compatible capture strategy.
+2. Validate the initial Wayland `evdev` keyboard capture and `uinput` replay
+   path, then add Wayland pointer observation.
 3. Add Linux Sticky Keys latch/lock handling and secure global-hotkey behavior.
 4. Drive the shortcut-parity audit toward executable shared-runtime coverage.
 

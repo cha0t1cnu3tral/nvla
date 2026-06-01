@@ -14,6 +14,7 @@ from platform.linux.input import (
 	X11KeyboardEventSource,
 	X11NVDAModifierKeyboardEventSource,
 	WaylandKeyboardEventSource,
+	_openEvdevKeyboards,
 	createKeyboardEventSource,
 	executeKeyboardGesture,
 	makeKeyboardGesture,
@@ -149,6 +150,36 @@ def _makeFakeX11Modules(*, hasRecordExtension=True):
 		rq=SimpleNamespace(EventField=EventField),
 	)
 	return modules, displays
+
+
+class _FakeUInput:
+	def __init__(self):
+		self.events = []
+		self.synCount = 0
+
+	def write(self, eventType, code, value):
+		self.events.append((eventType, code, value))
+
+	def syn(self):
+		self.synCount += 1
+
+
+def _makeFakeEvdevModule():
+	return SimpleNamespace(
+		ecodes=SimpleNamespace(
+			EV_KEY=1,
+			KEY_A=30,
+			KEY_Z=44,
+			KEY={
+				29: "KEY_LEFTCTRL",
+				30: "KEY_A",
+				31: "KEY_S",
+				45: "KEY_X",
+				46: "KEY_C",
+				118: "KEY_INSERT",
+			},
+		),
+	)
 
 
 def _normalizeIdentifier(identifier):
@@ -481,6 +512,76 @@ class TestLinuxInputAdapter(unittest.TestCase):
 		adapter.terminate_keyboard()
 
 		self.assertEqual((modules.X.ReplayKeyboard, 11), displays[0].allowedEvents[-1])
+
+	def test_wayland_evdev_source_suppresses_handled_nvda_chord(self):
+		module = _makeFakeEvdevModule()
+		uinput = _FakeUInput()
+		source = WaylandKeyboardEventSource(loadEvdevModule=lambda: module)
+		adapter = LinuxInputAdapter()
+		adapter.setKeyboardGestureExecutor(lambda gesture: True)
+		source._module = module
+		source._uinput = uinput
+		source._emit = adapter.feedRawKeyboardEvent
+
+		source._handleInputEvent(SimpleNamespace(type=1, code=118, value=1))
+		source._handleInputEvent(SimpleNamespace(type=1, code=46, value=1))
+		source._handleInputEvent(SimpleNamespace(type=1, code=46, value=0))
+		source._handleInputEvent(SimpleNamespace(type=1, code=118, value=0))
+
+		self.assertEqual([], uinput.events)
+
+	def test_wayland_evdev_source_replays_unhandled_chord(self):
+		module = _makeFakeEvdevModule()
+		uinput = _FakeUInput()
+		source = WaylandKeyboardEventSource(loadEvdevModule=lambda: module)
+		adapter = LinuxInputAdapter()
+		adapter.setKeyboardGestureExecutor(lambda gesture: False)
+		source._module = module
+		source._uinput = uinput
+		source._emit = adapter.feedRawKeyboardEvent
+
+		source._handleInputEvent(SimpleNamespace(type=1, code=29, value=1))
+		source._handleInputEvent(SimpleNamespace(type=1, code=31, value=1))
+		source._handleInputEvent(SimpleNamespace(type=1, code=31, value=0))
+		source._handleInputEvent(SimpleNamespace(type=1, code=29, value=0))
+
+		self.assertEqual(
+			[(1, 29, 1), (1, 31, 1), (1, 31, 0), (1, 29, 0)],
+			uinput.events,
+		)
+		self.assertEqual(4, uinput.synCount)
+
+	def test_wayland_evdev_source_suppresses_handled_browse_key(self):
+		module = _makeFakeEvdevModule()
+		uinput = _FakeUInput()
+		source = WaylandKeyboardEventSource(loadEvdevModule=lambda: module)
+		adapter = LinuxInputAdapter()
+		adapter.registerKeyboardGestureHandler(lambda gesture: gesture.event.gestureName == "X")
+		source._module = module
+		source._uinput = uinput
+		source._emit = adapter.feedRawKeyboardEvent
+
+		source._handleInputEvent(SimpleNamespace(type=1, code=45, value=1))
+		source._handleInputEvent(SimpleNamespace(type=1, code=45, value=0))
+
+		self.assertEqual([], uinput.events)
+
+	def test_wayland_evdev_discovery_skips_unreadable_and_closes_non_keyboards(self):
+		module = _makeFakeEvdevModule()
+		closedDevices = []
+		keyboard = SimpleNamespace(capabilities=lambda: {1: (30, 44)}, close=lambda: closedDevices.append("keyboard"))
+		pointer = SimpleNamespace(capabilities=lambda: {}, close=lambda: closedDevices.append("pointer"))
+
+		def inputDevice(path):
+			if path == "unreadable":
+				raise PermissionError(path)
+			return {"keyboard": keyboard, "pointer": pointer}[path]
+
+		module.list_devices = lambda: ("unreadable", "pointer", "keyboard")
+		module.InputDevice = inputDevice
+
+		self.assertEqual((keyboard,), _openEvdevKeyboards(module))
+		self.assertEqual(["pointer"], closedDevices)
 
 	def test_keyboard_event_source_failure_uses_local_only_fallback(self):
 		source = _FailingKeyboardEventSource()

@@ -40,11 +40,13 @@ python tools/runLinuxPortPreflight.py
 ```
 
 The command checks the desktop session, AT-SPI2 desktop registry, wxPython,
-Linux speech commands, and optional X11 keyboard and pointer capture support
-through `python-xlib`. Wayland global capture and full X11 pass-through parity
-remain pending.
+Linux speech commands, optional X11 keyboard and pointer capture support
+through `python-xlib`, and optional Wayland keyboard capture through `evdev`
+plus `uinput`. Wayland pointer capture and full desktop validation remain
+pending.
 
-From an X11 desktop session, verify live keyboard observation with:
+From an X11 or permission-configured Wayland desktop session, verify live
+keyboard capture with:
 
 ```bash
 python tools/runLinuxKeyboardSmoke.py --duration 30

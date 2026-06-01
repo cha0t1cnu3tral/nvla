@@ -4,9 +4,10 @@ Date: 2026-05-29
 
 ## Summary
 
-Initial Linux input scaffolding, X11 global keyboard observation, and X11
-NVDA-modifier command suppression are in place. Wayland global capture and
-full pass-through parity remain pending.
+Initial Linux input scaffolding, X11 global keyboard observation, X11
+NVDA-modifier command suppression, and Wayland `evdev` keyboard capture with
+`uinput` replay are in place. Desktop validation and Wayland pointer capture
+remain pending.
 
 ## Implemented
 
@@ -33,8 +34,10 @@ full pass-through parity remain pending.
     and clean context shutdown.
   - Added X11 synchronous passive grabs for configured NVDA modifier keys,
     including handled-command suppression and unhandled-event replay.
-  - Keeps the Wayland source as an explicit local-only fallback until a
-    compositor-compatible strategy is implemented.
+  - Added Wayland raw keyboard capture through `python3-evdev`, physical
+    keyboard grabs, and `/dev/uinput` replay for unhandled physical sequences.
+  - Keeps an explicit local-only fallback when Wayland input-device
+    dependencies or permissions are incomplete.
   - Added Linux NVDA modifier normalization for configured Caps Lock, numpad Insert, and extended Insert keys so they produce the same `NVDA+...` gesture names as Windows.
   - Maps Linux Super key names to NVDA's existing `windows` modifier identifier so commands using that modifier remain compatible with the shared gesture maps.
   - Maps common Linux navigation and keypad names such as `Page_Up`, `Left`, and `KP_Enter` to the existing NVDA key identifiers such as `pageUp`, `leftArrow`, and `numpadEnter`.
@@ -97,7 +100,8 @@ Remaining:
 
 - Validate X11 command suppression and pass-through replay against real
   applications, then deepen the backend where parity gaps remain.
-- Wayland-compatible implementation strategy, likely portal/compositor-specific support on top of the explicit restricted fallback mode.
+- Validate Wayland `evdev` capture and `uinput` replay against real desktops,
+  package the required device permissions, and add Wayland pointer capture.
 - Full NVDA modifier behavior on Linux, including system Sticky Keys latch/lock support and physical backend pass-through enforcement.
 - Secure handling of global hotkeys and pass-through behavior.
 - Integration tests on a real Linux desktop.

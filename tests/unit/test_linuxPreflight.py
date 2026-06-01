@@ -50,6 +50,20 @@ class TestLinuxPreflight(unittest.TestCase):
 		self.assertFalse(globalMouseObservation.available)
 		self.assertIn("Wayland", globalMouseObservation.detail)
 
+	def test_reports_ready_wayland_evdev_keyboard_capture(self):
+		checks = runPreflightChecks(
+			platform="linux",
+			environ={"WAYLAND_DISPLAY": "wayland-0"},
+			which=lambda command: f"/usr/bin/{command}" if command == "spd-say" else None,
+			importModule=lambda name: object(),
+			checkAtspiDesktop=lambda: (True, "desktop available"),
+			checkWaylandEvdevAccess=lambda: (True, "Wayland evdev capture and uinput replay available"),
+		)
+
+		globalKeyboardCapture = next(check for check in checks if check.name == "globalKeyboardCapture")
+		self.assertTrue(globalKeyboardCapture.available)
+		self.assertIn("uinput replay available", globalKeyboardCapture.detail)
+
 	def test_reports_missing_required_dependencies(self):
 		def missingModule(name):
 			raise ImportError(name)

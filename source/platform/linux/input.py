@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 import importlib
 import re
+import select
 import threading
 import time
 from types import SimpleNamespace
@@ -715,15 +716,175 @@ class X11NVDAModifierKeyboardEventSource:
 
 
 class WaylandKeyboardEventSource:
-	"""Wayland keyboard event source placeholder for portal/compositor-backed capture."""
+	"""Capture Wayland keyboard events through evdev and replay unhandled keys with uinput."""
 
-	supportsPassThroughEnforcement = False
+	supportsPassThroughEnforcement = True
+
+	def __init__(
+		self,
+		*,
+		loadEvdevModule: Callable[[], Any] | None = None,
+		selectReadable: Callable[..., Any] = select.select,
+	) -> None:
+		self._loadEvdevModule = loadEvdevModule or _loadEvdevModule
+		self._selectReadable = selectReadable
+		self._emit: Callable[[Any], LinuxKeyEvent] | None = None
+		self._module: Any | None = None
+		self._devices: tuple[Any, ...] = ()
+		self._uinput: Any | None = None
+		self._pressedModifiers: set[str] = set()
+		self._stopEvent = threading.Event()
+		self._thread: threading.Thread | None = None
 
 	def start(self, emit: Callable[[Any], LinuxKeyEvent]) -> None:
-		raise NotSupportedYetError("Wayland keyboard event capture")
+		if self._thread is not None:
+			return
+		module = self._loadEvdevModule()
+		devices = _openEvdevKeyboards(module)
+		if not devices:
+			raise NotSupportedYetError("readable Wayland evdev keyboard devices")
+		uinput = None
+		grabbedDevices = []
+		try:
+			uinput = module.UInput.from_device(*devices, name="NVDA Linux Wayland keyboard replay")
+			for device in devices:
+				device.grab()
+				grabbedDevices.append(device)
+		except Exception:
+			for device in grabbedDevices:
+				try:
+					device.ungrab()
+				except Exception:
+					pass
+			for device in devices:
+				try:
+					device.close()
+				except Exception:
+					pass
+			if uinput is not None:
+				try:
+					uinput.close()
+				except Exception:
+					pass
+			raise
+		self._module = module
+		self._devices = devices
+		self._uinput = uinput
+		self._emit = emit
+		self._stopEvent.clear()
+		self._thread = threading.Thread(
+			target=self._run,
+			name="WaylandKeyboardEventSource",
+			daemon=True,
+		)
+		self._thread.start()
 
 	def stop(self) -> None:
-		return None
+		thread = self._thread
+		self._stopEvent.set()
+		if thread is not None:
+			thread.join(timeout=1)
+		for device in self._devices:
+			try:
+				device.ungrab()
+			except Exception:
+				pass
+			try:
+				device.close()
+			except Exception:
+				pass
+		if self._uinput is not None:
+			try:
+				self._uinput.close()
+			except Exception:
+				pass
+		self._emit = None
+		self._module = None
+		self._devices = ()
+		self._uinput = None
+		self._pressedModifiers.clear()
+		self._thread = None
+
+	def _run(self) -> None:
+		while not self._stopEvent.is_set():
+			readable, _writable, _exceptional = self._selectReadable(self._devices, (), (), 0.1)
+			for device in readable:
+				for event in device.read():
+					self._handleInputEvent(event)
+
+	def _handleInputEvent(self, event: Any) -> None:
+		module = self._module
+		emit = self._emit
+		uinput = self._uinput
+		if module is None or emit is None or uinput is None or event.type != module.ecodes.EV_KEY:
+			return
+		keyName = _getEvdevKeyName(module.ecodes, event.code)
+		translated = emit(
+			SimpleNamespace(
+				key=keyName,
+				pressed=event.value != 0,
+				modifiers=set(self._pressedModifiers),
+				scanCode=event.code,
+			),
+		)
+		modifierName = _MODIFIER_NAMES.get(_canonicalizeLinuxKeyName(keyName))
+		if modifierName is not None:
+			if event.value != 0:
+				self._pressedModifiers.add(keyName)
+			else:
+				self._pressedModifiers.discard(keyName)
+		if translated.shouldPassThrough or (
+			modifierName is not None
+			and _getLinuxNVDAModifierKeyName(keyName) is None
+		):
+			uinput.write(module.ecodes.EV_KEY, event.code, event.value)
+			uinput.syn()
+
+
+def _loadEvdevModule() -> Any:
+	try:
+		return importlib.import_module("evdev")
+	except ImportError as error:
+		raise NotSupportedYetError("python3-evdev for Wayland keyboard capture") from error
+
+
+def _isEvdevKeyboard(device: Any, ecodes: Any) -> bool:
+	keyCapabilities = device.capabilities().get(ecodes.EV_KEY, ())
+	return ecodes.KEY_A in keyCapabilities and ecodes.KEY_Z in keyCapabilities
+
+
+def _openEvdevKeyboards(module: Any) -> tuple[Any, ...]:
+	keyboards = []
+	for path in module.list_devices():
+		try:
+			device = module.InputDevice(path)
+		except OSError:
+			continue
+		if _isEvdevKeyboard(device, module.ecodes):
+			keyboards.append(device)
+		else:
+			device.close()
+	return tuple(keyboards)
+
+
+def _getEvdevKeyName(ecodes: Any, code: int) -> str:
+	name = ecodes.KEY.get(code, f"KEYCODE_{code}")
+	if isinstance(name, tuple):
+		name = name[0]
+	name = str(name).removeprefix("KEY_").lower()
+	return {
+		"leftctrl": "control_l",
+		"rightctrl": "control_r",
+		"leftalt": "alt_l",
+		"rightalt": "alt_r",
+		"leftshift": "shift_l",
+		"rightshift": "shift_r",
+		"leftmeta": "super_l",
+		"rightmeta": "super_r",
+		"capslock": "caps_lock",
+		"kp0": "kp_0",
+		"kpinsert": "kp_insert",
+	}.get(name, name)
 
 
 def makeKeyboardGesture(event: LinuxKeyEvent) -> LinuxKeyboardGesture:

@@ -80,10 +80,10 @@ python3 tools/runLinuxReleaseSmoke.py --strict-capture --duration 30 --report li
 Review the generated Markdown report and mark each manual checklist item after
 the desktop run.
 
-## Test X11 keyboard observation
+## Test keyboard capture
 
-From an X11 desktop session, confirm that global key events are visible before
-running the full preview:
+From an X11 or permission-configured Wayland desktop session, confirm that
+global key events are visible before running the full preview:
 
 ```bash
 python3 tools/runLinuxKeyboardSmoke.py --duration 30
@@ -127,7 +127,9 @@ button events from the preview X11 RECORD backend.
 
 This is not a complete release yet. The launcher runs dependency preflight and
 starts the native preview runtime without loading the incomplete shared core.
-X11 can suppress handled NVDA-modifier commands through passive grabs, but exact
-pass-through behavior still needs desktop validation. Wayland global capture,
-full browse-mode wiring, streaming Linux audio, and real desktop validation
-remain incomplete.
+X11 can suppress handled NVDA-modifier commands through passive grabs, but
+exact pass-through behavior still needs desktop validation. Wayland keyboard
+capture requires `python3-evdev`, read access to keyboard devices under
+`/dev/input`, and write access to `/dev/uinput`. Wayland pointer capture, full
+browse-mode wiring, streaming Linux audio, and real desktop validation remain
+incomplete.
