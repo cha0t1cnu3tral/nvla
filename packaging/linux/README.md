@@ -52,6 +52,12 @@ For a time-bounded full preview smoke run:
 nvda-linux-preview --duration 30
 ```
 
+For the release-oriented preflight, runtime, and manual validation checklist:
+
+```bash
+python3 tools/runLinuxReleaseSmoke.py --duration 30
+```
+
 ## Test X11 keyboard observation
 
 From an X11 desktop session, confirm that global key events are visible before

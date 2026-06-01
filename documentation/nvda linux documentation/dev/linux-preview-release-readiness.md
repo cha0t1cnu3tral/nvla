@@ -57,6 +57,8 @@ but it should still be treated as a bring-up tool.
   and announces the resulting text.
 - A preview shell launcher, installer, desktop entry, and optional systemd
   user service.
+- A bounded release-smoke runner that gates on preflight and prints the manual
+  X11 validation checklist around a native preview run.
 
 ## Remaining non-desktop implementation work
 
