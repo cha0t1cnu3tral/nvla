@@ -41,6 +41,7 @@ Current working areas
   through to the application.
 - NVDA+Space toggles focus mode and browse mode manually while a document is
   active.
+- NVDA+Shift+Space toggles single-letter navigation while a document is active.
 - This is an early AT-SPI document-navigation path, not full NVDA virtual-buffer
   parity yet.
 
@@ -59,6 +60,7 @@ The dependency-light preview currently implements these shared NVDA shortcuts:
 - NVDA+H: report native preview command help
 - NVDA+Q: exit the Linux preview
 - NVDA+Space: toggle focus mode and browse mode inside documents
+- NVDA+Shift+Space: toggle single-letter navigation inside documents
 
 The full shared global command map is not running end-to-end on Linux yet.
 tools/runLinuxShortcutParityAudit.py reports which shared identifiers are

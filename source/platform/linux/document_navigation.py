@@ -39,6 +39,12 @@ _QUICK_NAV_GESTURES = {
 	"t": "table",
 	"d": "landmark",
 }
+DOCUMENT_GESTURE_NAMES = frozenset(
+	(
+		"nvda+shift+space",
+		"nvda+space",
+	)
+)
 _FOCUS_MODE_ROLE_NAMES = frozenset(
 	{
 		"COMBOBOX",
@@ -153,6 +159,7 @@ class LinuxDocumentNavigationController:
 		self._focusObject: Any | None = None
 		self._isFocusMode = False
 		self._isFocusModeForced = False
+		self._singleLetterNavigationEnabled = True
 
 	def setRoot(self, root: Any | None) -> None:
 		if root is self._root:
@@ -170,6 +177,10 @@ class LinuxDocumentNavigationController:
 	@property
 	def isFocusMode(self) -> bool:
 		return self._isFocusMode
+
+	@property
+	def isSingleLetterNavigationEnabled(self) -> bool:
+		return self._singleLetterNavigationEnabled
 
 	def _updateAutomaticFocusMode(self) -> None:
 		obj = self._focusObject
@@ -192,6 +203,14 @@ class LinuxDocumentNavigationController:
 			self._isFocusModeForced = True
 			self._announce("Focus mode" if self._isFocusMode else "Browse mode")
 			return True
+		if gestureName == "nvda+shift+space":
+			self._singleLetterNavigationEnabled = not self._singleLetterNavigationEnabled
+			self._announce(
+				"Single letter navigation on"
+				if self._singleLetterNavigationEnabled
+				else "Single letter navigation off"
+			)
+			return True
 		if self._isFocusMode:
 			return False
 		if gestureName == "downarrow":
@@ -201,6 +220,8 @@ class LinuxDocumentNavigationController:
 		else:
 			isPrevious = gestureName.startswith("shift+")
 			key = gestureName.removeprefix("shift+")
+			if not self._singleLetterNavigationEnabled:
+				return False
 			kind = _QUICK_NAV_GESTURES.get(key)
 			if kind is None:
 				return False

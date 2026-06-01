@@ -63,7 +63,8 @@ navigation with `Up Arrow` and `Down Arrow`, plus supported single-letter quick
 navigation keys for headings, links, controls, lists, tables, and landmarks.
 Editable controls automatically use focus mode so typing and arrow keys reach
 the application. Press `NVDA+Space` to toggle focus mode and browse mode
-manually while a document is active.
+manually while a document is active. Press `NVDA+Shift+Space` to toggle
+single-letter navigation.
 
 ## Known Limitations
 

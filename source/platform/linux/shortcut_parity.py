@@ -7,6 +7,7 @@ import ast
 from dataclasses import dataclass
 from pathlib import Path
 
+from .document_navigation import DOCUMENT_GESTURE_NAMES
 from .preview_commands import PREVIEW_GESTURE_NAMES
 
 
@@ -41,8 +42,19 @@ def collectKeyboardIdentifiers(globalCommandsPath: Path) -> tuple[str, ...]:
 def auditShortcutParity(globalCommandsPath: Path) -> ShortcutParityReport:
 	"""Compare the shared keyboard map with commands handled by the native Linux runtime."""
 
-	identifiers = collectKeyboardIdentifiers(globalCommandsPath)
-	previewGestureNames = frozenset(_normalizeChord(name) for name in PREVIEW_GESTURE_NAMES)
+	identifiers = tuple(
+		sorted(
+			{
+				*collectKeyboardIdentifiers(globalCommandsPath),
+				*collectKeyboardIdentifiers(globalCommandsPath.with_name("browseMode.py")),
+			},
+			key=str.casefold,
+		),
+	)
+	previewGestureNames = frozenset(
+		_normalizeChord(name)
+		for name in PREVIEW_GESTURE_NAMES | DOCUMENT_GESTURE_NAMES
+	)
 	previewHandled = tuple(
 		identifier
 		for identifier in identifiers

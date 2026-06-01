@@ -143,6 +143,24 @@ class TestLinuxDocumentNavigationController(unittest.TestCase):
 
 		self.assertFalse(self.controller.isFocusMode)
 
+	def testNvdaShiftSpaceTogglesSingleLetterNavigation(self):
+		self.assertTrue(self.controller.handleGesture(self._gesture("NVDA+Shift+Space")))
+		self.assertFalse(self.controller.isSingleLetterNavigationEnabled)
+		self.assertFalse(self.controller.handleGesture(self._gesture("H")))
+		self.assertTrue(self.controller.handleGesture(self._gesture("downArrow")))
+		self.assertTrue(self.controller.handleGesture(self._gesture("NVDA+Shift+Space")))
+		self.assertTrue(self.controller.isSingleLetterNavigationEnabled)
+		self.assertTrue(self.controller.handleGesture(self._gesture("H")))
+		self.assertEqual(
+			[
+				"Single letter navigation off",
+				"First line",
+				"Single letter navigation on",
+				"Account",
+			],
+			self.announcements,
+		)
+
 
 if __name__ == "__main__":
 	unittest.main()
