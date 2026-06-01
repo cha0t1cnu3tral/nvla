@@ -70,16 +70,15 @@ class TestLinuxDocumentNavigationController(unittest.TestCase):
 	def setUp(self):
 		self.announcements = []
 		self.controller = LinuxDocumentNavigationController(self.announcements.append)
-		self.controller.setRoot(
-			_Object(
-				controlTypes.Role.DOCUMENT,
-				basicText="First line\nSecond line",
-				children=[
-					_Object(controlTypes.Role.HEADING, name="Account"),
-					_Object(controlTypes.Role.LINK, name="Profile"),
-				],
-			),
+		self.root = _Object(
+			controlTypes.Role.DOCUMENT,
+			basicText="First line\nSecond line",
+			children=[
+				_Object(controlTypes.Role.HEADING, name="Account"),
+				_Object(controlTypes.Role.LINK, name="Profile"),
+			],
 		)
+		self.controller.setRoot(self.root)
 
 	def _gesture(self, name):
 		return SimpleNamespace(event=SimpleNamespace(gestureName=name))
@@ -98,6 +97,12 @@ class TestLinuxDocumentNavigationController(unittest.TestCase):
 	def testLeavesGestureUnhandledWithoutDocument(self):
 		self.controller.setRoot(None)
 		self.assertFalse(self.controller.handleGesture(self._gesture("downArrow")))
+
+	def testKeepsBrowsePositionWhenFocusedDocumentRootDoesNotChange(self):
+		self.assertTrue(self.controller.handleGesture(self._gesture("downArrow")))
+		self.controller.setRoot(self.root)
+		self.assertTrue(self.controller.handleGesture(self._gesture("downArrow")))
+		self.assertEqual(["First line", "Second line"], self.announcements)
 
 
 if __name__ == "__main__":

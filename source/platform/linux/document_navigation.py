@@ -141,9 +141,13 @@ class LinuxDocumentNavigationController:
 
 	def __init__(self, announce: Callable[[str], None]) -> None:
 		self._announce = announce
+		self._root: Any | None = None
 		self._navigator: LinuxDocumentNavigator | None = None
 
 	def setRoot(self, root: Any | None) -> None:
+		if root is self._root:
+			return
+		self._root = root
 		self._navigator = LinuxDocumentNavigator(root) if root is not None else None
 
 	def handleGesture(self, gesture: Any) -> bool:
