@@ -94,6 +94,25 @@ class TestLinuxReleaseSmoke(unittest.TestCase):
 		runPreview.assert_not_called()
 		self.assertIn("Strict capture validation failed", output[-1])
 
+	def test_strict_capture_is_enforced_again_by_native_runtime(self):
+		runPreview = mock.Mock(return_value=0)
+		checks = (
+			*_READY_CHECKS,
+			PreflightCheck("globalKeyboardCapture", True, False, "available"),
+			PreflightCheck("globalMouseObservation", True, False, "available"),
+		)
+
+		result = runReleaseSmoke(
+			strictCapture=True,
+			preflight=lambda: checks,
+			runPreview=runPreview,
+			write=lambda text: None,
+		)
+
+		self.assertEqual(0, result)
+		runPreview.assert_called_once()
+		self.assertTrue(runPreview.call_args.kwargs["requireGlobalCapture"])
+
 
 if __name__ == "__main__":
 	unittest.main()

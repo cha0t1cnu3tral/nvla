@@ -50,7 +50,13 @@ def runReleaseSmoke(
 	for index, item in enumerate(_MANUAL_CHECKLIST, start=1):
 		write(f"{index}. {item}")
 	write(f"\nStarting a {durationSeconds:g}-second native preview smoke run.")
-	result = runPreview(durationSeconds=durationSeconds, write=write)
+	previewArgs = {
+		"durationSeconds": durationSeconds,
+		"write": write,
+	}
+	if strictCapture:
+		previewArgs["requireGlobalCapture"] = True
+	result = runPreview(**previewArgs)
 	if result != 0:
 		write(f"\nLinux preview release smoke failed with status {result}.")
 		return result

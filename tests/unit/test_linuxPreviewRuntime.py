@@ -191,6 +191,24 @@ class TestLinuxPreviewRuntime(unittest.TestCase):
 		self.assertIn("Keyboard capture fallback reason: keyboard unavailable", writes)
 		self.assertIn("Mouse capture fallback reason: mouse unavailable", writes)
 
+	def test_strict_capture_fails_after_local_only_runtime_fallback(self):
+		accessibility = _Adapter()
+		inputAdapter = _Input()
+		output = _Speech()
+		writes = []
+
+		result = runNativePreview(
+			requireGlobalCapture=True,
+			services=SimpleNamespace(accessibility=accessibility, input=inputAdapter),
+			speechOutput=output,
+			write=writes.append,
+		)
+
+		self.assertEqual(3, result)
+		self.assertTrue(output.isTerminated)
+		self.assertEqual([], inputAdapter.handlers)
+		self.assertIn("Required global keyboard or mouse capture is unavailable.", writes)
+
 
 if __name__ == "__main__":
 	unittest.main()

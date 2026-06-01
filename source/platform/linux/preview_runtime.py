@@ -15,6 +15,7 @@ def runNativePreview(
 	*,
 	durationSeconds: float | None = None,
 	pollIntervalSeconds: float = 0.05,
+	requireGlobalCapture: bool = False,
 	services: Any | None = None,
 	speechOutput: SpeechOutput | None = None,
 	createOutput: Callable[[], SpeechOutput | None] = createSpeechOutput,
@@ -78,6 +79,9 @@ def runNativePreview(
 		write(f"Mouse capture mode: {inputAdapter.mouseCaptureMode.value}")
 		if inputAdapter.mouseEventSourceStartError is not None:
 			write(f"Mouse capture fallback reason: {inputAdapter.mouseEventSourceStartError}")
+		if requireGlobalCapture and not _hasRequiredGlobalCapture(inputAdapter):
+			write("Required global keyboard or mouse capture is unavailable.")
+			return 3
 		write("Linux native preview started. Press Ctrl+C to stop.")
 		output.speak("NVDA Linux preview started")
 		endTime = None if durationSeconds is None else monotonic() + max(0, durationSeconds)
@@ -108,3 +112,10 @@ def runNativePreview(
 			accessibility.terminate()
 		output.terminate()
 	return 0
+
+
+def _hasRequiredGlobalCapture(inputAdapter: Any) -> bool:
+	return (
+		inputAdapter.keyboardCaptureMode.value in ("global", "globalCommands")
+		and inputAdapter.mouseCaptureMode.value in ("global", "globalObserveOnly")
+	)
